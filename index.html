@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Neon Serpents</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #030814;
+    color: #e0f2fe;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+  #game-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  #hud {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 10;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 14px;
+    text-shadow: 0 0 8px rgba(0,255,200,0.4);
+  }
+  .hud-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(4, 16, 36, 0.65);
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    backdrop-filter: blur(4px);
+  }
+  .hud-val {
+    font-weight: bold;
+    color: #38bdf8;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="game-canvas"></canvas>
+
+<div id="hud">
+  <div class="hud-stat">
+    <span>Length:</span>
+    <span id="stat-length" class="hud-val">20</span>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// §1  CONSTANTS
+// ============================================================
+const BASE_SPEED = 3.2;          // Movement speed in px/frame
+const TURN_RATE = 0.075;         // Steering agility (radians per frame)
+const SEGMENT_SPACING = 8;       // Distance between vertebrae segments
+const INITIAL_SEGMENTS = 25;     // Starting snake length
+const BASE_RADIUS = 12;          // Base radius of snake head
+
+// Color definitions for player
+const PLAYER_COLOR_HEAD = '#00f5ff';
+const PLAYER_COLOR_BODY = '#0284c7';
+const PLAYER_GLOW = 'rgba(0, 245, 255, 0.4)';
+
+// ============================================================
+// §2  STATE
+// ============================================================
+let canvas = null;
+let ctx = null;
+let width = window.innerWidth;
+let height = window.innerHeight;
+
+// Player snake state
+const player = {
+  x: width / 2,
+  y: height / 2,
+  angle: -Math.PI / 2,           // Current facing angle
+  targetAngle: -Math.PI / 2,     // Steered target angle
+  speed: BASE_SPEED,
+  turnRate: TURN_RATE,
+  length: INITIAL_SEGMENTS,
+  segments: [],                  // [{x, y, angle}]
+  alive: true,
+};
+
+// Input state
+const keys = {
+  left: false,
+  right: false,
+};
+const mouse = {
+  x: width / 2,
+  y: height / 2,
+  active: false,
+};
+
+// ============================================================
+// §3  TOROIDAL WRAP UTILITIES
+// ============================================================
+
+/** Wraps coordinate x across boundary [0, max) */
+function wrap(val, max) {
+  return ((val % max) + max) % max;
+}
+
+/** Shortest difference from a to b on a wrapped ring of length size */
+function toroidDelta(a, b, size) {
+  let d = b - a;
+  while (d > size * 0.5) d -= size;
+  while (d < -size * 0.5) d += size;
+  return d;
+}
+
+/** Shortest angular difference from current to target angle */
+function angleDifference(current, target) {
+  return Math.atan2(Math.sin(target - current), Math.cos(target - current));
+}
+
+// ============================================================
+// §4  INPUT HANDLING
+// ============================================================
+function initInput() {
+  window.addEventListener('resize', onResize);
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+  });
+
+  window.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+    mouse.active = true;
+  });
+
+  // Touch controls for mobile / pointer
+  window.addEventListener('touchstart', onTouch, { passive: false });
+  window.addEventListener('touchmove', onTouch, { passive: false });
+  window.addEventListener('touchend', () => { mouse.active = false; }, { passive: false });
+}
+
+function onTouch(e) {
+  e.preventDefault();
+  if (e.touches.length > 0) {
+    mouse.x = e.touches[0].clientX;
+    mouse.y = e.touches[0].clientY;
+    mouse.active = true;
+  }
+}
+
+function onResize() {
+  width = window.innerWidth;
+  height = window.innerHeight;
+  canvas.width = width;
+  canvas.height = height;
+}
+
+// ============================================================
+// §5  UPDATE
+// ============================================================
+
+function initSnake() {
+  player.x = width / 2;
+  player.y = height / 2;
+  player.angle = -Math.PI / 2;
+  player.targetAngle = -Math.PI / 2;
+  player.segments = [];
+  
+  for (let i = 0; i < player.length; i++) {
+    player.segments.push({
+      x: player.x,
+      y: player.y + i * SEGMENT_SPACING,
+      angle: player.angle,
+    });
+  }
+}
+
+function updatePlayer() {
+  // 1. Determine steering angle
+  if (keys.left) {
+    player.targetAngle -= player.turnRate;
+    mouse.active = false;
+  } else if (keys.right) {
+    player.targetAngle += player.turnRate;
+    mouse.active = false;
+  } else if (mouse.active) {
+    // Steer towards mouse position using shortest toroidal vector
+    const dx = toroidDelta(player.x, mouse.x, width);
+    const dy = toroidDelta(player.y, mouse.y, height);
+    if (Math.hypot(dx, dy) > 15) {
+      player.targetAngle = Math.atan2(dy, dx);
+    }
+  }
+
+  // Smooth turning towards target angle
+  const diff = angleDifference(player.angle, player.targetAngle);
+  player.angle += Math.sign(diff) * Math.min(Math.abs(diff), player.turnRate);
+
+  // 2. Move head with wrap-around
+  player.x = wrap(player.x + Math.cos(player.angle) * player.speed, width);
+  player.y = wrap(player.y + Math.sin(player.angle) * player.speed, height);
+
+  // 3. Update body chain segments to follow head
+  let prevX = player.x;
+  let prevY = player.y;
+
+  for (let i = 0; i < player.segments.length; i++) {
+    const seg = player.segments[i];
+    // Shortest toroidal vector to previous segment
+    const dx = toroidDelta(seg.x, prevX, width);
+    const dy = toroidDelta(seg.y, prevY, height);
+    const dist = Math.hypot(dx, dy);
+
+    if (dist > SEGMENT_SPACING) {
+      const segAngle = Math.atan2(dy, dx);
+      seg.angle = segAngle;
+      seg.x = wrap(prevX - Math.cos(segAngle) * SEGMENT_SPACING, width);
+      seg.y = wrap(prevY - Math.sin(segAngle) * SEGMENT_SPACING, height);
+    }
+
+    prevX = seg.x;
+    prevY = seg.y;
+  }
+}
+
+function update() {
+  updatePlayer();
+}
+
+// ============================================================
+// §6  RENDER (WITH SEAMLESS WRAP-AROUND)
+// ============================================================
+
+/**
+ * Draws the snake at a specific translation offset.
+ * We render the snake multiple times (primary + wrap offsets)
+ * whenever it crosses an edge so it wraps seamlessly without visual cuts.
+ */
+function drawSnakeAt(snake, offsetX, offsetY) {
+  const segs = snake.segments;
+  if (segs.length === 0) return;
+
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+
+  // Draw body segments from tail to head
+  for (let i = segs.length - 1; i >= 0; i--) {
+    const seg = segs[i];
+    const taperRatio = 1 - (i / segs.length) * 0.6; // Slight taper toward tail
+    const radius = Math.max(4, BASE_RADIUS * taperRatio * 0.7);
+
+    // Compute unwrapped coordinates relative to head for continuous rendering
+    ctx.beginPath();
+    ctx.arc(seg.x, seg.y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = PLAYER_COLOR_BODY;
+    ctx.shadowColor = PLAYER_GLOW;
+    ctx.shadowBlur = 8;
+    ctx.fill();
+  }
+
+  // Draw head
+  ctx.beginPath();
+  ctx.arc(snake.x, snake.y, BASE_RADIUS, 0, Math.PI * 2);
+  ctx.fillStyle = PLAYER_COLOR_HEAD;
+  ctx.shadowColor = PLAYER_GLOW;
+  ctx.shadowBlur = 14;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Head eyes
+  const eyeDistance = 7;
+  const eyeRadius = 3;
+  const pupilRadius = 1.5;
+  const eyeAngle1 = snake.angle + Math.PI / 3;
+  const eyeAngle2 = snake.angle - Math.PI / 3;
+
+  const eye1X = snake.x + Math.cos(eyeAngle1) * eyeDistance;
+  const eye1Y = snake.y + Math.sin(eyeAngle1) * eyeDistance;
+  const eye2X = snake.x + Math.cos(eyeAngle2) * eyeDistance;
+  const eye2Y = snake.y + Math.sin(eyeAngle2) * eyeDistance;
+
+  // Eye whites
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(eye1X, eye1Y, eyeRadius, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(eye2X, eye2Y, eyeRadius, 0, Math.PI * 2); ctx.fill();
+
+  // Pupils looking in movement direction
+  const pOffset = 1.2;
+  ctx.fillStyle = '#0f172a';
+  ctx.beginPath();
+  ctx.arc(eye1X + Math.cos(snake.angle) * pOffset, eye1Y + Math.sin(snake.angle) * pOffset, pupilRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(eye2X + Math.cos(snake.angle) * pOffset, eye2Y + Math.sin(snake.angle) * pOffset, pupilRadius, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+/** Draws snake with wrap-around clones if it spans world boundaries */
+function drawSnakeToroidal(snake) {
+  // Check if any part is near borders; if so, draw wrapped ghost instances
+  const offsets = [
+    [0, 0],
+    [width, 0], [-width, 0],
+    [0, height], [0, -height],
+    [width, height], [-width, height],
+    [width, -height], [-width, -height]
+  ];
+
+  for (const [ox, oy] of offsets) {
+    drawSnakeAt(snake, ox, oy);
+  }
+}
+
+function render() {
+  ctx.fillStyle = '#030814';
+  ctx.fillRect(0, 0, width, height);
+
+  // Subtle grid/stars background
+  ctx.strokeStyle = 'rgba(30, 58, 138, 0.15)';
+  ctx.lineWidth = 1;
+  const gridSize = 60;
+  for (let x = 0; x < width; x += gridSize) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+  }
+  for (let y = 0; y < height; y += gridSize) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+  }
+
+  // Draw snake
+  drawSnakeToroidal(player);
+}
+
+// ============================================================
+// §7  LOOP
+// ============================================================
+function gameLoop() {
+  update();
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+// Startup
+window.addEventListener('DOMContentLoaded', () => {
+  canvas = document.getElementById('game-canvas');
+  ctx = canvas.getContext('2d');
+  onResize();
+  initInput();
+  initSnake();
+  requestAnimationFrame(gameLoop);
+});
+</script>
+</body>
+</html>
