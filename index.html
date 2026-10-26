@@ -31,11 +31,12 @@
     left: 16px;
     z-index: 10;
     pointer-events: none;
-    display: none; /* Shown during game */
+    display: none;
     gap: 10px;
     font-size: 14px;
     text-shadow: 0 0 8px rgba(0,255,200,0.4);
     flex-wrap: wrap;
+    align-items: center;
   }
   .hud-stat {
     display: flex;
@@ -51,6 +52,22 @@
     font-weight: bold;
     color: #38bdf8;
   }
+  #mute-btn {
+    pointer-events: auto;
+    background: rgba(4, 16, 36, 0.7);
+    border: 1px solid rgba(0, 240, 255, 0.25);
+    color: #e0f2fe;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    backdrop-filter: blur(6px);
+    transition: all 0.2s;
+  }
+  #mute-btn:hover {
+    border-color: #00f5ff;
+    color: #00f5ff;
+  }
 
   /* Live Leaderboard */
   #leaderboard {
@@ -59,7 +76,7 @@
     right: 16px;
     z-index: 10;
     pointer-events: none;
-    display: none; /* Shown during game */
+    display: none;
     background: rgba(4, 16, 36, 0.75);
     border: 1px solid rgba(56, 189, 248, 0.25);
     border-radius: 14px;
@@ -141,7 +158,7 @@
     letter-spacing: 1px;
   }
   .diff-selector {
-    margin-bottom: 32px;
+    margin-bottom: 24px;
   }
   .diff-label {
     display: block;
@@ -175,6 +192,15 @@
     border-color: #00f5ff;
     color: #00f5ff;
     box-shadow: 0 0 16px rgba(0, 245, 255, 0.4);
+    font-weight: bold;
+  }
+  .menu-records {
+    color: #94a3b8;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .menu-records span {
+    color: #facc15;
     font-weight: bold;
   }
   .play-btn {
@@ -291,6 +317,7 @@
     <span>Rank:</span>
     <span id="stat-rank" class="hud-val">#1</span>
   </div>
+  <button id="mute-btn" onclick="toggleMute()">🔊</button>
 </div>
 
 <!-- Live Leaderboard -->
@@ -311,6 +338,10 @@
       <button class="diff-btn active" data-diff="normal" onclick="setDifficulty('normal')">Normal</button>
       <button class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">Hard</button>
     </div>
+  </div>
+
+  <div class="menu-records">
+    Best Record (<span id="diff-name-label">Normal</span>): Time: <span id="menu-best-time">00:00</span> &bull; Length: <span id="menu-best-len">30</span>
   </div>
 
   <button class="play-btn" onclick="startGame()">▶ DIVE IN</button>
@@ -336,7 +367,7 @@
       <span id="final-time" class="val">00:00</span>
     </div>
     <div class="score-row">
-      <span class="label">Best Time:</span>
+      <span class="label">Best Time (<span id="card-diff-label">Normal</span>):</span>
       <span id="best-time" class="best">00:00</span>
     </div>
     <div class="score-row">
@@ -356,19 +387,19 @@
 // §1  CONSTANTS & DIFFICULTY SPEEDS
 // ============================================================
 const SPEED_CONFIGS = {
-  easy: 2.4,     // Slower
-  normal: 3.3,   // Medium
-  hard: 4.2      // Fastest
+  easy: 2.4,
+  normal: 3.3,
+  hard: 4.2
 };
 
-const TURN_RATE = 0.075;         // Steering agility (identical in all modes)
-const SEGMENT_SPACING = 7;       // Distance between vertebrae segments
-const INITIAL_SEGMENTS = 30;     // Starting snake length
-const HEAD_RADIUS = 13;          // Radius of serpent head
-const PLANKTON_COUNT = 55;       // Bioluminescent ambient particles
-const FOOD_COUNT = 65;           // Total food orbs maintained in world
-const BOT_COUNT = 6;             // Exactly 6 AI bots
-const RESPAWN_DELAY_FRAMES = 180;// 3 seconds at 60fps
+const TURN_RATE = 0.075;
+const SEGMENT_SPACING = 7;
+const INITIAL_SEGMENTS = 30;
+const HEAD_RADIUS = 13;
+const PLANKTON_COUNT = 55;
+const FOOD_COUNT = 65;
+const BOT_COUNT = 6;
+const RESPAWN_DELAY_FRAMES = 180;
 
 const FOOD_COLORS = [
   { core: '#22d3ee', glow: 'rgba(34, 211, 238, 0.5)' },
@@ -441,7 +472,7 @@ const BOT_CONFIGS = [
 ];
 
 // ============================================================
-// §2  STATE
+// §2  STATE & AUDIO
 // ============================================================
 let canvas = null;
 let ctx = null;
@@ -458,9 +489,14 @@ let gameStartTime = 0;
 let pauseStartTime = 0;
 let totalPausedDuration = 0;
 let survivalSeconds = 0;
-let bestSurvivalSeconds = 0;
-let bestLength = INITIAL_SEGMENTS;
 let shakeIntensity = 0;
+
+// Web Audio API
+let audioCtx = null;
+let isMuted = false;
+let ambientOsc1 = null;
+let ambientOsc2 = null;
+let ambientGain = null;
 
 const foodOrbs = [];
 const particles = [];
@@ -504,9 +540,91 @@ let finalTimeEl = null;
 let bestTimeEl = null;
 let finalLengthEl = null;
 let bestLengthEl = null;
+let muteBtnEl = null;
+let diffNameLabel = null;
+let menuBestTime = null;
+let menuBestLen = null;
+let cardDiffLabel = null;
 
 // ============================================================
-// §3  TOROIDAL WRAP UTILITIES
+// §3  AUDIO SYNTHESIS (NO EXTERNAL FILES)
+// ============================================================
+
+function initAudio() {
+  if (audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Ambient deep sea hum
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 140;
+
+    ambientGain = audioCtx.createGain();
+    ambientGain.gain.setValueAtTime(isMuted ? 0 : 0.035, audioCtx.currentTime);
+
+    ambientOsc1 = audioCtx.createOscillator();
+    ambientOsc1.type = 'sine';
+    ambientOsc1.frequency.value = 55;
+
+    ambientOsc2 = audioCtx.createOscillator();
+    ambientOsc2.type = 'sine';
+    ambientOsc2.frequency.value = 58.5;
+
+    ambientOsc1.connect(filter);
+    ambientOsc2.connect(filter);
+    filter.connect(ambientGain);
+    ambientGain.connect(audioCtx.destination);
+
+    ambientOsc1.start();
+    ambientOsc2.start();
+  } catch (_) {}
+}
+
+function playTone(freqStart, freqEnd, duration, type = 'sine', volume = 0.1) {
+  if (isMuted || !audioCtx) return;
+  try {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freqStart, audioCtx.currentTime);
+    if (freqEnd !== freqStart) {
+      osc.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), audioCtx.currentTime + duration);
+    }
+    gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  } catch (_) {}
+}
+
+function sfxEat() {
+  playTone(840, 1280, 0.08, 'sine', 0.09);
+}
+
+function sfxBotDeath() {
+  playTone(280, 70, 0.28, 'triangle', 0.12);
+}
+
+function sfxPlayerDeath() {
+  playTone(180, 40, 0.75, 'sawtooth', 0.16);
+}
+
+function toggleMute() {
+  isMuted = !isMuted;
+  localStorage.setItem('neonSerpents_muted', isMuted ? '1' : '0');
+  if (muteBtnEl) muteBtnEl.textContent = isMuted ? '🔇' : '🔊';
+  if (ambientGain && audioCtx) {
+    ambientGain.gain.setValueAtTime(isMuted ? 0 : 0.035, audioCtx.currentTime);
+  }
+}
+
+// ============================================================
+// §4  TOROIDAL WRAP & PERSISTENCE
 // ============================================================
 
 function wrap(val, max) {
@@ -550,8 +668,34 @@ function formatTime(seconds) {
   return `${m}:${s}`;
 }
 
+function getBestTime(diff) {
+  return parseInt(localStorage.getItem(`neonSerpents_bestTime_${diff}`) || '0', 10);
+}
+
+function getBestLength(diff) {
+  return parseInt(localStorage.getItem(`neonSerpents_bestLength_${diff}`) || `${INITIAL_SEGMENTS}`, 10);
+}
+
+function saveBestRecords(diff, time, len) {
+  const curBestTime = getBestTime(diff);
+  const curBestLen = getBestLength(diff);
+  if (time > curBestTime) localStorage.setItem(`neonSerpents_bestTime_${diff}`, time.toString());
+  if (len > curBestLen) localStorage.setItem(`neonSerpents_bestLength_${diff}`, len.toString());
+}
+
+function updateMenuRecordsDisplay() {
+  const diff = currentDifficulty;
+  const bTime = getBestTime(diff);
+  const bLen = getBestLength(diff);
+  const capitalized = diff.charAt(0).toUpperCase() + diff.slice(1);
+  if (diffNameLabel) diffNameLabel.textContent = capitalized;
+  if (menuBestTime) menuBestTime.textContent = formatTime(bTime);
+  if (menuBestLen) menuBestLen.textContent = bLen;
+  if (cardDiffLabel) cardDiffLabel.textContent = capitalized;
+}
+
 // ============================================================
-// §4  BACKGROUND, FOOD & PARTICLES
+// §5  BACKGROUND, FOOD & PARTICLES
 // ============================================================
 
 function initPlankton() {
@@ -682,7 +826,7 @@ function updateParticles() {
 }
 
 // ============================================================
-// §5  BOTS CREATION & BEHAVIOR
+// §6  BOTS CREATION & BEHAVIOR
 // ============================================================
 
 function getActiveSpeed() {
@@ -852,7 +996,7 @@ function updateBotAI(bot) {
 }
 
 // ============================================================
-// §6  PHYSICS & UPDATE
+// §7  PHYSICS & UPDATE
 // ============================================================
 
 function advanceSnake(snake) {
@@ -936,6 +1080,7 @@ function killBot(bot) {
   bot.alive = false;
   bot.respawnTimer = RESPAWN_DELAY_FRAMES;
   dissolveSnakeIntoFood(bot);
+  sfxBotDeath();
 }
 
 function handlePlayerDeath() {
@@ -945,14 +1090,19 @@ function handlePlayerDeath() {
   shakeIntensity = 18;
 
   dissolveSnakeIntoFood(player);
+  sfxPlayerDeath();
 
-  if (survivalSeconds > bestSurvivalSeconds) bestSurvivalSeconds = survivalSeconds;
-  if (player.length > bestLength) bestLength = player.length;
+  saveBestRecords(currentDifficulty, survivalSeconds, player.length);
+  const bestT = getBestTime(currentDifficulty);
+  const bestL = getBestLength(currentDifficulty);
 
   finalTimeEl.textContent = formatTime(survivalSeconds);
-  bestTimeEl.textContent = formatTime(bestSurvivalSeconds);
+  bestTimeEl.textContent = formatTime(bestT);
   finalLengthEl.textContent = player.length;
-  bestLengthEl.textContent = bestLength;
+  bestLengthEl.textContent = bestL;
+  if (cardDiffLabel) {
+    cardDiffLabel.textContent = currentDifficulty.charAt(0).toUpperCase() + currentDifficulty.slice(1);
+  }
   overlayEl.style.display = 'flex';
 }
 
@@ -1000,8 +1150,9 @@ function checkFoodConsumptionAll() {
         snake.growQueue++;
         snake.length++;
 
-        if (snake.isPlayer && statLengthEl) {
-          statLengthEl.textContent = snake.length;
+        if (snake.isPlayer) {
+          sfxEat();
+          if (statLengthEl) statLengthEl.textContent = snake.length;
         }
       }
     }
@@ -1086,7 +1237,7 @@ function update() {
 }
 
 // ============================================================
-// §7  MENU, DIFFICULTY & PAUSE
+// §8  MENU, DIFFICULTY & PAUSE
 // ============================================================
 
 function setDifficulty(diff) {
@@ -1094,6 +1245,7 @@ function setDifficulty(diff) {
   document.querySelectorAll('.diff-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.diff === diff);
   });
+  updateMenuRecordsDisplay();
 }
 
 function applyDifficultySpeeds() {
@@ -1105,6 +1257,7 @@ function applyDifficultySpeeds() {
 }
 
 function startGame() {
+  initAudio();
   menuScreenEl.style.display = 'none';
   hudEl.style.display = 'flex';
   lbEl.style.display = 'block';
@@ -1133,6 +1286,7 @@ function initInput() {
   window.addEventListener('resize', onResize);
 
   window.addEventListener('keydown', (e) => {
+    initAudio();
     if (e.key === 'p' || e.key === 'P' || e.key === ' ') {
       if (isGameRunning && !isGameOver) {
         e.preventDefault();
@@ -1176,6 +1330,7 @@ function initInput() {
 
 function onTouch(e) {
   e.preventDefault();
+  initAudio();
   if (isPaused) {
     togglePause();
     return;
@@ -1239,7 +1394,7 @@ function restartGame() {
 }
 
 // ============================================================
-// §8  RENDER: BACKGROUND, TRAIL, FOOD & SERPENTS WITH NAME TAGS
+// §9  RENDER: BACKGROUND, TRAIL, FOOD & SERPENTS
 // ============================================================
 
 function renderBackground() {
@@ -1521,19 +1676,17 @@ function render() {
   renderFood();
   renderParticles();
 
-  // Draw Bots
   for (const bot of bots) {
     drawSnakeToroidal(bot);
   }
 
-  // Draw Player on top
   drawSnakeToroidal(player);
 
   ctx.restore();
 }
 
 // ============================================================
-// §9  LOOP
+// §10  LOOP & STARTUP
 // ============================================================
 function gameLoop() {
   update();
@@ -1557,12 +1710,22 @@ window.addEventListener('DOMContentLoaded', () => {
   bestTimeEl = document.getElementById('best-time');
   finalLengthEl = document.getElementById('final-length');
   bestLengthEl = document.getElementById('best-length');
+  muteBtnEl = document.getElementById('mute-btn');
+  diffNameLabel = document.getElementById('diff-name-label');
+  menuBestTime = document.getElementById('menu-best-time');
+  menuBestLen = document.getElementById('menu-best-len');
+  cardDiffLabel = document.getElementById('card-diff-label');
+
+  // Load mute state
+  isMuted = localStorage.getItem('neonSerpents_muted') === '1';
+  if (muteBtnEl) muteBtnEl.textContent = isMuted ? '🔇' : '🔊';
 
   onResize();
   initPlankton();
   initFood();
   initInput();
   initBots();
+  updateMenuRecordsDisplay();
   requestAnimationFrame(gameLoop);
 });
 </script>
