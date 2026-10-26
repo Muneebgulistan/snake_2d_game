@@ -317,6 +317,10 @@
     <span>Rank:</span>
     <span id="stat-rank" class="hud-val">#1</span>
   </div>
+  <div class="hud-stat" id="stat-cycle">
+    <span id="cycle-icon">🌅</span>
+    <span id="cycle-name" class="hud-val">Dawn</span>
+  </div>
   <button id="mute-btn" onclick="toggleMute()">🔊</button>
 </div>
 
@@ -400,6 +404,34 @@ const PLANKTON_COUNT = 55;
 const FOOD_COUNT = 65;
 const BOT_COUNT = 6;
 const RESPAWN_DELAY_FRAMES = 180;
+const CYCLE_DURATION = 180; // 3 minutes real time full cycle
+
+const CYCLE_PHASES = [
+  {
+    name: 'Dawn', icon: '🌅',
+    top: [2, 26, 36], mid: [4, 47, 62], bot: [1, 16, 23],
+    ray: [45, 212, 191], rayAlpha: 0.06,
+    glowBoost: 1.15, planktonAlpha: 0.28
+  },
+  {
+    name: 'Midday', icon: '☀️',
+    top: [3, 59, 92], mid: [2, 132, 199], bot: [1, 26, 48],
+    ray: [56, 189, 248], rayAlpha: 0.12,
+    glowBoost: 1.0, planktonAlpha: 0.15
+  },
+  {
+    name: 'Dusk', icon: '🌇',
+    top: [49, 16, 63], mid: [67, 20, 7], bot: [10, 4, 24],
+    ray: [244, 114, 182], rayAlpha: 0.07,
+    glowBoost: 1.25, planktonAlpha: 0.35
+  },
+  {
+    name: 'Night', icon: '🌙',
+    top: [1, 4, 10], mid: [2, 6, 18], bot: [0, 2, 5],
+    ray: [148, 163, 184], rayAlpha: 0.02,
+    glowBoost: 1.7, planktonAlpha: 0.60
+  }
+];
 
 const MAX_PARTICLES = 140;
 const MAX_TRAIL_PARTICLES = 90;
@@ -546,6 +578,20 @@ let diffNameLabel = null;
 let menuBestTime = null;
 let menuBestLen = null;
 let cardDiffLabel = null;
+let cycleIconEl = null;
+let cycleNameEl = null;
+
+let currentCycle = {
+  progress: 0,
+  phaseName: 'Dawn',
+  phaseIcon: '🌅',
+  bgTop: '#021a24',
+  bgMid: '#042f3e',
+  bgBot: '#011017',
+  rayColor: 'rgba(45, 212, 191, 0.06)',
+  glowMultiplier: 1.15,
+  planktonBoost: 0.28
+};
 
 // ============================================================
 // §3  AUDIO SYNTHESIS (NO EXTERNAL FILES)
@@ -693,6 +739,48 @@ function updateMenuRecordsDisplay() {
   if (menuBestTime) menuBestTime.textContent = formatTime(bTime);
   if (menuBestLen) menuBestLen.textContent = bLen;
   if (cardDiffLabel) cardDiffLabel.textContent = capitalized;
+}
+
+function updateDayNightCycle() {
+  const t = ((performance.now() / 1000) % CYCLE_DURATION) / CYCLE_DURATION;
+  currentCycle.progress = t;
+
+  const rawPhase = t * 4;
+  const idx1 = Math.floor(rawPhase) % 4;
+  const idx2 = (idx1 + 1) % 4;
+  let blend = rawPhase - Math.floor(rawPhase);
+  // Smoothstep interpolation for seamless transition
+  blend = blend * blend * (3 - 2 * blend);
+
+  const p1 = CYCLE_PHASES[idx1];
+  const p2 = CYCLE_PHASES[idx2];
+
+  const lerpVal = (a, b) => a + (b - a) * blend;
+  const lerpColor = (c1, c2) => [
+    Math.round(lerpVal(c1[0], c2[0])),
+    Math.round(lerpVal(c1[1], c2[1])),
+    Math.round(lerpVal(c1[2], c2[2]))
+  ];
+
+  const top = lerpColor(p1.top, p2.top);
+  const mid = lerpColor(p1.mid, p2.mid);
+  const bot = lerpColor(p1.bot, p2.bot);
+  const ray = lerpColor(p1.ray, p2.ray);
+  const rayAlpha = lerpVal(p1.rayAlpha, p2.rayAlpha);
+
+  currentCycle.bgTop = `rgb(${top[0]}, ${top[1]}, ${top[2]})`;
+  currentCycle.bgMid = `rgb(${mid[0]}, ${mid[1]}, ${mid[2]})`;
+  currentCycle.bgBot = `rgb(${bot[0]}, ${bot[1]}, ${bot[2]})`;
+  currentCycle.rayColor = `rgba(${ray[0]}, ${ray[1]}, ${ray[2]}, ${rayAlpha.toFixed(3)})`;
+  currentCycle.glowMultiplier = lerpVal(p1.glowBoost, p2.glowBoost);
+  currentCycle.planktonBoost = lerpVal(p1.planktonAlpha, p2.planktonAlpha);
+  currentCycle.phaseName = p1.name;
+  currentCycle.phaseIcon = p1.icon;
+
+  if (cycleIconEl && cycleNameEl) {
+    cycleIconEl.textContent = currentCycle.phaseIcon;
+    cycleNameEl.textContent = currentCycle.phaseName;
+  }
 }
 
 // ============================================================
@@ -1431,9 +1519,9 @@ function restartGame() {
 
 function renderBackground() {
   const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
-  bgGrad.addColorStop(0, '#030816');
-  bgGrad.addColorStop(0.5, '#020b1f');
-  bgGrad.addColorStop(1, '#01050f');
+  bgGrad.addColorStop(0, currentCycle.bgTop);
+  bgGrad.addColorStop(0.5, currentCycle.bgMid);
+  bgGrad.addColorStop(1, currentCycle.bgBot);
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, width, height);
 
@@ -1444,9 +1532,9 @@ function renderBackground() {
     const rayX = ((width * (0.2 + i * 0.28)) + Math.sin(animFrame * 0.005 + i) * 60) % width;
 
     const rayGrad = ctx.createLinearGradient(rayX, 0, rayX + Math.tan(rayAngle) * height, height);
-    rayGrad.addColorStop(0, 'rgba(56, 189, 248, 0.05)');
-    rayGrad.addColorStop(0.5, 'rgba(14, 165, 233, 0.025)');
-    rayGrad.addColorStop(1, 'rgba(2, 6, 23, 0)');
+    rayGrad.addColorStop(0, currentCycle.rayColor);
+    rayGrad.addColorStop(0.5, currentCycle.rayColor);
+    rayGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
     ctx.fillStyle = rayGrad;
     ctx.beginPath();
@@ -1461,7 +1549,7 @@ function renderBackground() {
 
   for (const p of plankton) {
     const pulse = Math.sin(animFrame * p.pulseSpeed + p.pulsePhase);
-    const alpha = p.baseAlpha + pulse * 0.15;
+    const alpha = Math.min(1, (p.baseAlpha + pulse * 0.15) * (1 + currentCycle.planktonBoost * 1.6));
     ctx.fillStyle = p.color + alpha + ')';
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
@@ -1470,13 +1558,14 @@ function renderBackground() {
 }
 
 function renderFood() {
+  const glowScale = currentCycle.glowMultiplier;
   for (const orb of foodOrbs) {
     const pulse = Math.sin(animFrame * orb.pulseSpeed + orb.pulsePhase);
     const radius = orb.baseRadius + pulse * 1.2;
 
     ctx.fillStyle = orb.glow;
     ctx.beginPath();
-    ctx.arc(orb.x, orb.y, radius * 2.2, 0, Math.PI * 2);
+    ctx.arc(orb.x, orb.y, radius * (2.2 * glowScale), 0, Math.PI * 2);
     ctx.fill();
 
     ctx.fillStyle = orb.color;
@@ -1613,7 +1702,7 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     ctx.fillStyle = segColor;
     if (i % 6 === 0) {
       ctx.shadowColor = pal.glow;
-      ctx.shadowBlur = 6;
+      ctx.shadowBlur = Math.round(6 * currentCycle.glowMultiplier);
     } else {
       ctx.shadowBlur = 0;
     }
@@ -1632,7 +1721,7 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   ctx.rotate(snake.angle);
 
   ctx.shadowColor = pal.glow;
-  ctx.shadowBlur = 16;
+  ctx.shadowBlur = Math.round(16 * currentCycle.glowMultiplier);
 
   ctx.beginPath();
   ctx.ellipse(2, 0, HEAD_RADIUS + 1, HEAD_RADIUS - 1.5, 0, 0, Math.PI * 2);
@@ -1707,6 +1796,8 @@ function drawSnakeToroidal(snake) {
 }
 
 function render() {
+  updateDayNightCycle();
+
   ctx.save();
   if (shakeIntensity > 0) {
     const sx = (Math.random() - 0.5) * shakeIntensity;
@@ -1757,6 +1848,8 @@ window.addEventListener('DOMContentLoaded', () => {
   menuBestTime = document.getElementById('menu-best-time');
   menuBestLen = document.getElementById('menu-best-len');
   cardDiffLabel = document.getElementById('card-diff-label');
+  cycleIconEl = document.getElementById('cycle-icon');
+  cycleNameEl = document.getElementById('cycle-name');
 
   isMuted = localStorage.getItem('neonSerpents_muted') === '1';
   if (muteBtnEl) muteBtnEl.textContent = isMuted ? '🔇' : '🔊';
