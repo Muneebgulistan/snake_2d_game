@@ -31,7 +31,7 @@
     left: 16px;
     z-index: 10;
     pointer-events: none;
-    display: flex;
+    display: none; /* Shown during game */
     gap: 10px;
     font-size: 14px;
     text-shadow: 0 0 8px rgba(0,255,200,0.4);
@@ -59,6 +59,7 @@
     right: 16px;
     z-index: 10;
     pointer-events: none;
+    display: none; /* Shown during game */
     background: rgba(4, 16, 36, 0.75);
     border: 1px solid rgba(56, 189, 248, 0.25);
     border-radius: 14px;
@@ -110,6 +111,115 @@
   }
   .lb-item.is-player .lb-length {
     color: #38bdf8;
+  }
+
+  /* Menu Screen */
+  #menu-screen {
+    position: absolute;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.88);
+    backdrop-filter: blur(10px);
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+  }
+  #menu-screen h1 {
+    font-size: 52px;
+    color: #00f5ff;
+    text-shadow: 0 0 30px rgba(0, 245, 255, 0.65), 0 0 10px rgba(255,255,255,0.8);
+    margin-bottom: 6px;
+    letter-spacing: 4px;
+  }
+  .menu-sub {
+    font-size: 16px;
+    color: #94a3b8;
+    margin-bottom: 30px;
+    letter-spacing: 1px;
+  }
+  .diff-selector {
+    margin-bottom: 32px;
+  }
+  .diff-label {
+    display: block;
+    color: #64748b;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+  }
+  .diff-btns {
+    display: flex;
+    gap: 12px;
+  }
+  .diff-btn {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #94a3b8;
+    padding: 10px 24px;
+    border-radius: 24px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+  .diff-btn:hover {
+    border-color: #00f5ff;
+    color: #f8fafc;
+  }
+  .diff-btn.active {
+    background: rgba(0, 245, 255, 0.2);
+    border-color: #00f5ff;
+    color: #00f5ff;
+    box-shadow: 0 0 16px rgba(0, 245, 255, 0.4);
+    font-weight: bold;
+  }
+  .play-btn {
+    background: linear-gradient(135deg, #00f5ff, #0284c7);
+    color: #020617;
+    border: none;
+    padding: 14px 48px;
+    border-radius: 30px;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 0 25px rgba(0, 245, 255, 0.5);
+    transition: all 0.2s ease;
+    font-family: inherit;
+    letter-spacing: 1px;
+  }
+  .play-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 35px rgba(0, 245, 255, 0.75);
+  }
+  .menu-hint {
+    color: #64748b;
+    font-size: 13px;
+    margin-top: 30px;
+    line-height: 1.6;
+  }
+
+  /* Pause Overlay */
+  #pause-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.7);
+    backdrop-filter: blur(6px);
+    z-index: 55;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  #pause-overlay h2 {
+    font-size: 38px;
+    color: #38bdf8;
+    text-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+    margin-bottom: 12px;
   }
 
   /* Game Over Overlay */
@@ -189,6 +299,34 @@
   <div class="lb-list" id="lb-list"></div>
 </div>
 
+<!-- Menu Start Screen -->
+<div id="menu-screen">
+  <h1>NEON SERPENTS</h1>
+  <div class="menu-sub">Deep Sea Toroidal Arena</div>
+
+  <div class="diff-selector">
+    <span class="diff-label">Select Difficulty</span>
+    <div class="diff-btns">
+      <button class="diff-btn" data-diff="easy" onclick="setDifficulty('easy')">Easy</button>
+      <button class="diff-btn active" data-diff="normal" onclick="setDifficulty('normal')">Normal</button>
+      <button class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">Hard</button>
+    </div>
+  </div>
+
+  <button class="play-btn" onclick="startGame()">▶ DIVE IN</button>
+
+  <div class="menu-hint">
+    Mouse / Touch / A & D to steer &bull; P or Space to pause<br>
+    Wrap across edges &bull; Avoid bodies &bull; Trap opponents
+  </div>
+</div>
+
+<!-- Pause Overlay -->
+<div id="pause-overlay">
+  <h2>GAME PAUSED</h2>
+  <div class="restart-hint">Press P or Space to Resume</div>
+</div>
+
 <!-- Game Over Overlay -->
 <div id="overlay">
   <h2>SERPENT DISSOLVED</h2>
@@ -215,10 +353,15 @@
 
 <script>
 // ============================================================
-// §1  CONSTANTS
+// §1  CONSTANTS & DIFFICULTY SPEEDS
 // ============================================================
-const BASE_SPEED = 3.2;          // Movement speed in px/frame
-const TURN_RATE = 0.075;         // Steering agility (radians per frame)
+const SPEED_CONFIGS = {
+  easy: 2.4,     // Slower
+  normal: 3.3,   // Medium
+  hard: 4.2      // Fastest
+};
+
+const TURN_RATE = 0.075;         // Steering agility (identical in all modes)
 const SEGMENT_SPACING = 7;       // Distance between vertebrae segments
 const INITIAL_SEGMENTS = 30;     // Starting snake length
 const HEAD_RADIUS = 13;          // Radius of serpent head
@@ -306,8 +449,14 @@ let width = window.innerWidth;
 let height = window.innerHeight;
 let animFrame = 0;
 
+let currentDifficulty = 'normal';
+let isGameRunning = false;
+let isPaused = false;
 let isGameOver = false;
+
 let gameStartTime = 0;
+let pauseStartTime = 0;
+let totalPausedDuration = 0;
 let survivalSeconds = 0;
 let bestSurvivalSeconds = 0;
 let bestLength = INITIAL_SEGMENTS;
@@ -327,7 +476,7 @@ const player = {
   y: height / 2,
   angle: -Math.PI / 2,
   targetAngle: -Math.PI / 2,
-  speed: BASE_SPEED,
+  speed: SPEED_CONFIGS.normal,
   turnRate: TURN_RATE,
   length: INITIAL_SEGMENTS,
   segments: [],
@@ -342,6 +491,10 @@ const player = {
 const keys = { left: false, right: false };
 const mouse = { x: width / 2, y: height / 2, active: false };
 
+let hudEl = null;
+let lbEl = null;
+let menuScreenEl = null;
+let pauseOverlayEl = null;
 let statTimeEl = null;
 let statLengthEl = null;
 let statRankEl = null;
@@ -532,6 +685,10 @@ function updateParticles() {
 // §5  BOTS CREATION & BEHAVIOR
 // ============================================================
 
+function getActiveSpeed() {
+  return SPEED_CONFIGS[currentDifficulty] || SPEED_CONFIGS.normal;
+}
+
 function createBot(config, index) {
   let bx = Math.random() * width;
   let by = Math.random() * height;
@@ -561,7 +718,7 @@ function createBot(config, index) {
     y: by,
     angle: initialAngle,
     targetAngle: initialAngle,
-    speed: BASE_SPEED * (0.95 + Math.random() * 0.1),
+    speed: getActiveSpeed() * (0.95 + Math.random() * 0.1),
     turnRate: TURN_RATE * (0.9 + Math.random() * 0.2),
     length: initialLength,
     segments,
@@ -599,6 +756,7 @@ function respawnBot(bot) {
   bot.y = by;
   bot.angle = Math.random() * Math.PI * 2;
   bot.targetAngle = bot.angle;
+  bot.speed = getActiveSpeed() * (0.95 + Math.random() * 0.1);
   bot.length = INITIAL_SEGMENTS - 5 + Math.floor(Math.random() * 8);
   bot.segments = [];
   bot.bulges = [];
@@ -703,7 +861,6 @@ function advanceSnake(snake) {
   snake.x = wrap(snake.x + Math.cos(snake.angle) * snake.speed, width);
   snake.y = wrap(snake.y + Math.sin(snake.angle) * snake.speed, height);
 
-  // Spawn trail wake particles
   if (snake.segments.length > 0) {
     const tail = snake.segments[snake.segments.length - 1];
     spawnWakeTrail(tail.x, tail.y, snake.palette.bodyEnd);
@@ -853,18 +1010,17 @@ function checkFoodConsumptionAll() {
 
 function updateHUDAndLeaderboard() {
   if (!isGameOver) {
-    survivalSeconds = Math.floor((performance.now() - gameStartTime) / 1000);
+    const elapsedMs = performance.now() - gameStartTime - totalPausedDuration;
+    survivalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
     if (statTimeEl) statTimeEl.textContent = formatTime(survivalSeconds);
   }
 
-  // Sorted list for Leaderboard
   const allSnakes = [player, ...bots];
   allSnakes.sort((a, b) => b.length - a.length);
 
   const playerRank = allSnakes.findIndex(s => s.isPlayer) + 1;
   if (statRankEl) statRankEl.textContent = `#${playerRank}`;
 
-  // Populate leaderboard DOM
   if (lbListEl) {
     lbListEl.innerHTML = allSnakes.map((s, idx) => `
       <div class="lb-item ${s.isPlayer ? 'is-player' : ''}">
@@ -879,9 +1035,10 @@ function updateHUDAndLeaderboard() {
 }
 
 function update() {
+  if (!isGameRunning || isPaused) return;
+
   animFrame++;
 
-  // Update Player Steering
   if (player.alive) {
     if (keys.left) {
       player.targetAngle -= player.turnRate;
@@ -900,10 +1057,8 @@ function update() {
     player.angle += Math.sign(diff) * Math.min(Math.abs(diff), player.turnRate);
   }
 
-  // Update Player Physics
   advanceSnake(player);
 
-  // Update Bots
   for (const bot of bots) {
     if (!bot.alive) {
       bot.respawnTimer--;
@@ -916,11 +1071,9 @@ function update() {
     advanceSnake(bot);
   }
 
-  // Collisions & Food
   checkAllCollisions();
   checkFoodConsumptionAll();
 
-  // World Elements
   updateFood();
   updateParticles();
   updatePlankton();
@@ -933,17 +1086,66 @@ function update() {
 }
 
 // ============================================================
-// §7  INPUT & RESTART
+// §7  MENU, DIFFICULTY & PAUSE
 // ============================================================
+
+function setDifficulty(diff) {
+  currentDifficulty = diff;
+  document.querySelectorAll('.diff-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.diff === diff);
+  });
+}
+
+function applyDifficultySpeeds() {
+  const spd = getActiveSpeed();
+  player.speed = spd;
+  for (const bot of bots) {
+    bot.speed = spd * (0.95 + Math.random() * 0.1);
+  }
+}
+
+function startGame() {
+  menuScreenEl.style.display = 'none';
+  hudEl.style.display = 'flex';
+  lbEl.style.display = 'block';
+  isGameRunning = true;
+  isPaused = false;
+  totalPausedDuration = 0;
+
+  initSnake();
+  initBots();
+  applyDifficultySpeeds();
+}
+
+function togglePause() {
+  if (!isGameRunning || isGameOver) return;
+  isPaused = !isPaused;
+  if (isPaused) {
+    pauseStartTime = performance.now();
+    pauseOverlayEl.style.display = 'flex';
+  } else {
+    totalPausedDuration += performance.now() - pauseStartTime;
+    pauseOverlayEl.style.display = 'none';
+  }
+}
 
 function initInput() {
   window.addEventListener('resize', onResize);
 
   window.addEventListener('keydown', (e) => {
+    if (e.key === 'p' || e.key === 'P' || e.key === ' ') {
+      if (isGameRunning && !isGameOver) {
+        e.preventDefault();
+        togglePause();
+        return;
+      }
+    }
+
     if (isGameOver) {
       if (e.key === 'Enter') restartGame();
       return;
     }
+
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
     if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
   });
@@ -966,10 +1168,18 @@ function initInput() {
   overlayEl.addEventListener('click', () => {
     if (isGameOver) restartGame();
   });
+
+  pauseOverlayEl.addEventListener('click', () => {
+    if (isPaused) togglePause();
+  });
 }
 
 function onTouch(e) {
   e.preventDefault();
+  if (isPaused) {
+    togglePause();
+    return;
+  }
   if (isGameOver) {
     restartGame();
     return;
@@ -994,6 +1204,7 @@ function initSnake() {
   player.angle = -Math.PI / 2;
   player.targetAngle = -Math.PI / 2;
   player.length = INITIAL_SEGMENTS;
+  player.speed = getActiveSpeed();
   player.growQueue = 0;
   player.bulges = [];
   player.segments = [];
@@ -1009,8 +1220,10 @@ function initSnake() {
   }
 
   gameStartTime = performance.now();
+  totalPausedDuration = 0;
   isGameOver = false;
   overlayEl.style.display = 'none';
+  pauseOverlayEl.style.display = 'none';
 
   if (statLengthEl) statLengthEl.textContent = player.length;
   if (statRankEl) statRankEl.textContent = '#1';
@@ -1018,8 +1231,11 @@ function initSnake() {
 
 function restartGame() {
   overlayEl.style.display = 'none';
+  pauseOverlayEl.style.display = 'none';
+  isPaused = false;
   initSnake();
   initBots();
+  applyDifficultySpeeds();
 }
 
 // ============================================================
@@ -1089,7 +1305,6 @@ function renderFood() {
 }
 
 function renderParticles() {
-  // Wake trail particles
   for (const t of trailParticles) {
     ctx.save();
     ctx.globalAlpha = t.alpha;
@@ -1100,7 +1315,6 @@ function renderParticles() {
     ctx.restore();
   }
 
-  // Burst particles
   for (const p of particles) {
     ctx.save();
     ctx.globalAlpha = p.alpha;
@@ -1136,7 +1350,6 @@ function drawNameTag(name, x, y, color) {
   const tagWidth = textWidth + paddingX * 2;
   const tagY = y - 26;
 
-  // Background pill
   ctx.fillStyle = 'rgba(2, 6, 23, 0.75)';
   ctx.strokeStyle = color;
   ctx.lineWidth = 1;
@@ -1145,7 +1358,6 @@ function drawNameTag(name, x, y, color) {
   ctx.fill();
   ctx.stroke();
 
-  // Text
   ctx.fillStyle = '#f8fafc';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -1277,7 +1489,6 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
 
   ctx.restore();
 
-  // Floating name tag above head
   drawNameTag(snake.name, snake.x, snake.y, pal.head);
 
   ctx.restore();
@@ -1333,6 +1544,10 @@ function gameLoop() {
 window.addEventListener('DOMContentLoaded', () => {
   canvas = document.getElementById('game-canvas');
   ctx = canvas.getContext('2d');
+  hudEl = document.getElementById('hud');
+  lbEl = document.getElementById('leaderboard');
+  menuScreenEl = document.getElementById('menu-screen');
+  pauseOverlayEl = document.getElementById('pause-overlay');
   statTimeEl = document.getElementById('stat-time');
   statLengthEl = document.getElementById('stat-length');
   statRankEl = document.getElementById('stat-rank');
@@ -1347,7 +1562,6 @@ window.addEventListener('DOMContentLoaded', () => {
   initPlankton();
   initFood();
   initInput();
-  initSnake();
   initBots();
   requestAnimationFrame(gameLoop);
 });
