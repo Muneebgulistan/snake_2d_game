@@ -10,7 +10,7 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #030814;
+    background: #020617;
     color: #e0f2fe;
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     user-select: none;
@@ -73,6 +73,7 @@ const TURN_RATE = 0.075;         // Steering agility (radians per frame)
 const SEGMENT_SPACING = 7;       // Distance between vertebrae segments
 const INITIAL_SEGMENTS = 30;     // Starting snake length
 const HEAD_RADIUS = 13;          // Radius of serpent head
+const PLANKTON_COUNT = 55;       // Bioluminescent ambient particles
 
 // Palette
 const PALETTE_PLAYER = {
@@ -95,6 +96,9 @@ let width = window.innerWidth;
 let height = window.innerHeight;
 let animFrame = 0;
 
+// Ambient plankton particles
+const plankton = [];
+
 // Player snake state
 const player = {
   x: width / 2,
@@ -104,7 +108,7 @@ const player = {
   speed: BASE_SPEED,
   turnRate: TURN_RATE,
   length: INITIAL_SEGMENTS,
-  segments: [],                  // [{x, y, angle, lateralWave}]
+  segments: [],
   palette: PALETTE_PLAYER,
   tongueTimer: 0,
   tongueProgress: 0,
@@ -134,7 +138,6 @@ function angleDifference(current, target) {
   return Math.atan2(Math.sin(target - current), Math.cos(target - current));
 }
 
-// Color interpolation utility
 function interpolateColor(hex1, hex2, factor) {
   const c1 = parseInt(hex1.slice(1), 16);
   const c2 = parseInt(hex2.slice(1), 16);
@@ -150,8 +153,37 @@ function interpolateColor(hex1, hex2, factor) {
 }
 
 // ============================================================
-// §4  INPUT HANDLING
+// §4  BACKGROUND & PARTICLES INITIALIZATION
 // ============================================================
+
+function initPlankton() {
+  plankton.length = 0;
+  for (let i = 0; i < PLANKTON_COUNT; i++) {
+    plankton.push({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      size: 1 + Math.random() * 2.2,
+      baseAlpha: 0.15 + Math.random() * 0.45,
+      vx: (Math.random() - 0.5) * 0.35,
+      vy: -0.15 - Math.random() * 0.35, // slowly drifting upward like marine snow
+      pulseSpeed: 0.02 + Math.random() * 0.03,
+      pulsePhase: Math.random() * Math.PI * 2,
+      color: Math.random() > 0.4 ? 'rgba(56, 189, 248, ' : 'rgba(45, 212, 191, '
+    });
+  }
+}
+
+function updatePlankton() {
+  for (const p of plankton) {
+    p.x = wrap(p.x + p.vx, width);
+    p.y = wrap(p.y + p.vy, height);
+  }
+}
+
+// ============================================================
+// §5  INPUT HANDLING
+// ============================================================
+
 function initInput() {
   window.addEventListener('resize', onResize);
 
@@ -193,7 +225,7 @@ function onResize() {
 }
 
 // ============================================================
-// §5  UPDATE
+// §6  UPDATE
 // ============================================================
 
 function initSnake() {
@@ -216,7 +248,6 @@ function initSnake() {
 function updatePlayer() {
   animFrame++;
 
-  // 1. Steering
   if (keys.left) {
     player.targetAngle -= player.turnRate;
     mouse.active = false;
@@ -234,13 +265,11 @@ function updatePlayer() {
   const diff = angleDifference(player.angle, player.targetAngle);
   player.angle += Math.sign(diff) * Math.min(Math.abs(diff), player.turnRate);
 
-  // 2. Head position
   player.x = wrap(player.x + Math.cos(player.angle) * player.speed, width);
   player.y = wrap(player.y + Math.sin(player.angle) * player.speed, height);
 
-  // 3. Tongue flick cycle
   player.tongueTimer++;
-  if (player.tongueTimer > 180) { // every 3 seconds
+  if (player.tongueTimer > 180) {
     player.tongueProgress = Math.sin(((player.tongueTimer - 180) / 25) * Math.PI);
     if (player.tongueTimer >= 205) {
       player.tongueTimer = 0;
@@ -248,7 +277,6 @@ function updatePlayer() {
     }
   }
 
-  // 4. Update body chain segments
   let prevX = player.x;
   let prevY = player.y;
 
@@ -265,8 +293,6 @@ function updatePlayer() {
       seg.y = wrap(prevY - Math.sin(segAngle) * SEGMENT_SPACING, height);
     }
 
-    // Sine-wave undulation: organic swimming slither
-    // Amplitude increases along body then dampens near tail
     const waveProgress = i / player.segments.length;
     const waveAmp = Math.sin(waveProgress * Math.PI) * 4.5;
     seg.lateralOffset = Math.sin(animFrame * 0.14 - i * 0.32) * waveAmp;
@@ -278,13 +304,57 @@ function updatePlayer() {
 
 function update() {
   updatePlayer();
+  updatePlankton();
 }
 
 // ============================================================
-// §6  RENDER: REALISTIC SERPENT GRAPHICS
+// §7  RENDER: BACKGROUND & SERPENT GRAPHICS
 // ============================================================
 
-/** Draw a diamond scale pattern on a body segment */
+/** Draw seamless deep ocean floor background with rays and drifting plankton */
+function renderBackground() {
+  // 1. Deep ocean gradient
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
+  bgGrad.addColorStop(0, '#030816');
+  bgGrad.addColorStop(0.5, '#020b1f');
+  bgGrad.addColorStop(1, '#01050f');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, width, height);
+
+  // 2. Faint undulating light rays (caustics)
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  for (let i = 0; i < 4; i++) {
+    const rayAngle = -0.35 + Math.sin(animFrame * 0.008 + i * 1.5) * 0.05;
+    const rayX = ((width * (0.2 + i * 0.28)) + Math.sin(animFrame * 0.005 + i) * 60) % width;
+
+    const rayGrad = ctx.createLinearGradient(rayX, 0, rayX + Math.tan(rayAngle) * height, height);
+    rayGrad.addColorStop(0, 'rgba(56, 189, 248, 0.05)');
+    rayGrad.addColorStop(0.5, 'rgba(14, 165, 233, 0.025)');
+    rayGrad.addColorStop(1, 'rgba(2, 6, 23, 0)');
+
+    ctx.fillStyle = rayGrad;
+    ctx.beginPath();
+    ctx.moveTo(rayX - 35, 0);
+    ctx.lineTo(rayX + 55, 0);
+    ctx.lineTo(rayX + Math.tan(rayAngle) * height + 120, height);
+    ctx.lineTo(rayX + Math.tan(rayAngle) * height - 80, height);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // 3. Drifting bioluminescent plankton
+  for (const p of plankton) {
+    const pulse = Math.sin(animFrame * p.pulseSpeed + p.pulsePhase);
+    const alpha = p.baseAlpha + pulse * 0.15;
+    ctx.fillStyle = p.color + alpha + ')';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 function drawDiamondScale(cx, cy, radius, angle, color) {
   ctx.save();
   ctx.translate(cx, cy);
@@ -300,7 +370,6 @@ function drawDiamondScale(cx, cy, radius, angle, color) {
   ctx.restore();
 }
 
-/** Render snake with realistic tapered body, scales, tongue, and eyes */
 function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   const segs = snake.segments;
   if (segs.length === 0) return;
@@ -310,7 +379,7 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
 
   const pal = snake.palette;
 
-  // 1. Tongue (drawn underneath head)
+  // Tongue
   if (snake.tongueProgress > 0) {
     const tLen = snake.tongueProgress * 16;
     const hx = snake.x + Math.cos(snake.angle) * HEAD_RADIUS;
@@ -337,23 +406,18 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     ctx.stroke();
   }
 
-  // 2. Body segments (tail to neck)
+  // Body segments
   for (let i = segs.length - 1; i >= 0; i--) {
     const seg = segs[i];
-    const progress = i / segs.length; // 0 near head, 1 at tail
-
-    // Tapering: thicker near head (neck 11px), tapering to fine tail (3.5px)
+    const progress = i / segs.length;
     const radius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));
 
-    // Calculate undulating position (perpendicular lateral offset)
     const perpAngle = seg.angle + Math.PI / 2;
     const drawX = seg.x + Math.cos(perpAngle) * seg.lateralOffset;
     const drawY = seg.y + Math.sin(perpAngle) * seg.lateralOffset;
 
-    // Body gradient color
     const segColor = interpolateColor(pal.bodyStart, pal.bodyEnd, progress);
 
-    // Segment base with soft neon glow
     ctx.beginPath();
     ctx.arc(drawX, drawY, radius, 0, Math.PI * 2);
     ctx.fillStyle = segColor;
@@ -365,7 +429,6 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     }
     ctx.fill();
 
-    // Subtle dorsal ridge / scale highlight on alternating segments
     if (i % 2 === 0 && radius > 5) {
       drawDiamondScale(drawX, drawY, radius * 0.75, seg.angle, pal.scale);
     }
@@ -373,16 +436,14 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
 
   ctx.shadowBlur = 0;
 
-  // 3. Head (sculpted predator shape)
+  // Head
   ctx.save();
   ctx.translate(snake.x, snake.y);
   ctx.rotate(snake.angle);
 
-  // Soft neon halo around head
   ctx.shadowColor = pal.glow;
   ctx.shadowBlur = 16;
 
-  // Head contour (oval tapered snout)
   ctx.beginPath();
   ctx.ellipse(2, 0, HEAD_RADIUS + 1, HEAD_RADIUS - 1.5, 0, 0, Math.PI * 2);
   ctx.fillStyle = pal.head;
@@ -390,39 +451,33 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
 
   ctx.shadowBlur = 0;
 
-  // Snout crown accent
   ctx.beginPath();
   ctx.ellipse(5, 0, HEAD_RADIUS * 0.45, HEAD_RADIUS * 0.35, 0, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
   ctx.fill();
 
-  // 4. Eyes with realistic irises and pupils looking forward
+  // Eyes
   const eyeX = 3;
   const eyeY = 6.2;
   const eyeRadius = 3.6;
   const pupilRadius = 1.6;
 
-  // Draw both eyes
   [-eyeY, eyeY].forEach((ey) => {
-    // Eye socket
     ctx.beginPath();
     ctx.arc(eyeX, ey, eyeRadius, 0, Math.PI * 2);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
 
-    // Iris
     ctx.beginPath();
     ctx.arc(eyeX + 0.8, ey, eyeRadius * 0.65, 0, Math.PI * 2);
     ctx.fillStyle = pal.eyeIris;
     ctx.fill();
 
-    // Slit/pupil oriented forward
     ctx.beginPath();
     ctx.arc(eyeX + 1.2, ey, pupilRadius, 0, Math.PI * 2);
     ctx.fillStyle = pal.eyePupil;
     ctx.fill();
 
-    // Specular light reflection
     ctx.beginPath();
     ctx.arc(eyeX + 0.5, ey - 1, 0.8, 0, Math.PI * 2);
     ctx.fillStyle = '#ffffff';
@@ -433,7 +488,6 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   ctx.restore();
 }
 
-/** Draws snake with wrap-around clones */
 function drawSnakeToroidal(snake) {
   const offsets = [
     [0, 0],
@@ -449,26 +503,12 @@ function drawSnakeToroidal(snake) {
 }
 
 function render() {
-  ctx.fillStyle = '#030814';
-  ctx.fillRect(0, 0, width, height);
-
-  // Subtle background grid
-  ctx.strokeStyle = 'rgba(30, 58, 138, 0.15)';
-  ctx.lineWidth = 1;
-  const gridSize = 60;
-  for (let x = 0; x < width; x += gridSize) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
-  }
-  for (let y = 0; y < height; y += gridSize) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
-  }
-
-  // Draw realistic serpent
+  renderBackground();
   drawSnakeToroidal(player);
 }
 
 // ============================================================
-// §7  LOOP
+// §8  LOOP
 // ============================================================
 function gameLoop() {
   update();
@@ -480,6 +520,7 @@ window.addEventListener('DOMContentLoaded', () => {
   canvas = document.getElementById('game-canvas');
   ctx = canvas.getContext('2d');
   onResize();
+  initPlankton();
   initInput();
   initSnake();
   requestAnimationFrame(gameLoop);
