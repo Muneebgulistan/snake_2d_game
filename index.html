@@ -157,7 +157,9 @@ const SEGMENT_SPACING = 7;       // Distance between vertebrae segments
 const INITIAL_SEGMENTS = 30;     // Starting snake length
 const HEAD_RADIUS = 13;          // Radius of serpent head
 const PLANKTON_COUNT = 55;       // Bioluminescent ambient particles
-const FOOD_COUNT = 60;           // Total food orbs maintained in world
+const FOOD_COUNT = 65;           // Total food orbs maintained in world
+const BOT_COUNT = 6;             // Exactly 6 AI bots
+const RESPAWN_DELAY_FRAMES = 180;// 3 seconds at 60fps
 
 const FOOD_COLORS = [
   { core: '#22d3ee', glow: 'rgba(34, 211, 238, 0.5)' },
@@ -178,6 +180,58 @@ const PALETTE_PLAYER = {
   tongue: '#f43f5e'
 };
 
+// 6 Distinct Bot Palettes & Names
+const BOT_CONFIGS = [
+  {
+    name: 'Viper',
+    palette: {
+      head: '#10b981', bodyStart: '#059669', bodyEnd: '#047857',
+      scale: 'rgba(167, 243, 208, 0.35)', glow: 'rgba(16, 185, 129, 0.45)',
+      eyeIris: '#047857', eyePupil: '#022c22', tongue: '#f87171'
+    }
+  },
+  {
+    name: 'Hydra',
+    palette: {
+      head: '#c084fc', bodyStart: '#9333ea', bodyEnd: '#6b21a8',
+      scale: 'rgba(233, 213, 255, 0.35)', glow: 'rgba(192, 132, 252, 0.45)',
+      eyeIris: '#6b21a8', eyePupil: '#2e1065', tongue: '#fb7185'
+    }
+  },
+  {
+    name: 'Cobra',
+    palette: {
+      head: '#f59e0b', bodyStart: '#d97706', bodyEnd: '#b45309',
+      scale: 'rgba(254, 240, 138, 0.35)', glow: 'rgba(245, 158, 11, 0.45)',
+      eyeIris: '#b45309', eyePupil: '#451a03', tongue: '#f43f5e'
+    }
+  },
+  {
+    name: 'Abyss',
+    palette: {
+      head: '#f43f5e', bodyStart: '#e11d48', bodyEnd: '#9f1239',
+      scale: 'rgba(254, 205, 211, 0.35)', glow: 'rgba(244, 63, 94, 0.45)',
+      eyeIris: '#9f1239', eyePupil: '#4c0519', tongue: '#fda4af'
+    }
+  },
+  {
+    name: 'Phantom',
+    palette: {
+      head: '#f472b6', bodyStart: '#db2777', bodyEnd: '#9d174d',
+      scale: 'rgba(251, 207, 232, 0.35)', glow: 'rgba(244, 114, 182, 0.45)',
+      eyeIris: '#9d174d', eyePupil: '#500724', tongue: '#a78bfa'
+    }
+  },
+  {
+    name: 'Apex',
+    palette: {
+      head: '#a3e635', bodyStart: '#65a30d', bodyEnd: '#3f6212',
+      scale: 'rgba(217, 249, 157, 0.35)', glow: 'rgba(163, 230, 53, 0.45)',
+      eyeIris: '#3f6212', eyePupil: '#1a2e05', tongue: '#f43f5e'
+    }
+  }
+];
+
 // ============================================================
 // §2  STATE
 // ============================================================
@@ -187,24 +241,22 @@ let width = window.innerWidth;
 let height = window.innerHeight;
 let animFrame = 0;
 
-// Game state
 let isGameOver = false;
 let gameStartTime = 0;
 let survivalSeconds = 0;
 let bestSurvivalSeconds = 0;
 let bestLength = INITIAL_SEGMENTS;
-
-// Camera shake
 let shakeIntensity = 0;
 
-// Entities
 const foodOrbs = [];
 const particles = [];
 const plankton = [];
-const otherSnakes = []; // Populated with bots in Step 6
+const bots = [];
 
-// Player snake
+// Player serpent
 const player = {
+  name: 'You',
+  isPlayer: true,
   x: width / 2,
   y: height / 2,
   angle: -Math.PI / 2,
@@ -224,7 +276,6 @@ const player = {
 const keys = { left: false, right: false };
 const mouse = { x: width / 2, y: height / 2, active: false };
 
-// DOM references
 let statTimeEl = null;
 let statLengthEl = null;
 let statRankEl = null;
@@ -307,18 +358,13 @@ function updatePlankton() {
   }
 }
 
-function isFarFromSnakes(x, y, minDist = 40) {
+function isFarFromAllSnakes(x, y, minDist = 60) {
   const minDistSq = minDist * minDist;
-  if (player.alive && toroidDistSq(player.x, player.y, x, y) < minDistSq) return false;
-  if (player.alive) {
-    for (let i = 0; i < player.segments.length; i += 3) {
-      if (toroidDistSq(player.segments[i].x, player.segments[i].y, x, y) < minDistSq) return false;
-    }
-  }
-  for (const s of otherSnakes) {
+  const allSnakes = [player, ...bots];
+  for (const s of allSnakes) {
     if (!s.alive) continue;
     if (toroidDistSq(s.x, s.y, x, y) < minDistSq) return false;
-    for (let i = 0; i < s.segments.length; i += 4) {
+    for (let i = 0; i < s.segments.length; i += 3) {
       if (toroidDistSq(s.segments[i].x, s.segments[i].y, x, y) < minDistSq) return false;
     }
   }
@@ -330,8 +376,8 @@ function spawnFoodOrb(customX, customY, customColor) {
   let y = customY !== undefined ? customY : Math.random() * height;
 
   if (customX === undefined) {
-    for (let attempt = 0; attempt < 20; attempt++) {
-      if (isFarFromSnakes(x, y, 40)) break;
+    for (let attempt = 0; attempt < 25; attempt++) {
+      if (isFarFromAllSnakes(x, y, 45)) break;
       x = Math.random() * width;
       y = Math.random() * height;
     }
@@ -398,7 +444,405 @@ function updateParticles() {
 }
 
 // ============================================================
-// §5  INPUT & RESTART HANDLING
+// §5  BOTS CREATION & BEHAVIOR
+// ============================================================
+
+function createBot(config, index) {
+  // Safe spawn position
+  let bx = Math.random() * width;
+  let by = Math.random() * height;
+  for (let attempt = 0; attempt < 50; attempt++) {
+    if (isFarFromAllSnakes(bx, by, 90)) break;
+    bx = Math.random() * width;
+    by = Math.random() * height;
+  }
+
+  const initialAngle = Math.random() * Math.PI * 2;
+  const initialLength = INITIAL_SEGMENTS - 5 + Math.floor(Math.random() * 12);
+  const segments = [];
+
+  for (let i = 0; i < initialLength; i++) {
+    segments.push({
+      x: bx,
+      y: by + i * SEGMENT_SPACING,
+      angle: initialAngle,
+      lateralOffset: 0
+    });
+  }
+
+  return {
+    name: config.name,
+    isPlayer: false,
+    x: bx,
+    y: by,
+    angle: initialAngle,
+    targetAngle: initialAngle,
+    speed: BASE_SPEED * (0.95 + Math.random() * 0.1),
+    turnRate: TURN_RATE * (0.9 + Math.random() * 0.2),
+    length: initialLength,
+    segments,
+    palette: config.palette,
+    tongueTimer: Math.floor(Math.random() * 150),
+    tongueProgress: 0,
+    bulges: [],
+    growQueue: 0,
+    alive: true,
+    respawnTimer: 0,
+    personality: {
+      aggressiveness: 0.2 + Math.random() * 0.5,
+      lookAheadDist: 50 + Math.random() * 30
+    }
+  };
+}
+
+function initBots() {
+  bots.length = 0;
+  for (let i = 0; i < BOT_COUNT; i++) {
+    bots.push(createBot(BOT_CONFIGS[i], i));
+  }
+}
+
+function respawnBot(bot) {
+  let bx = Math.random() * width;
+  let by = Math.random() * height;
+  for (let attempt = 0; attempt < 60; attempt++) {
+    if (isFarFromAllSnakes(bx, by, 100)) break;
+    bx = Math.random() * width;
+    by = Math.random() * height;
+  }
+
+  bot.x = bx;
+  bot.y = by;
+  bot.angle = Math.random() * Math.PI * 2;
+  bot.targetAngle = bot.angle;
+  bot.length = INITIAL_SEGMENTS - 5 + Math.floor(Math.random() * 8);
+  bot.segments = [];
+  bot.bulges = [];
+  bot.growQueue = 0;
+  bot.alive = true;
+  bot.respawnTimer = 0;
+
+  for (let i = 0; i < bot.length; i++) {
+    bot.segments.push({
+      x: bx,
+      y: by + i * SEGMENT_SPACING,
+      angle: bot.angle,
+      lateralOffset: 0
+    });
+  }
+}
+
+/** AI decision making for each bot */
+function updateBotAI(bot) {
+  if (!bot.alive) return;
+
+  const allSnakes = [player, ...bots];
+
+  // 1. Find nearest food
+  let nearestFood = null;
+  let nearestDistSq = Infinity;
+  for (const orb of foodOrbs) {
+    const dSq = toroidDistSq(bot.x, bot.y, orb.x, orb.y);
+    if (dSq < nearestDistSq) {
+      nearestDistSq = dSq;
+      nearestFood = orb;
+    }
+  }
+
+  let desiredAngle = bot.angle;
+  if (nearestFood) {
+    const dx = toroidDelta(bot.x, nearestFood.x, width);
+    const dy = toroidDelta(bot.y, nearestFood.y, height);
+    desiredAngle = Math.atan2(dy, dx);
+  }
+
+  // 2. Trapping / Cutting-off behavior (especially against player or nearby bots)
+  if (player.alive && Math.random() < bot.personality.aggressiveness) {
+    const dToPlayerSq = toroidDistSq(bot.x, bot.y, player.x, player.y);
+    if (dToPlayerSq < 180 * 180 && dToPlayerSq > 50 * 50) {
+      // Aim slightly ahead of player's head to cut them off
+      const leadDist = 50;
+      const leadX = wrap(player.x + Math.cos(player.angle) * leadDist, width);
+      const leadY = wrap(player.y + Math.sin(player.angle) * leadDist, height);
+      const cdx = toroidDelta(bot.x, leadX, width);
+      const cdy = toroidDelta(bot.y, leadY, height);
+      desiredAngle = Math.atan2(cdy, cdx);
+    }
+  }
+
+  // 3. Obstacle avoidance (lookahead whiskers)
+  const lookDist = bot.personality.lookAheadDist;
+  const sensorAngles = [0, 0.5, -0.5, 0.9, -0.9, 1.4, -1.4];
+  let bestDanger = 0;
+  let avoidTurn = 0;
+
+  for (const sa of sensorAngles) {
+    const checkAngle = bot.angle + sa;
+    const probeX = wrap(bot.x + Math.cos(checkAngle) * lookDist, width);
+    const probeY = wrap(bot.y + Math.sin(checkAngle) * lookDist, height);
+
+    // Check danger against all other snakes' bodies
+    let probeDanger = 0;
+    for (const other of allSnakes) {
+      if (!other.alive) continue;
+      // Skip own body near head (first 5 segments)
+      const startSeg = (other === bot) ? 6 : 0;
+      for (let i = startSeg; i < other.segments.length; i += 2) {
+        const seg = other.segments[i];
+        const distSq = toroidDistSq(probeX, probeY, seg.x, seg.y);
+        const dangerRadius = HEAD_RADIUS + 10;
+        if (distSq < dangerRadius * dangerRadius) {
+          probeDanger += 1 / (1 + Math.sqrt(distSq));
+        }
+      }
+    }
+
+    if (probeDanger > 0) {
+      // Danger detected: turn away proportional to sensor angle
+      avoidTurn += (sa === 0 ? (Math.random() > 0.5 ? 1.5 : -1.5) : -Math.sign(sa) * 1.8);
+      bestDanger += probeDanger;
+    }
+  }
+
+  if (bestDanger > 0) {
+    bot.targetAngle = bot.angle + avoidTurn;
+  } else {
+    // Add small wandering drift so bots don't steer in rigid straight lines
+    bot.targetAngle = desiredAngle + (Math.random() - 0.5) * 0.15;
+  }
+
+  // Smooth turn
+  const diff = angleDifference(bot.angle, bot.targetAngle);
+  bot.angle += Math.sign(diff) * Math.min(Math.abs(diff), bot.turnRate);
+}
+
+// ============================================================
+// §6  PHYSICS & UPDATE
+// ============================================================
+
+function advanceSnake(snake) {
+  if (!snake.alive) return;
+
+  // Move head
+  snake.x = wrap(snake.x + Math.cos(snake.angle) * snake.speed, width);
+  snake.y = wrap(snake.y + Math.sin(snake.angle) * snake.speed, height);
+
+  // Tongue flick
+  snake.tongueTimer++;
+  if (snake.tongueTimer > 180) {
+    snake.tongueProgress = Math.sin(((snake.tongueTimer - 180) / 25) * Math.PI);
+    if (snake.tongueTimer >= 205) {
+      snake.tongueTimer = 0;
+      snake.tongueProgress = 0;
+    }
+  }
+
+  // Update bulges
+  for (let b = snake.bulges.length - 1; b >= 0; b--) {
+    snake.bulges[b].index += 0.75;
+    if (snake.bulges[b].index >= snake.segments.length) {
+      snake.bulges.splice(b, 1);
+    }
+  }
+
+  // Grow tail
+  if (snake.growQueue > 0 && snake.segments.length > 0) {
+    const tail = snake.segments[snake.segments.length - 1];
+    snake.segments.push({
+      x: tail.x,
+      y: tail.y,
+      angle: tail.angle,
+      lateralOffset: 0
+    });
+    snake.growQueue--;
+  }
+
+  // Follow segments
+  let prevX = snake.x;
+  let prevY = snake.y;
+
+  for (let i = 0; i < snake.segments.length; i++) {
+    const seg = snake.segments[i];
+    const dx = toroidDelta(seg.x, prevX, width);
+    const dy = toroidDelta(seg.y, prevY, height);
+    const dist = Math.hypot(dx, dy);
+
+    if (dist > SEGMENT_SPACING) {
+      const segAngle = Math.atan2(dy, dx);
+      seg.angle = segAngle;
+      seg.x = wrap(prevX - Math.cos(segAngle) * SEGMENT_SPACING, width);
+      seg.y = wrap(prevY - Math.sin(segAngle) * SEGMENT_SPACING, height);
+    }
+
+    const waveProgress = i / snake.segments.length;
+    const waveAmp = Math.sin(waveProgress * Math.PI) * 4.5;
+    seg.lateralOffset = Math.sin(animFrame * 0.14 - i * 0.32) * waveAmp;
+
+    prevX = seg.x;
+    prevY = seg.y;
+  }
+}
+
+function dissolveSnakeIntoFood(snake) {
+  for (let i = 0; i < snake.segments.length; i += 2) {
+    const seg = snake.segments[i];
+    const foodScheme = {
+      core: snake.palette.head,
+      glow: snake.palette.glow
+    };
+    foodOrbs.push(spawnFoodOrb(seg.x, seg.y, foodScheme));
+    spawnFoodBurst(seg.x, seg.y, snake.palette.head, 4);
+  }
+  spawnFoodBurst(snake.x, snake.y, snake.palette.head, 16);
+}
+
+function killBot(bot) {
+  if (!bot.alive) return;
+  bot.alive = false;
+  bot.respawnTimer = RESPAWN_DELAY_FRAMES;
+  dissolveSnakeIntoFood(bot);
+}
+
+function handlePlayerDeath() {
+  if (!player.alive || isGameOver) return;
+  player.alive = false;
+  isGameOver = true;
+  shakeIntensity = 18;
+
+  dissolveSnakeIntoFood(player);
+
+  if (survivalSeconds > bestSurvivalSeconds) bestSurvivalSeconds = survivalSeconds;
+  if (player.length > bestLength) bestLength = player.length;
+
+  finalTimeEl.textContent = formatTime(survivalSeconds);
+  bestTimeEl.textContent = formatTime(bestSurvivalSeconds);
+  finalLengthEl.textContent = player.length;
+  bestLengthEl.textContent = bestLength;
+  overlayEl.style.display = 'flex';
+}
+
+function checkAllCollisions() {
+  const allSnakes = [player, ...bots];
+  const collisionRadius = HEAD_RADIUS * 0.85 + 5.5;
+  const collisionDistSq = collisionRadius * collisionRadius;
+
+  // Check each snake's head against every OTHER snake's body
+  for (const snake of allSnakes) {
+    if (!snake.alive) continue;
+
+    for (const other of allSnakes) {
+      if (!other.alive || other === snake) continue;
+
+      for (let i = 0; i < other.segments.length; i++) {
+        const seg = other.segments[i];
+        if (toroidDistSq(snake.x, snake.y, seg.x, seg.y) < collisionDistSq) {
+          if (snake.isPlayer) {
+            handlePlayerDeath();
+          } else {
+            killBot(snake);
+          }
+          break;
+        }
+      }
+      if (!snake.alive) break;
+    }
+  }
+}
+
+function checkFoodConsumptionAll() {
+  const allSnakes = [player, ...bots];
+  const eatDistSq = (HEAD_RADIUS + 8) * (HEAD_RADIUS + 8);
+
+  for (const snake of allSnakes) {
+    if (!snake.alive) continue;
+
+    for (let i = foodOrbs.length - 1; i >= 0; i--) {
+      const orb = foodOrbs[i];
+      if (toroidDistSq(snake.x, snake.y, orb.x, orb.y) < eatDistSq) {
+        spawnFoodBurst(orb.x, orb.y, orb.color, 8);
+        foodOrbs.splice(i, 1);
+
+        snake.bulges.push({ index: 0, strength: 0.65 });
+        snake.growQueue++;
+        snake.length++;
+
+        if (snake.isPlayer && statLengthEl) {
+          statLengthEl.textContent = snake.length;
+        }
+      }
+    }
+  }
+}
+
+function updateHUD() {
+  if (!isGameOver) {
+    survivalSeconds = Math.floor((performance.now() - gameStartTime) / 1000);
+    if (statTimeEl) statTimeEl.textContent = formatTime(survivalSeconds);
+  }
+
+  // Calculate live rank among all 7 serpents
+  const allSnakes = [player, ...bots];
+  allSnakes.sort((a, b) => b.length - a.length);
+  const playerRank = allSnakes.findIndex(s => s.isPlayer) + 1;
+  if (statRankEl) statRankEl.textContent = `#${playerRank}`;
+}
+
+function update() {
+  animFrame++;
+
+  // Update Player Steering
+  if (player.alive) {
+    if (keys.left) {
+      player.targetAngle -= player.turnRate;
+      mouse.active = false;
+    } else if (keys.right) {
+      player.targetAngle += player.turnRate;
+      mouse.active = false;
+    } else if (mouse.active) {
+      const dx = toroidDelta(player.x, mouse.x, width);
+      const dy = toroidDelta(player.y, mouse.y, height);
+      if (Math.hypot(dx, dy) > 15) {
+        player.targetAngle = Math.atan2(dy, dx);
+      }
+    }
+    const diff = angleDifference(player.angle, player.targetAngle);
+    player.angle += Math.sign(diff) * Math.min(Math.abs(diff), player.turnRate);
+  }
+
+  // Update Player Physics
+  advanceSnake(player);
+
+  // Update Bots
+  for (const bot of bots) {
+    if (!bot.alive) {
+      bot.respawnTimer--;
+      if (bot.respawnTimer <= 0) {
+        respawnBot(bot);
+      }
+      continue;
+    }
+    updateBotAI(bot);
+    advanceSnake(bot);
+  }
+
+  // Collisions & Food
+  checkAllCollisions();
+  checkFoodConsumptionAll();
+
+  // World Elements
+  updateFood();
+  updateParticles();
+  updatePlankton();
+  updateHUD();
+
+  if (shakeIntensity > 0) {
+    shakeIntensity *= 0.9;
+    if (shakeIntensity < 0.2) shakeIntensity = 0;
+  }
+}
+
+// ============================================================
+// §7  INPUT & RESTART
 // ============================================================
 
 function initInput() {
@@ -453,10 +897,6 @@ function onResize() {
   canvas.height = height;
 }
 
-// ============================================================
-// §6  UPDATE & DEATH LOGIC
-// ============================================================
-
 function initSnake() {
   player.x = width / 2;
   player.y = height / 2;
@@ -485,182 +925,14 @@ function initSnake() {
   if (statRankEl) statRankEl.textContent = '#1';
 }
 
-function dissolveSnakeIntoFood(snake) {
-  // Dissolves every 2-3 segments into glowing food orbs that remain in world!
-  for (let i = 0; i < snake.segments.length; i += 2) {
-    const seg = snake.segments[i];
-    const foodScheme = {
-      core: snake.palette.head,
-      glow: snake.palette.glow
-    };
-    foodOrbs.push(spawnFoodOrb(seg.x, seg.y, foodScheme));
-    spawnFoodBurst(seg.x, seg.y, snake.palette.head, 4);
-  }
-  // Extra burst at head
-  spawnFoodBurst(snake.x, snake.y, snake.palette.head, 18);
-}
-
-function handlePlayerDeath() {
-  if (!player.alive || isGameOver) return;
-  player.alive = false;
-  isGameOver = true;
-  shakeIntensity = 18;
-
-  // Dissolve player snake into food
-  dissolveSnakeIntoFood(player);
-
-  // Update records
-  if (survivalSeconds > bestSurvivalSeconds) bestSurvivalSeconds = survivalSeconds;
-  if (player.length > bestLength) bestLength = player.length;
-
-  // Show Game Over Overlay
-  finalTimeEl.textContent = formatTime(survivalSeconds);
-  bestTimeEl.textContent = formatTime(bestSurvivalSeconds);
-  finalLengthEl.textContent = player.length;
-  bestLengthEl.textContent = bestLength;
-  overlayEl.style.display = 'flex';
-}
-
 function restartGame() {
   overlayEl.style.display = 'none';
   initSnake();
-}
-
-function checkFoodConsumption() {
-  if (!player.alive) return;
-  const eatDistSq = (HEAD_RADIUS + 8) * (HEAD_RADIUS + 8);
-
-  for (let i = foodOrbs.length - 1; i >= 0; i--) {
-    const orb = foodOrbs[i];
-    if (toroidDistSq(player.x, player.y, orb.x, orb.y) < eatDistSq) {
-      spawnFoodBurst(orb.x, orb.y, orb.color, 8);
-      foodOrbs.splice(i, 1);
-
-      player.bulges.push({ index: 0, strength: 0.65 });
-      player.growQueue++;
-      player.length++;
-
-      if (statLengthEl) statLengthEl.textContent = player.length;
-    }
-  }
-}
-
-function checkPlayerCollisions() {
-  if (!player.alive) return;
-  // Player dies when head touches any other snake's body (toroidal check)
-  for (const s of otherSnakes) {
-    if (!s.alive) continue;
-    // Check against other snake body segments
-    for (let i = 0; i < s.segments.length; i++) {
-      const seg = s.segments[i];
-      const collisionDist = HEAD_RADIUS * 0.85 + 6;
-      if (toroidDistSq(player.x, player.y, seg.x, seg.y) < collisionDist * collisionDist) {
-        handlePlayerDeath();
-        return;
-      }
-    }
-  }
-}
-
-function updatePlayer() {
-  if (!player.alive) return;
-
-  animFrame++;
-
-  if (keys.left) {
-    player.targetAngle -= player.turnRate;
-    mouse.active = false;
-  } else if (keys.right) {
-    player.targetAngle += player.turnRate;
-    mouse.active = false;
-  } else if (mouse.active) {
-    const dx = toroidDelta(player.x, mouse.x, width);
-    const dy = toroidDelta(player.y, mouse.y, height);
-    if (Math.hypot(dx, dy) > 15) {
-      player.targetAngle = Math.atan2(dy, dx);
-    }
-  }
-
-  const diff = angleDifference(player.angle, player.targetAngle);
-  player.angle += Math.sign(diff) * Math.min(Math.abs(diff), player.turnRate);
-
-  player.x = wrap(player.x + Math.cos(player.angle) * player.speed, width);
-  player.y = wrap(player.y + Math.sin(player.angle) * player.speed, height);
-
-  player.tongueTimer++;
-  if (player.tongueTimer > 180) {
-    player.tongueProgress = Math.sin(((player.tongueTimer - 180) / 25) * Math.PI);
-    if (player.tongueTimer >= 205) {
-      player.tongueTimer = 0;
-      player.tongueProgress = 0;
-    }
-  }
-
-  for (let b = player.bulges.length - 1; b >= 0; b--) {
-    player.bulges[b].index += 0.75;
-    if (player.bulges[b].index >= player.segments.length) {
-      player.bulges.splice(b, 1);
-    }
-  }
-
-  if (player.growQueue > 0 && player.segments.length > 0) {
-    const tail = player.segments[player.segments.length - 1];
-    player.segments.push({
-      x: tail.x,
-      y: tail.y,
-      angle: tail.angle,
-      lateralOffset: 0
-    });
-    player.growQueue--;
-  }
-
-  let prevX = player.x;
-  let prevY = player.y;
-
-  for (let i = 0; i < player.segments.length; i++) {
-    const seg = player.segments[i];
-    const dx = toroidDelta(seg.x, prevX, width);
-    const dy = toroidDelta(seg.y, prevY, height);
-    const dist = Math.hypot(dx, dy);
-
-    if (dist > SEGMENT_SPACING) {
-      const segAngle = Math.atan2(dy, dx);
-      seg.angle = segAngle;
-      seg.x = wrap(prevX - Math.cos(segAngle) * SEGMENT_SPACING, width);
-      seg.y = wrap(prevY - Math.sin(segAngle) * SEGMENT_SPACING, height);
-    }
-
-    const waveProgress = i / player.segments.length;
-    const waveAmp = Math.sin(waveProgress * Math.PI) * 4.5;
-    seg.lateralOffset = Math.sin(animFrame * 0.14 - i * 0.32) * waveAmp;
-
-    prevX = seg.x;
-    prevY = seg.y;
-  }
-
-  checkFoodConsumption();
-  checkPlayerCollisions();
-}
-
-function update() {
-  if (!isGameOver) {
-    survivalSeconds = Math.floor((performance.now() - gameStartTime) / 1000);
-    if (statTimeEl) statTimeEl.textContent = formatTime(survivalSeconds);
-  }
-
-  updatePlayer();
-  updateFood();
-  updateParticles();
-  updatePlankton();
-
-  if (shakeIntensity > 0) {
-    shakeIntensity *= 0.9;
-    if (shakeIntensity < 0.2) shakeIntensity = 0;
-  }
+  initBots();
 }
 
 // ============================================================
-// §7  RENDER: BACKGROUND, FOOD & SERPENTS
+// §8  RENDER: BACKGROUND, FOOD & ALL 7 SERPENTS
 // ============================================================
 
 function renderBackground() {
@@ -811,7 +1083,7 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     ctx.beginPath();
     ctx.arc(drawX, drawY, radius, 0, Math.PI * 2);
     ctx.fillStyle = segColor;
-    if (i % 5 === 0) {
+    if (i % 6 === 0) {
       ctx.shadowColor = pal.glow;
       ctx.shadowBlur = 6;
     } else {
@@ -904,13 +1176,20 @@ function render() {
   renderBackground();
   renderFood();
   renderParticles();
+
+  // Draw Bots
+  for (const bot of bots) {
+    drawSnakeToroidal(bot);
+  }
+
+  // Draw Player on top
   drawSnakeToroidal(player);
 
   ctx.restore();
 }
 
 // ============================================================
-// §8  LOOP
+// §9  LOOP
 // ============================================================
 function gameLoop() {
   update();
@@ -935,6 +1214,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initFood();
   initInput();
   initSnake();
+  initBots();
   requestAnimationFrame(gameLoop);
 });
 </script>
