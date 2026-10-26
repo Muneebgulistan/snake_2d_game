@@ -32,24 +32,74 @@
     z-index: 10;
     pointer-events: none;
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    gap: 10px;
     font-size: 14px;
     text-shadow: 0 0 8px rgba(0,255,200,0.4);
+    flex-wrap: wrap;
   }
   .hud-stat {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(4, 16, 36, 0.65);
+    background: rgba(4, 16, 36, 0.7);
     padding: 6px 14px;
     border-radius: 20px;
-    border: 1px solid rgba(0, 240, 255, 0.2);
-    backdrop-filter: blur(4px);
+    border: 1px solid rgba(0, 240, 255, 0.25);
+    backdrop-filter: blur(6px);
   }
   .hud-val {
     font-weight: bold;
     color: #38bdf8;
+  }
+
+  /* Game Over Overlay */
+  #overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.82);
+    backdrop-filter: blur(8px);
+    z-index: 50;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+  }
+  #overlay h2 {
+    font-size: 42px;
+    color: #f43f5e;
+    text-shadow: 0 0 25px rgba(244, 63, 94, 0.6);
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+  }
+  .score-card {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 16px;
+    padding: 20px 32px;
+    margin-bottom: 24px;
+    min-width: 280px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  .score-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 10px 0;
+    font-size: 16px;
+  }
+  .score-row .label { color: #94a3b8; }
+  .score-row .val { color: #38bdf8; font-weight: bold; }
+  .score-row .best { color: #facc15; font-weight: bold; }
+  .restart-hint {
+    color: #cbd5e1;
+    font-size: 16px;
+    animation: pulseHint 1.8s infinite ease-in-out;
+    cursor: pointer;
+  }
+  @keyframes pulseHint {
+    0%, 100% { opacity: 0.6; transform: scale(0.98); }
+    50% { opacity: 1; transform: scale(1.02); }
   }
 </style>
 </head>
@@ -57,11 +107,44 @@
 
 <canvas id="game-canvas"></canvas>
 
+<!-- HUD -->
 <div id="hud">
+  <div class="hud-stat">
+    <span>Time:</span>
+    <span id="stat-time" class="hud-val">00:00</span>
+  </div>
   <div class="hud-stat">
     <span>Length:</span>
     <span id="stat-length" class="hud-val">30</span>
   </div>
+  <div class="hud-stat">
+    <span>Rank:</span>
+    <span id="stat-rank" class="hud-val">#1</span>
+  </div>
+</div>
+
+<!-- Game Over Overlay -->
+<div id="overlay">
+  <h2>SERPENT DISSOLVED</h2>
+  <div class="score-card">
+    <div class="score-row">
+      <span class="label">Survival Time:</span>
+      <span id="final-time" class="val">00:00</span>
+    </div>
+    <div class="score-row">
+      <span class="label">Best Time:</span>
+      <span id="best-time" class="best">00:00</span>
+    </div>
+    <div class="score-row">
+      <span class="label">Final Length:</span>
+      <span id="final-length" class="val">30</span>
+    </div>
+    <div class="score-row">
+      <span class="label">Best Length:</span>
+      <span id="best-length" class="best">30</span>
+    </div>
+  </div>
+  <div class="restart-hint">Press Enter or Tap to Restart</div>
 </div>
 
 <script>
@@ -76,16 +159,14 @@ const HEAD_RADIUS = 13;          // Radius of serpent head
 const PLANKTON_COUNT = 55;       // Bioluminescent ambient particles
 const FOOD_COUNT = 60;           // Total food orbs maintained in world
 
-// Food palette colors
 const FOOD_COLORS = [
-  { core: '#22d3ee', glow: 'rgba(34, 211, 238, 0.5)' },   // Cyan
-  { core: '#f43f5e', glow: 'rgba(244, 63, 94, 0.5)' },    // Neon Pink
-  { core: '#a855f7', glow: 'rgba(168, 85, 247, 0.5)' },   // Violet
-  { core: '#10b981', glow: 'rgba(16, 185, 129, 0.5)' },   // Emerald
-  { core: '#fbbf24', glow: 'rgba(251, 191, 36, 0.5)' }    // Amber
+  { core: '#22d3ee', glow: 'rgba(34, 211, 238, 0.5)' },
+  { core: '#f43f5e', glow: 'rgba(244, 63, 94, 0.5)' },
+  { core: '#a855f7', glow: 'rgba(168, 85, 247, 0.5)' },
+  { core: '#10b981', glow: 'rgba(16, 185, 129, 0.5)' },
+  { core: '#fbbf24', glow: 'rgba(251, 191, 36, 0.5)' }
 ];
 
-// Palette
 const PALETTE_PLAYER = {
   head: '#00f5ff',
   bodyStart: '#06b6d4',
@@ -106,12 +187,23 @@ let width = window.innerWidth;
 let height = window.innerHeight;
 let animFrame = 0;
 
-// Food orbs & particle effects
+// Game state
+let isGameOver = false;
+let gameStartTime = 0;
+let survivalSeconds = 0;
+let bestSurvivalSeconds = 0;
+let bestLength = INITIAL_SEGMENTS;
+
+// Camera shake
+let shakeIntensity = 0;
+
+// Entities
 const foodOrbs = [];
 const particles = [];
 const plankton = [];
+const otherSnakes = []; // Populated with bots in Step 6
 
-// Player snake state
+// Player snake
 const player = {
   x: width / 2,
   y: height / 2,
@@ -124,17 +216,23 @@ const player = {
   palette: PALETTE_PLAYER,
   tongueTimer: 0,
   tongueProgress: 0,
-  bulges: [],                    // Swelling ripple animations [{index, strength}]
+  bulges: [],
   growQueue: 0,
   alive: true,
 };
 
-// Input state
 const keys = { left: false, right: false };
 const mouse = { x: width / 2, y: height / 2, active: false };
 
-// HUD DOM cache
+// DOM references
+let statTimeEl = null;
 let statLengthEl = null;
+let statRankEl = null;
+let overlayEl = null;
+let finalTimeEl = null;
+let bestTimeEl = null;
+let finalLengthEl = null;
+let bestLengthEl = null;
 
 // ============================================================
 // §3  TOROIDAL WRAP UTILITIES
@@ -175,6 +273,12 @@ function interpolateColor(hex1, hex2, factor) {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const s = (seconds % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
 // ============================================================
 // §4  BACKGROUND, FOOD & PARTICLES
 // ============================================================
@@ -203,34 +307,43 @@ function updatePlankton() {
   }
 }
 
-/** Check if coordinate is safe from snake bodies */
 function isFarFromSnakes(x, y, minDist = 40) {
   const minDistSq = minDist * minDist;
-  if (toroidDistSq(player.x, player.y, x, y) < minDistSq) return false;
-  for (let i = 0; i < player.segments.length; i += 3) {
-    if (toroidDistSq(player.segments[i].x, player.segments[i].y, x, y) < minDistSq) {
-      return false;
+  if (player.alive && toroidDistSq(player.x, player.y, x, y) < minDistSq) return false;
+  if (player.alive) {
+    for (let i = 0; i < player.segments.length; i += 3) {
+      if (toroidDistSq(player.segments[i].x, player.segments[i].y, x, y) < minDistSq) return false;
+    }
+  }
+  for (const s of otherSnakes) {
+    if (!s.alive) continue;
+    if (toroidDistSq(s.x, s.y, x, y) < minDistSq) return false;
+    for (let i = 0; i < s.segments.length; i += 4) {
+      if (toroidDistSq(s.segments[i].x, s.segments[i].y, x, y) < minDistSq) return false;
     }
   }
   return true;
 }
 
-function spawnFoodOrb() {
-  let x = Math.random() * width;
-  let y = Math.random() * height;
-  for (let attempt = 0; attempt < 20; attempt++) {
-    if (isFarFromSnakes(x, y, 40)) break;
-    x = Math.random() * width;
-    y = Math.random() * height;
+function spawnFoodOrb(customX, customY, customColor) {
+  let x = customX !== undefined ? customX : Math.random() * width;
+  let y = customY !== undefined ? customY : Math.random() * height;
+
+  if (customX === undefined) {
+    for (let attempt = 0; attempt < 20; attempt++) {
+      if (isFarFromSnakes(x, y, 40)) break;
+      x = Math.random() * width;
+      y = Math.random() * height;
+    }
   }
 
-  const colorScheme = FOOD_COLORS[Math.floor(Math.random() * FOOD_COLORS.length)];
+  const scheme = customColor || FOOD_COLORS[Math.floor(Math.random() * FOOD_COLORS.length)];
   return {
     x,
     y,
     baseRadius: 4.5 + Math.random() * 2,
-    color: colorScheme.core,
-    glow: colorScheme.glow,
+    color: scheme.core,
+    glow: scheme.glow,
     pulseSpeed: 0.04 + Math.random() * 0.04,
     pulsePhase: Math.random() * Math.PI * 2,
     vx: (Math.random() - 0.5) * 0.25,
@@ -255,10 +368,10 @@ function updateFood() {
   }
 }
 
-function spawnFoodBurst(x, y, color) {
-  for (let i = 0; i < 10; i++) {
+function spawnFoodBurst(x, y, color, count = 10) {
+  for (let i = 0; i < count; i++) {
     const angle = Math.random() * Math.PI * 2;
-    const speed = 1.2 + Math.random() * 2.8;
+    const speed = 1.2 + Math.random() * 3.2;
     particles.push({
       x,
       y,
@@ -267,7 +380,7 @@ function spawnFoodBurst(x, y, color) {
       size: 2 + Math.random() * 2.5,
       alpha: 1,
       color,
-      decay: 0.035 + Math.random() * 0.025
+      decay: 0.03 + Math.random() * 0.02
     });
   }
 }
@@ -285,13 +398,17 @@ function updateParticles() {
 }
 
 // ============================================================
-// §5  INPUT HANDLING
+// §5  INPUT & RESTART HANDLING
 // ============================================================
 
 function initInput() {
   window.addEventListener('resize', onResize);
 
   window.addEventListener('keydown', (e) => {
+    if (isGameOver) {
+      if (e.key === 'Enter') restartGame();
+      return;
+    }
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
     if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
   });
@@ -310,10 +427,18 @@ function initInput() {
   window.addEventListener('touchstart', onTouch, { passive: false });
   window.addEventListener('touchmove', onTouch, { passive: false });
   window.addEventListener('touchend', () => { mouse.active = false; }, { passive: false });
+
+  overlayEl.addEventListener('click', () => {
+    if (isGameOver) restartGame();
+  });
 }
 
 function onTouch(e) {
   e.preventDefault();
+  if (isGameOver) {
+    restartGame();
+    return;
+  }
   if (e.touches.length > 0) {
     mouse.x = e.touches[0].clientX;
     mouse.y = e.touches[0].clientY;
@@ -329,7 +454,7 @@ function onResize() {
 }
 
 // ============================================================
-// §6  UPDATE
+// §6  UPDATE & DEATH LOGIC
 // ============================================================
 
 function initSnake() {
@@ -341,6 +466,7 @@ function initSnake() {
   player.growQueue = 0;
   player.bulges = [];
   player.segments = [];
+  player.alive = true;
   
   for (let i = 0; i < player.length; i++) {
     player.segments.push({
@@ -351,20 +477,65 @@ function initSnake() {
     });
   }
 
+  gameStartTime = performance.now();
+  isGameOver = false;
+  overlayEl.style.display = 'none';
+
   if (statLengthEl) statLengthEl.textContent = player.length;
+  if (statRankEl) statRankEl.textContent = '#1';
+}
+
+function dissolveSnakeIntoFood(snake) {
+  // Dissolves every 2-3 segments into glowing food orbs that remain in world!
+  for (let i = 0; i < snake.segments.length; i += 2) {
+    const seg = snake.segments[i];
+    const foodScheme = {
+      core: snake.palette.head,
+      glow: snake.palette.glow
+    };
+    foodOrbs.push(spawnFoodOrb(seg.x, seg.y, foodScheme));
+    spawnFoodBurst(seg.x, seg.y, snake.palette.head, 4);
+  }
+  // Extra burst at head
+  spawnFoodBurst(snake.x, snake.y, snake.palette.head, 18);
+}
+
+function handlePlayerDeath() {
+  if (!player.alive || isGameOver) return;
+  player.alive = false;
+  isGameOver = true;
+  shakeIntensity = 18;
+
+  // Dissolve player snake into food
+  dissolveSnakeIntoFood(player);
+
+  // Update records
+  if (survivalSeconds > bestSurvivalSeconds) bestSurvivalSeconds = survivalSeconds;
+  if (player.length > bestLength) bestLength = player.length;
+
+  // Show Game Over Overlay
+  finalTimeEl.textContent = formatTime(survivalSeconds);
+  bestTimeEl.textContent = formatTime(bestSurvivalSeconds);
+  finalLengthEl.textContent = player.length;
+  bestLengthEl.textContent = bestLength;
+  overlayEl.style.display = 'flex';
+}
+
+function restartGame() {
+  overlayEl.style.display = 'none';
+  initSnake();
 }
 
 function checkFoodConsumption() {
+  if (!player.alive) return;
   const eatDistSq = (HEAD_RADIUS + 8) * (HEAD_RADIUS + 8);
 
   for (let i = foodOrbs.length - 1; i >= 0; i--) {
     const orb = foodOrbs[i];
     if (toroidDistSq(player.x, player.y, orb.x, orb.y) < eatDistSq) {
-      // Eat orb
-      spawnFoodBurst(orb.x, orb.y, orb.color);
+      spawnFoodBurst(orb.x, orb.y, orb.color, 8);
       foodOrbs.splice(i, 1);
 
-      // Trigger digestion swelling ripple down the body
       player.bulges.push({ index: 0, strength: 0.65 });
       player.growQueue++;
       player.length++;
@@ -374,7 +545,26 @@ function checkFoodConsumption() {
   }
 }
 
+function checkPlayerCollisions() {
+  if (!player.alive) return;
+  // Player dies when head touches any other snake's body (toroidal check)
+  for (const s of otherSnakes) {
+    if (!s.alive) continue;
+    // Check against other snake body segments
+    for (let i = 0; i < s.segments.length; i++) {
+      const seg = s.segments[i];
+      const collisionDist = HEAD_RADIUS * 0.85 + 6;
+      if (toroidDistSq(player.x, player.y, seg.x, seg.y) < collisionDist * collisionDist) {
+        handlePlayerDeath();
+        return;
+      }
+    }
+  }
+}
+
 function updatePlayer() {
+  if (!player.alive) return;
+
   animFrame++;
 
   if (keys.left) {
@@ -397,7 +587,6 @@ function updatePlayer() {
   player.x = wrap(player.x + Math.cos(player.angle) * player.speed, width);
   player.y = wrap(player.y + Math.sin(player.angle) * player.speed, height);
 
-  // Tongue flick
   player.tongueTimer++;
   if (player.tongueTimer > 180) {
     player.tongueProgress = Math.sin(((player.tongueTimer - 180) / 25) * Math.PI);
@@ -407,7 +596,6 @@ function updatePlayer() {
     }
   }
 
-  // Update bulges traveling down the body
   for (let b = player.bulges.length - 1; b >= 0; b--) {
     player.bulges[b].index += 0.75;
     if (player.bulges[b].index >= player.segments.length) {
@@ -415,7 +603,6 @@ function updatePlayer() {
     }
   }
 
-  // Grow tail if queued
   if (player.growQueue > 0 && player.segments.length > 0) {
     const tail = player.segments[player.segments.length - 1];
     player.segments.push({
@@ -452,17 +639,28 @@ function updatePlayer() {
   }
 
   checkFoodConsumption();
+  checkPlayerCollisions();
 }
 
 function update() {
+  if (!isGameOver) {
+    survivalSeconds = Math.floor((performance.now() - gameStartTime) / 1000);
+    if (statTimeEl) statTimeEl.textContent = formatTime(survivalSeconds);
+  }
+
   updatePlayer();
   updateFood();
   updateParticles();
   updatePlankton();
+
+  if (shakeIntensity > 0) {
+    shakeIntensity *= 0.9;
+    if (shakeIntensity < 0.2) shakeIntensity = 0;
+  }
 }
 
 // ============================================================
-// §7  RENDER: BACKGROUND, FOOD & SERPENT GRAPHICS
+// §7  RENDER: BACKGROUND, FOOD & SERPENTS
 // ============================================================
 
 function renderBackground() {
@@ -510,19 +708,16 @@ function renderFood() {
     const pulse = Math.sin(animFrame * orb.pulseSpeed + orb.pulsePhase);
     const radius = orb.baseRadius + pulse * 1.2;
 
-    // Glowing halo
     ctx.fillStyle = orb.glow;
     ctx.beginPath();
     ctx.arc(orb.x, orb.y, radius * 2.2, 0, Math.PI * 2);
     ctx.fill();
 
-    // Vibrant core
     ctx.fillStyle = orb.color;
     ctx.beginPath();
     ctx.arc(orb.x, orb.y, radius, 0, Math.PI * 2);
     ctx.fill();
 
-    // Hot center
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.arc(orb.x - radius * 0.25, orb.y - radius * 0.25, radius * 0.35, 0, Math.PI * 2);
@@ -558,6 +753,7 @@ function drawDiamondScale(cx, cy, radius, angle, color) {
 }
 
 function drawRealisticSnakeAt(snake, offsetX, offsetY) {
+  if (!snake.alive) return;
   const segs = snake.segments;
   if (segs.length === 0) return;
 
@@ -599,7 +795,6 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     const progress = i / segs.length;
     let radius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));
 
-    // Swelling digestion bulge ripple
     for (const b of snake.bulges) {
       const dist = Math.abs(i - b.index);
       if (dist < 3.5) {
@@ -684,6 +879,7 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
 }
 
 function drawSnakeToroidal(snake) {
+  if (!snake.alive) return;
   const offsets = [
     [0, 0],
     [width, 0], [-width, 0],
@@ -698,10 +894,19 @@ function drawSnakeToroidal(snake) {
 }
 
 function render() {
+  ctx.save();
+  if (shakeIntensity > 0) {
+    const sx = (Math.random() - 0.5) * shakeIntensity;
+    const sy = (Math.random() - 0.5) * shakeIntensity;
+    ctx.translate(sx, sy);
+  }
+
   renderBackground();
   renderFood();
   renderParticles();
   drawSnakeToroidal(player);
+
+  ctx.restore();
 }
 
 // ============================================================
@@ -716,7 +921,15 @@ function gameLoop() {
 window.addEventListener('DOMContentLoaded', () => {
   canvas = document.getElementById('game-canvas');
   ctx = canvas.getContext('2d');
+  statTimeEl = document.getElementById('stat-time');
   statLengthEl = document.getElementById('stat-length');
+  statRankEl = document.getElementById('stat-rank');
+  overlayEl = document.getElementById('overlay');
+  finalTimeEl = document.getElementById('final-time');
+  bestTimeEl = document.getElementById('best-time');
+  finalLengthEl = document.getElementById('final-length');
+  bestLengthEl = document.getElementById('best-length');
+
   onResize();
   initPlankton();
   initFood();
