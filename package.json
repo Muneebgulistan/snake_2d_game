@@ -1,0 +1,19 @@
+{
+  "name": "snake-arena",
+  "version": "1.0.0",
+  "description": "Snake Arena: 2D snake game with AI opponents",
+  "main": "www/index.html",
+  "scripts": {
+    "sync": "npx cap sync",
+    "open": "npx cap open android"
+  },
+  "keywords": [
+    "snake",
+    "game",
+    "canvas",
+    "capacitor",
+    "android"
+  ],
+  "author": "Muneeb",
+  "license": "MIT"
+}

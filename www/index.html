@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Snake Arena</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="hud-top">
+    <span class="hud-score">Score: <span id="score-val">0</span></span>
+    <span class="hud-highscore">High: <span id="high-val">0</span></span>
+    <span class="hud-speed" id="speed-display">Speed: 1x</span>
+    <button id="mute-btn" onclick="toggleMute()">🔊</button>
+  </div>
+  <div id="leaderboard"></div>
+</div>
+
+<!-- Canvas + Overlays -->
+<div id="canvas-wrap">
+  <canvas id="game" width="600" height="600"></canvas>
+
+  <!-- Game Over / Pause Overlay -->
+  <div id="overlay">
+    <h2 id="overlay-title">Game Over</h2>
+    <p class="highlight" id="overlay-score"></p>
+    <p id="overlay-msg">Press Enter or tap to restart</p>
+  </div>
+
+  <!-- Start Menu -->
+  <div id="menu">
+    <h1>🐍 Snake Arena</h1>
+    <p class="subtitle">Compete against AI snakes for food!</p>
+    <div class="diff-group">
+      <label>Difficulty</label>
+      <div class="diff-btns">
+        <button class="diff-btn" data-diff="easy" onclick="setDifficulty('easy')">Easy</button>
+        <button class="diff-btn active" data-diff="normal" onclick="setDifficulty('normal')">Normal</button>
+        <button class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">Hard</button>
+      </div>
+    </div>
+    <button class="menu-btn" onclick="startGame()">▶ Play</button>
+    <div class="controls-hint">
+      Arrow Keys / WASD to move &bull; P or Space to pause<br>
+      Swipe on mobile &bull; Sound effects included
+    </div>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
