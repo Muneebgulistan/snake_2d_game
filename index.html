@@ -52,6 +52,66 @@
     color: #38bdf8;
   }
 
+  /* Live Leaderboard */
+  #leaderboard {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 10;
+    pointer-events: none;
+    background: rgba(4, 16, 36, 0.75);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: 14px;
+    padding: 10px 14px;
+    backdrop-filter: blur(8px);
+    min-width: 170px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .lb-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #94a3b8;
+    margin-bottom: 6px;
+    font-weight: bold;
+    text-align: center;
+  }
+  .lb-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .lb-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 3px 6px;
+    border-radius: 6px;
+  }
+  .lb-item.is-player {
+    background: rgba(0, 245, 255, 0.18);
+    border: 1px solid rgba(0, 245, 255, 0.4);
+    font-weight: bold;
+  }
+  .lb-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .lb-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .lb-length {
+    color: #94a3b8;
+    font-size: 12px;
+  }
+  .lb-item.is-player .lb-length {
+    color: #38bdf8;
+  }
+
   /* Game Over Overlay */
   #overlay {
     display: none;
@@ -123,6 +183,12 @@
   </div>
 </div>
 
+<!-- Live Leaderboard -->
+<div id="leaderboard">
+  <div class="lb-title">Leaderboard</div>
+  <div class="lb-list" id="lb-list"></div>
+</div>
+
 <!-- Game Over Overlay -->
 <div id="overlay">
   <h2>SERPENT DISSOLVED</h2>
@@ -180,7 +246,6 @@ const PALETTE_PLAYER = {
   tongue: '#f43f5e'
 };
 
-// 6 Distinct Bot Palettes & Names
 const BOT_CONFIGS = [
   {
     name: 'Viper',
@@ -250,6 +315,7 @@ let shakeIntensity = 0;
 
 const foodOrbs = [];
 const particles = [];
+const trailParticles = [];
 const plankton = [];
 const bots = [];
 
@@ -279,6 +345,7 @@ const mouse = { x: width / 2, y: height / 2, active: false };
 let statTimeEl = null;
 let statLengthEl = null;
 let statRankEl = null;
+let lbListEl = null;
 let overlayEl = null;
 let finalTimeEl = null;
 let bestTimeEl = null;
@@ -431,6 +498,18 @@ function spawnFoodBurst(x, y, color, count = 10) {
   }
 }
 
+function spawnWakeTrail(x, y, color) {
+  if (Math.random() > 0.45) return;
+  trailParticles.push({
+    x,
+    y,
+    size: 2 + Math.random() * 2.5,
+    alpha: 0.45,
+    color,
+    decay: 0.025 + Math.random() * 0.02
+  });
+}
+
 function updateParticles() {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
@@ -441,6 +520,12 @@ function updateParticles() {
     p.alpha -= p.decay;
     if (p.alpha <= 0) particles.splice(i, 1);
   }
+
+  for (let i = trailParticles.length - 1; i >= 0; i--) {
+    const t = trailParticles[i];
+    t.alpha -= t.decay;
+    if (t.alpha <= 0) trailParticles.splice(i, 1);
+  }
 }
 
 // ============================================================
@@ -448,7 +533,6 @@ function updateParticles() {
 // ============================================================
 
 function createBot(config, index) {
-  // Safe spawn position
   let bx = Math.random() * width;
   let by = Math.random() * height;
   for (let attempt = 0; attempt < 50; attempt++) {
@@ -532,13 +616,12 @@ function respawnBot(bot) {
   }
 }
 
-/** AI decision making for each bot */
 function updateBotAI(bot) {
   if (!bot.alive) return;
 
   const allSnakes = [player, ...bots];
 
-  // 1. Find nearest food
+  // 1. Food targeting
   let nearestFood = null;
   let nearestDistSq = Infinity;
   for (const orb of foodOrbs) {
@@ -556,11 +639,10 @@ function updateBotAI(bot) {
     desiredAngle = Math.atan2(dy, dx);
   }
 
-  // 2. Trapping / Cutting-off behavior (especially against player or nearby bots)
+  // 2. Trapping / cutting off other snakes
   if (player.alive && Math.random() < bot.personality.aggressiveness) {
     const dToPlayerSq = toroidDistSq(bot.x, bot.y, player.x, player.y);
     if (dToPlayerSq < 180 * 180 && dToPlayerSq > 50 * 50) {
-      // Aim slightly ahead of player's head to cut them off
       const leadDist = 50;
       const leadX = wrap(player.x + Math.cos(player.angle) * leadDist, width);
       const leadY = wrap(player.y + Math.sin(player.angle) * leadDist, height);
@@ -570,7 +652,7 @@ function updateBotAI(bot) {
     }
   }
 
-  // 3. Obstacle avoidance (lookahead whiskers)
+  // 3. Obstacle avoidance
   const lookDist = bot.personality.lookAheadDist;
   const sensorAngles = [0, 0.5, -0.5, 0.9, -0.9, 1.4, -1.4];
   let bestDanger = 0;
@@ -581,11 +663,9 @@ function updateBotAI(bot) {
     const probeX = wrap(bot.x + Math.cos(checkAngle) * lookDist, width);
     const probeY = wrap(bot.y + Math.sin(checkAngle) * lookDist, height);
 
-    // Check danger against all other snakes' bodies
     let probeDanger = 0;
     for (const other of allSnakes) {
       if (!other.alive) continue;
-      // Skip own body near head (first 5 segments)
       const startSeg = (other === bot) ? 6 : 0;
       for (let i = startSeg; i < other.segments.length; i += 2) {
         const seg = other.segments[i];
@@ -598,7 +678,6 @@ function updateBotAI(bot) {
     }
 
     if (probeDanger > 0) {
-      // Danger detected: turn away proportional to sensor angle
       avoidTurn += (sa === 0 ? (Math.random() > 0.5 ? 1.5 : -1.5) : -Math.sign(sa) * 1.8);
       bestDanger += probeDanger;
     }
@@ -607,11 +686,9 @@ function updateBotAI(bot) {
   if (bestDanger > 0) {
     bot.targetAngle = bot.angle + avoidTurn;
   } else {
-    // Add small wandering drift so bots don't steer in rigid straight lines
     bot.targetAngle = desiredAngle + (Math.random() - 0.5) * 0.15;
   }
 
-  // Smooth turn
   const diff = angleDifference(bot.angle, bot.targetAngle);
   bot.angle += Math.sign(diff) * Math.min(Math.abs(diff), bot.turnRate);
 }
@@ -623,11 +700,15 @@ function updateBotAI(bot) {
 function advanceSnake(snake) {
   if (!snake.alive) return;
 
-  // Move head
   snake.x = wrap(snake.x + Math.cos(snake.angle) * snake.speed, width);
   snake.y = wrap(snake.y + Math.sin(snake.angle) * snake.speed, height);
 
-  // Tongue flick
+  // Spawn trail wake particles
+  if (snake.segments.length > 0) {
+    const tail = snake.segments[snake.segments.length - 1];
+    spawnWakeTrail(tail.x, tail.y, snake.palette.bodyEnd);
+  }
+
   snake.tongueTimer++;
   if (snake.tongueTimer > 180) {
     snake.tongueProgress = Math.sin(((snake.tongueTimer - 180) / 25) * Math.PI);
@@ -637,7 +718,6 @@ function advanceSnake(snake) {
     }
   }
 
-  // Update bulges
   for (let b = snake.bulges.length - 1; b >= 0; b--) {
     snake.bulges[b].index += 0.75;
     if (snake.bulges[b].index >= snake.segments.length) {
@@ -645,7 +725,6 @@ function advanceSnake(snake) {
     }
   }
 
-  // Grow tail
   if (snake.growQueue > 0 && snake.segments.length > 0) {
     const tail = snake.segments[snake.segments.length - 1];
     snake.segments.push({
@@ -657,7 +736,6 @@ function advanceSnake(snake) {
     snake.growQueue--;
   }
 
-  // Follow segments
   let prevX = snake.x;
   let prevY = snake.y;
 
@@ -726,7 +804,6 @@ function checkAllCollisions() {
   const collisionRadius = HEAD_RADIUS * 0.85 + 5.5;
   const collisionDistSq = collisionRadius * collisionRadius;
 
-  // Check each snake's head against every OTHER snake's body
   for (const snake of allSnakes) {
     if (!snake.alive) continue;
 
@@ -774,17 +851,31 @@ function checkFoodConsumptionAll() {
   }
 }
 
-function updateHUD() {
+function updateHUDAndLeaderboard() {
   if (!isGameOver) {
     survivalSeconds = Math.floor((performance.now() - gameStartTime) / 1000);
     if (statTimeEl) statTimeEl.textContent = formatTime(survivalSeconds);
   }
 
-  // Calculate live rank among all 7 serpents
+  // Sorted list for Leaderboard
   const allSnakes = [player, ...bots];
   allSnakes.sort((a, b) => b.length - a.length);
+
   const playerRank = allSnakes.findIndex(s => s.isPlayer) + 1;
   if (statRankEl) statRankEl.textContent = `#${playerRank}`;
+
+  // Populate leaderboard DOM
+  if (lbListEl) {
+    lbListEl.innerHTML = allSnakes.map((s, idx) => `
+      <div class="lb-item ${s.isPlayer ? 'is-player' : ''}">
+        <div class="lb-left">
+          <span class="lb-dot" style="background:${s.palette.head}; box-shadow: 0 0 6px ${s.palette.glow}"></span>
+          <span>${idx + 1}. ${s.name}</span>
+        </div>
+        <span class="lb-length">${s.length}</span>
+      </div>
+    `).join('');
+  }
 }
 
 function update() {
@@ -833,7 +924,7 @@ function update() {
   updateFood();
   updateParticles();
   updatePlankton();
-  updateHUD();
+  updateHUDAndLeaderboard();
 
   if (shakeIntensity > 0) {
     shakeIntensity *= 0.9;
@@ -932,7 +1023,7 @@ function restartGame() {
 }
 
 // ============================================================
-// §8  RENDER: BACKGROUND, FOOD & ALL 7 SERPENTS
+// §8  RENDER: BACKGROUND, TRAIL, FOOD & SERPENTS WITH NAME TAGS
 // ============================================================
 
 function renderBackground() {
@@ -998,6 +1089,18 @@ function renderFood() {
 }
 
 function renderParticles() {
+  // Wake trail particles
+  for (const t of trailParticles) {
+    ctx.save();
+    ctx.globalAlpha = t.alpha;
+    ctx.fillStyle = t.color;
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Burst particles
   for (const p of particles) {
     ctx.save();
     ctx.globalAlpha = p.alpha;
@@ -1021,6 +1124,32 @@ function drawDiamondScale(cx, cy, radius, angle, color) {
   ctx.closePath();
   ctx.fillStyle = color;
   ctx.fill();
+  ctx.restore();
+}
+
+function drawNameTag(name, x, y, color) {
+  ctx.save();
+  ctx.font = 'bold 11px system-ui, sans-serif';
+  const textWidth = ctx.measureText(name).width;
+  const paddingX = 8;
+  const tagHeight = 18;
+  const tagWidth = textWidth + paddingX * 2;
+  const tagY = y - 26;
+
+  // Background pill
+  ctx.fillStyle = 'rgba(2, 6, 23, 0.75)';
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(x - tagWidth / 2, tagY, tagWidth, tagHeight, 9);
+  ctx.fill();
+  ctx.stroke();
+
+  // Text
+  ctx.fillStyle = '#f8fafc';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(name, x, tagY + tagHeight / 2);
   ctx.restore();
 }
 
@@ -1147,6 +1276,10 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   });
 
   ctx.restore();
+
+  // Floating name tag above head
+  drawNameTag(snake.name, snake.x, snake.y, pal.head);
+
   ctx.restore();
 }
 
@@ -1203,6 +1336,7 @@ window.addEventListener('DOMContentLoaded', () => {
   statTimeEl = document.getElementById('stat-time');
   statLengthEl = document.getElementById('stat-length');
   statRankEl = document.getElementById('stat-rank');
+  lbListEl = document.getElementById('lb-list');
   overlayEl = document.getElementById('overlay');
   finalTimeEl = document.getElementById('final-time');
   bestTimeEl = document.getElementById('best-time');
