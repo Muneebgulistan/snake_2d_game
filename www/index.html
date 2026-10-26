@@ -74,6 +74,16 @@ const SEGMENT_SPACING = 7;       // Distance between vertebrae segments
 const INITIAL_SEGMENTS = 30;     // Starting snake length
 const HEAD_RADIUS = 13;          // Radius of serpent head
 const PLANKTON_COUNT = 55;       // Bioluminescent ambient particles
+const FOOD_COUNT = 60;           // Total food orbs maintained in world
+
+// Food palette colors
+const FOOD_COLORS = [
+  { core: '#22d3ee', glow: 'rgba(34, 211, 238, 0.5)' },   // Cyan
+  { core: '#f43f5e', glow: 'rgba(244, 63, 94, 0.5)' },    // Neon Pink
+  { core: '#a855f7', glow: 'rgba(168, 85, 247, 0.5)' },   // Violet
+  { core: '#10b981', glow: 'rgba(16, 185, 129, 0.5)' },   // Emerald
+  { core: '#fbbf24', glow: 'rgba(251, 191, 36, 0.5)' }    // Amber
+];
 
 // Palette
 const PALETTE_PLAYER = {
@@ -96,7 +106,9 @@ let width = window.innerWidth;
 let height = window.innerHeight;
 let animFrame = 0;
 
-// Ambient plankton particles
+// Food orbs & particle effects
+const foodOrbs = [];
+const particles = [];
 const plankton = [];
 
 // Player snake state
@@ -112,12 +124,17 @@ const player = {
   palette: PALETTE_PLAYER,
   tongueTimer: 0,
   tongueProgress: 0,
+  bulges: [],                    // Swelling ripple animations [{index, strength}]
+  growQueue: 0,
   alive: true,
 };
 
 // Input state
 const keys = { left: false, right: false };
 const mouse = { x: width / 2, y: height / 2, active: false };
+
+// HUD DOM cache
+let statLengthEl = null;
 
 // ============================================================
 // §3  TOROIDAL WRAP UTILITIES
@@ -132,6 +149,12 @@ function toroidDelta(a, b, size) {
   while (d > size * 0.5) d -= size;
   while (d < -size * 0.5) d += size;
   return d;
+}
+
+function toroidDistSq(x1, y1, x2, y2) {
+  const dx = toroidDelta(x1, x2, width);
+  const dy = toroidDelta(y1, y2, height);
+  return dx * dx + dy * dy;
 }
 
 function angleDifference(current, target) {
@@ -153,7 +176,7 @@ function interpolateColor(hex1, hex2, factor) {
 }
 
 // ============================================================
-// §4  BACKGROUND & PARTICLES INITIALIZATION
+// §4  BACKGROUND, FOOD & PARTICLES
 // ============================================================
 
 function initPlankton() {
@@ -165,7 +188,7 @@ function initPlankton() {
       size: 1 + Math.random() * 2.2,
       baseAlpha: 0.15 + Math.random() * 0.45,
       vx: (Math.random() - 0.5) * 0.35,
-      vy: -0.15 - Math.random() * 0.35, // slowly drifting upward like marine snow
+      vy: -0.15 - Math.random() * 0.35,
       pulseSpeed: 0.02 + Math.random() * 0.03,
       pulsePhase: Math.random() * Math.PI * 2,
       color: Math.random() > 0.4 ? 'rgba(56, 189, 248, ' : 'rgba(45, 212, 191, '
@@ -177,6 +200,87 @@ function updatePlankton() {
   for (const p of plankton) {
     p.x = wrap(p.x + p.vx, width);
     p.y = wrap(p.y + p.vy, height);
+  }
+}
+
+/** Check if coordinate is safe from snake bodies */
+function isFarFromSnakes(x, y, minDist = 40) {
+  const minDistSq = minDist * minDist;
+  if (toroidDistSq(player.x, player.y, x, y) < minDistSq) return false;
+  for (let i = 0; i < player.segments.length; i += 3) {
+    if (toroidDistSq(player.segments[i].x, player.segments[i].y, x, y) < minDistSq) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function spawnFoodOrb() {
+  let x = Math.random() * width;
+  let y = Math.random() * height;
+  for (let attempt = 0; attempt < 20; attempt++) {
+    if (isFarFromSnakes(x, y, 40)) break;
+    x = Math.random() * width;
+    y = Math.random() * height;
+  }
+
+  const colorScheme = FOOD_COLORS[Math.floor(Math.random() * FOOD_COLORS.length)];
+  return {
+    x,
+    y,
+    baseRadius: 4.5 + Math.random() * 2,
+    color: colorScheme.core,
+    glow: colorScheme.glow,
+    pulseSpeed: 0.04 + Math.random() * 0.04,
+    pulsePhase: Math.random() * Math.PI * 2,
+    vx: (Math.random() - 0.5) * 0.25,
+    vy: (Math.random() - 0.5) * 0.25,
+  };
+}
+
+function initFood() {
+  foodOrbs.length = 0;
+  for (let i = 0; i < FOOD_COUNT; i++) {
+    foodOrbs.push(spawnFoodOrb());
+  }
+}
+
+function updateFood() {
+  for (const orb of foodOrbs) {
+    orb.x = wrap(orb.x + orb.vx, width);
+    orb.y = wrap(orb.y + orb.vy, height);
+  }
+  while (foodOrbs.length < FOOD_COUNT) {
+    foodOrbs.push(spawnFoodOrb());
+  }
+}
+
+function spawnFoodBurst(x, y, color) {
+  for (let i = 0; i < 10; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1.2 + Math.random() * 2.8;
+    particles.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      size: 2 + Math.random() * 2.5,
+      alpha: 1,
+      color,
+      decay: 0.035 + Math.random() * 0.025
+    });
+  }
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x = wrap(p.x + p.vx, width);
+    p.y = wrap(p.y + p.vy, height);
+    p.vx *= 0.94;
+    p.vy *= 0.94;
+    p.alpha -= p.decay;
+    if (p.alpha <= 0) particles.splice(i, 1);
   }
 }
 
@@ -233,6 +337,9 @@ function initSnake() {
   player.y = height / 2;
   player.angle = -Math.PI / 2;
   player.targetAngle = -Math.PI / 2;
+  player.length = INITIAL_SEGMENTS;
+  player.growQueue = 0;
+  player.bulges = [];
   player.segments = [];
   
   for (let i = 0; i < player.length; i++) {
@@ -242,6 +349,28 @@ function initSnake() {
       angle: player.angle,
       lateralOffset: 0
     });
+  }
+
+  if (statLengthEl) statLengthEl.textContent = player.length;
+}
+
+function checkFoodConsumption() {
+  const eatDistSq = (HEAD_RADIUS + 8) * (HEAD_RADIUS + 8);
+
+  for (let i = foodOrbs.length - 1; i >= 0; i--) {
+    const orb = foodOrbs[i];
+    if (toroidDistSq(player.x, player.y, orb.x, orb.y) < eatDistSq) {
+      // Eat orb
+      spawnFoodBurst(orb.x, orb.y, orb.color);
+      foodOrbs.splice(i, 1);
+
+      // Trigger digestion swelling ripple down the body
+      player.bulges.push({ index: 0, strength: 0.65 });
+      player.growQueue++;
+      player.length++;
+
+      if (statLengthEl) statLengthEl.textContent = player.length;
+    }
   }
 }
 
@@ -268,6 +397,7 @@ function updatePlayer() {
   player.x = wrap(player.x + Math.cos(player.angle) * player.speed, width);
   player.y = wrap(player.y + Math.sin(player.angle) * player.speed, height);
 
+  // Tongue flick
   player.tongueTimer++;
   if (player.tongueTimer > 180) {
     player.tongueProgress = Math.sin(((player.tongueTimer - 180) / 25) * Math.PI);
@@ -275,6 +405,26 @@ function updatePlayer() {
       player.tongueTimer = 0;
       player.tongueProgress = 0;
     }
+  }
+
+  // Update bulges traveling down the body
+  for (let b = player.bulges.length - 1; b >= 0; b--) {
+    player.bulges[b].index += 0.75;
+    if (player.bulges[b].index >= player.segments.length) {
+      player.bulges.splice(b, 1);
+    }
+  }
+
+  // Grow tail if queued
+  if (player.growQueue > 0 && player.segments.length > 0) {
+    const tail = player.segments[player.segments.length - 1];
+    player.segments.push({
+      x: tail.x,
+      y: tail.y,
+      angle: tail.angle,
+      lateralOffset: 0
+    });
+    player.growQueue--;
   }
 
   let prevX = player.x;
@@ -300,20 +450,22 @@ function updatePlayer() {
     prevX = seg.x;
     prevY = seg.y;
   }
+
+  checkFoodConsumption();
 }
 
 function update() {
   updatePlayer();
+  updateFood();
+  updateParticles();
   updatePlankton();
 }
 
 // ============================================================
-// §7  RENDER: BACKGROUND & SERPENT GRAPHICS
+// §7  RENDER: BACKGROUND, FOOD & SERPENT GRAPHICS
 // ============================================================
 
-/** Draw seamless deep ocean floor background with rays and drifting plankton */
 function renderBackground() {
-  // 1. Deep ocean gradient
   const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
   bgGrad.addColorStop(0, '#030816');
   bgGrad.addColorStop(0.5, '#020b1f');
@@ -321,7 +473,6 @@ function renderBackground() {
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, width, height);
 
-  // 2. Faint undulating light rays (caustics)
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
   for (let i = 0; i < 4; i++) {
@@ -344,7 +495,6 @@ function renderBackground() {
   }
   ctx.restore();
 
-  // 3. Drifting bioluminescent plankton
   for (const p of plankton) {
     const pulse = Math.sin(animFrame * p.pulseSpeed + p.pulsePhase);
     const alpha = p.baseAlpha + pulse * 0.15;
@@ -352,6 +502,43 @@ function renderBackground() {
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
     ctx.fill();
+  }
+}
+
+function renderFood() {
+  for (const orb of foodOrbs) {
+    const pulse = Math.sin(animFrame * orb.pulseSpeed + orb.pulsePhase);
+    const radius = orb.baseRadius + pulse * 1.2;
+
+    // Glowing halo
+    ctx.fillStyle = orb.glow;
+    ctx.beginPath();
+    ctx.arc(orb.x, orb.y, radius * 2.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Vibrant core
+    ctx.fillStyle = orb.color;
+    ctx.beginPath();
+    ctx.arc(orb.x, orb.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Hot center
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(orb.x - radius * 0.25, orb.y - radius * 0.25, radius * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function renderParticles() {
+  for (const p of particles) {
+    ctx.save();
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 }
 
@@ -410,7 +597,15 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   for (let i = segs.length - 1; i >= 0; i--) {
     const seg = segs[i];
     const progress = i / segs.length;
-    const radius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));
+    let radius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));
+
+    // Swelling digestion bulge ripple
+    for (const b of snake.bulges) {
+      const dist = Math.abs(i - b.index);
+      if (dist < 3.5) {
+        radius *= (1 + (1 - dist / 3.5) * b.strength);
+      }
+    }
 
     const perpAngle = seg.angle + Math.PI / 2;
     const drawX = seg.x + Math.cos(perpAngle) * seg.lateralOffset;
@@ -504,6 +699,8 @@ function drawSnakeToroidal(snake) {
 
 function render() {
   renderBackground();
+  renderFood();
+  renderParticles();
   drawSnakeToroidal(player);
 }
 
@@ -519,8 +716,10 @@ function gameLoop() {
 window.addEventListener('DOMContentLoaded', () => {
   canvas = document.getElementById('game-canvas');
   ctx = canvas.getContext('2d');
+  statLengthEl = document.getElementById('stat-length');
   onResize();
   initPlankton();
+  initFood();
   initInput();
   initSnake();
   requestAnimationFrame(gameLoop);
