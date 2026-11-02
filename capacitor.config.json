@@ -1,0 +1,8 @@
+{
+  "appId": "com.muneeb.neonserpents",
+  "appName": "Serpent Run",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#111827"
+  }
+}

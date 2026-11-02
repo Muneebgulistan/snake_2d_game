@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Neon Serpents</title>
+<meta name="theme-color" content="#111827">
+<link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+<title>Serpent Run</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -27,8 +29,8 @@
   }
   #hud {
     position: absolute;
-    top: 16px;
-    left: 16px;
+    top: max(12px, env(safe-area-inset-top));
+    left: max(12px, env(safe-area-inset-left));
     z-index: 10;
     pointer-events: none;
     display: none;
@@ -54,6 +56,7 @@
   }
   #mute-btn {
     pointer-events: auto;
+    min-height: 44px;
     background: rgba(4, 16, 36, 0.7);
     border: 1px solid rgba(0, 240, 255, 0.25);
     color: #e0f2fe;
@@ -64,6 +67,20 @@
     backdrop-filter: blur(6px);
     transition: all 0.2s;
   }
+  #pause-btn {
+    pointer-events: auto;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    background: rgba(4, 16, 36, 0.82);
+    border: 1px solid rgba(0, 240, 255, 0.35);
+    color: #e0f2fe;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    backdrop-filter: blur(6px);
+  }
   #mute-btn:hover {
     border-color: #00f5ff;
     color: #00f5ff;
@@ -72,8 +89,8 @@
   /* Live Leaderboard */
   #leaderboard {
     position: absolute;
-    top: 16px;
-    right: 16px;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
     z-index: 10;
     pointer-events: none;
     display: none;
@@ -227,6 +244,13 @@
     margin-top: 30px;
     line-height: 1.6;
   }
+  .privacy-link {
+    color: #7dd3fc;
+    font-size: 13px;
+    margin-top: 18px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
 
   /* Pause Overlay */
   #pause-overlay {
@@ -297,6 +321,67 @@
     0%, 100% { opacity: 0.6; transform: scale(0.98); }
     50% { opacity: 1; transform: scale(1.02); }
   }
+  @media (max-width: 480px) {
+    #menu-screen { padding: 18px; }
+    #menu-screen h1 { font-size: clamp(30px, 9vw, 42px); letter-spacing: 2px; }
+    .menu-sub { font-size: 14px; margin-bottom: 20px; }
+    .diff-btn { padding: 10px 18px; }
+    .menu-hint { margin-top: 20px; }
+    #leaderboard { top: auto; bottom: max(12px, env(safe-area-inset-bottom)); }
+    #hud { right: max(12px, env(safe-area-inset-right)); gap: 6px; }
+    .hud-stat { padding: 6px 10px; font-size: 13px; }
+    #stat-cycle { display: none; }
+  }
+  @media (max-height: 560px) and (orientation: landscape) {
+    #menu-screen { justify-content: flex-start; overflow-y: auto; padding-block: 12px; touch-action: pan-y; }
+    #menu-screen h1 { font-size: 32px; margin-bottom: 2px; }
+    .menu-sub { margin-bottom: 10px; }
+    .diff-selector { margin-bottom: 10px; }
+    .menu-records { margin-bottom: 12px; }
+    .menu-hint { margin-top: 10px; }
+  }
+
+  /* Store-ready, restrained mobile interface */
+  :root { color-scheme: dark; }
+  html, body { background: #111827; color: #f3f4f6; }
+  #hud { text-shadow: none; gap: 8px; }
+  .hud-stat, #mute-btn, #pause-btn {
+    background: rgba(17, 24, 39, .92); border-color: rgba(255,255,255,.16);
+    color: #f3f4f6; box-shadow: 0 2px 8px rgba(0,0,0,.18); backdrop-filter: none;
+  }
+  .hud-val { color: #a7f3d0; }
+  #pause-btn { border-radius: 12px; }
+  #mute-btn { border-radius: 12px; }
+  #home-btn {
+    pointer-events: auto; width: 44px; height: 44px; display: grid; place-items: center;
+    background: rgba(17,24,39,.92); border: 1px solid rgba(255,255,255,.16); color: #f3f4f6;
+    border-radius: 12px; font-family: inherit; font-size: 20px; font-weight: 600; cursor: pointer;
+  }
+  #leaderboard { background: rgba(17,24,39,.9); border-color: rgba(255,255,255,.14); box-shadow: 0 2px 8px rgba(0,0,0,.15); backdrop-filter: none; }
+  .lb-item.is-player { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.35); }
+  .lb-item.is-player .lb-length { color: #a7f3d0; }
+  #menu-screen { background: #111827; backdrop-filter: none; }
+  #menu-screen h1 { color: #f9fafb; text-shadow: none; font-size: clamp(34px, 8vw, 50px); letter-spacing: 1px; }
+  .menu-sub { color: #9ca3af; letter-spacing: .2px; }
+  .diff-label { color: #9ca3af; letter-spacing: 1px; }
+  .diff-btn { background: #1f2937; border-color: #374151; color: #d1d5db; border-radius: 12px; min-height: 44px; }
+  .diff-btn.active { background: #064e3b; border-color: #10b981; color: #d1fae5; box-shadow: none; }
+  .play-btn { background: #059669; color: #fff; border-radius: 14px; min-height: 54px; box-shadow: none; letter-spacing: .2px; }
+  .play-btn:hover { transform: none; background: #047857; box-shadow: none; }
+  .menu-records span { color: #a7f3d0; }
+  .menu-hint { color: #9ca3af; }
+  .privacy-link { color: #a7f3d0; }
+  #pause-overlay, #overlay { background: rgba(17,24,39,.96); backdrop-filter: none; }
+  #pause-overlay h2, #overlay h2 { color: #f9fafb; text-shadow: none; }
+  .score-card { background: #1f2937; border-color: #374151; box-shadow: none; }
+  .score-row .val { color: #a7f3d0; }
+  .score-row .best { color: #fcd34d; }
+  .restart-hint { animation: none; }
+  @media (max-width: 480px) {
+    #leaderboard { min-width: 132px; padding: 8px 10px; }
+    #hud { gap: 5px; }
+    .hud-stat { padding: 6px 8px; }
+  }
 </style>
 </head>
 <body>
@@ -317,11 +402,9 @@
     <span>Rank:</span>
     <span id="stat-rank" class="hud-val">#1</span>
   </div>
-  <div class="hud-stat" id="stat-cycle">
-    <span id="cycle-icon">🌅</span>
-    <span id="cycle-name" class="hud-val">Dawn</span>
-  </div>
-  <button id="mute-btn" onclick="toggleMute()">🔊</button>
+  <button id="pause-btn" type="button" aria-label="Pause game" title="Pause game">Ⅱ</button>
+  <button id="home-btn" type="button" aria-label="Return to home" title="Home">⌂</button>
+  <button id="mute-btn" type="button" aria-label="Toggle sound" onclick="toggleMute()">🔊</button>
 </div>
 
 <!-- Live Leaderboard -->
@@ -332,8 +415,8 @@
 
 <!-- Menu Start Screen -->
 <div id="menu-screen">
-  <h1>NEON SERPENTS</h1>
-  <div class="menu-sub">Deep Sea Toroidal Arena</div>
+  <h1>SERPENT RUN</h1>
+  <div class="menu-sub">A simple survival challenge</div>
 
   <div class="diff-selector">
     <span class="diff-label">Select Difficulty</span>
@@ -348,12 +431,13 @@
     Best Record (<span id="diff-name-label">Normal</span>): Time: <span id="menu-best-time">00:00</span> &bull; Length: <span id="menu-best-len">30</span>
   </div>
 
-  <button class="play-btn" onclick="startGame()">▶ DIVE IN</button>
+  <button class="play-btn" onclick="startGame()">Play</button>
 
   <div class="menu-hint">
-    Mouse / Touch / A & D to steer &bull; P or Space to pause<br>
-    Wrap across edges &bull; Avoid bodies &bull; Trap opponents
+    Touch and drag to steer &bull; Tap pause anytime<br>
+    Collect food, avoid other snakes, and survive
   </div>
+  <a class="privacy-link" href="privacy-policy.html">Privacy Policy</a>
 </div>
 
 <!-- Pause Overlay -->
@@ -391,50 +475,19 @@
 // §1  CONSTANTS & DIFFICULTY SPEEDS
 // ============================================================
 const SPEED_CONFIGS = {
-  easy: 2.4,
-  normal: 3.3,
-  hard: 4.2
+  easy: 2.8,
+  normal: 3.6,
+  hard: 4.4
 };
 
 const TURN_RATE = 0.075;
-const SEGMENT_SPACING = 7;
-const INITIAL_SEGMENTS = 30;
-const HEAD_RADIUS = 13;
-const PLANKTON_COUNT = 55;
-const FOOD_COUNT = 65;
-const BOT_COUNT = 6;
+const SEGMENT_SPACING = 6;
+const INITIAL_SEGMENTS = 22;
+const HEAD_RADIUS = 9;
+const FOOD_COUNT = 42;
+const BOT_COUNT = 4;
 const RESPAWN_DELAY_FRAMES = 180;
-const CYCLE_DURATION = 180; // 3 minutes real time full cycle
-
-const CYCLE_PHASES = [
-  {
-    name: 'Dawn', icon: '🌅',
-    top: [2, 26, 36], mid: [4, 47, 62], bot: [1, 16, 23],
-    ray: [45, 212, 191], rayAlpha: 0.06,
-    glowBoost: 1.15, planktonAlpha: 0.28
-  },
-  {
-    name: 'Midday', icon: '☀️',
-    top: [3, 59, 92], mid: [2, 132, 199], bot: [1, 26, 48],
-    ray: [56, 189, 248], rayAlpha: 0.12,
-    glowBoost: 1.0, planktonAlpha: 0.15
-  },
-  {
-    name: 'Dusk', icon: '🌇',
-    top: [49, 16, 63], mid: [67, 20, 7], bot: [10, 4, 24],
-    ray: [244, 114, 182], rayAlpha: 0.07,
-    glowBoost: 1.25, planktonAlpha: 0.35
-  },
-  {
-    name: 'Night', icon: '🌙',
-    top: [1, 4, 10], mid: [2, 6, 18], bot: [0, 2, 5],
-    ray: [148, 163, 184], rayAlpha: 0.02,
-    glowBoost: 1.7, planktonAlpha: 0.60
-  }
-];
-
-const MAX_PARTICLES = 140;
-const MAX_TRAIL_PARTICLES = 90;
+const MAX_PARTICLES = 18;
 
 const FOOD_COLORS = [
   { core: '#22d3ee', glow: 'rgba(34, 211, 238, 0.5)' },
@@ -445,13 +498,13 @@ const FOOD_COLORS = [
 ];
 
 const PALETTE_PLAYER = {
-  head: '#00f5ff',
-  bodyStart: '#06b6d4',
-  bodyEnd: '#0369a1',
-  scale: 'rgba(255, 255, 255, 0.35)',
-  glow: 'rgba(0, 245, 255, 0.45)',
-  eyeIris: '#0284c7',
-  eyePupil: '#020617',
+  head: '#34d399',
+  bodyStart: '#10b981',
+  bodyEnd: '#047857',
+  scale: 'rgba(255, 255, 255, 0.12)',
+  glow: 'rgba(16, 185, 129, 0.08)',
+  eyeIris: '#047857',
+  eyePupil: '#064e3b',
   tongue: '#f43f5e'
 };
 
@@ -514,6 +567,7 @@ let ctx = null;
 let width = window.innerWidth;
 let height = window.innerHeight;
 let animFrame = 0;
+let loopActive = false;
 
 let currentDifficulty = 'normal';
 let isGameRunning = false;
@@ -534,8 +588,6 @@ let ambientGain = null;
 
 const foodOrbs = [];
 const particles = [];
-const trailParticles = [];
-const plankton = [];
 const bots = [];
 
 const player = {
@@ -552,8 +604,8 @@ const player = {
   palette: PALETTE_PLAYER,
   tongueTimer: 0,
   tongueProgress: 0,
-  bulges: [],
   growQueue: 0,
+  glowTrailTimer: 0,
   alive: true,
 };
 
@@ -578,20 +630,6 @@ let diffNameLabel = null;
 let menuBestTime = null;
 let menuBestLen = null;
 let cardDiffLabel = null;
-let cycleIconEl = null;
-let cycleNameEl = null;
-
-let currentCycle = {
-  progress: 0,
-  phaseName: 'Dawn',
-  phaseIcon: '🌅',
-  bgTop: '#021a24',
-  bgMid: '#042f3e',
-  bgBot: '#011017',
-  rayColor: 'rgba(45, 212, 191, 0.06)',
-  glowMultiplier: 1.15,
-  planktonBoost: 0.28
-};
 
 // ============================================================
 // §3  AUDIO SYNTHESIS (NO EXTERNAL FILES)
@@ -741,75 +779,9 @@ function updateMenuRecordsDisplay() {
   if (cardDiffLabel) cardDiffLabel.textContent = capitalized;
 }
 
-function updateDayNightCycle() {
-  const t = ((performance.now() / 1000) % CYCLE_DURATION) / CYCLE_DURATION;
-  currentCycle.progress = t;
-
-  const rawPhase = t * 4;
-  const idx1 = Math.floor(rawPhase) % 4;
-  const idx2 = (idx1 + 1) % 4;
-  let blend = rawPhase - Math.floor(rawPhase);
-  // Smoothstep interpolation for seamless transition
-  blend = blend * blend * (3 - 2 * blend);
-
-  const p1 = CYCLE_PHASES[idx1];
-  const p2 = CYCLE_PHASES[idx2];
-
-  const lerpVal = (a, b) => a + (b - a) * blend;
-  const lerpColor = (c1, c2) => [
-    Math.round(lerpVal(c1[0], c2[0])),
-    Math.round(lerpVal(c1[1], c2[1])),
-    Math.round(lerpVal(c1[2], c2[2]))
-  ];
-
-  const top = lerpColor(p1.top, p2.top);
-  const mid = lerpColor(p1.mid, p2.mid);
-  const bot = lerpColor(p1.bot, p2.bot);
-  const ray = lerpColor(p1.ray, p2.ray);
-  const rayAlpha = lerpVal(p1.rayAlpha, p2.rayAlpha);
-
-  currentCycle.bgTop = `rgb(${top[0]}, ${top[1]}, ${top[2]})`;
-  currentCycle.bgMid = `rgb(${mid[0]}, ${mid[1]}, ${mid[2]})`;
-  currentCycle.bgBot = `rgb(${bot[0]}, ${bot[1]}, ${bot[2]})`;
-  currentCycle.rayColor = `rgba(${ray[0]}, ${ray[1]}, ${ray[2]}, ${rayAlpha.toFixed(3)})`;
-  currentCycle.glowMultiplier = lerpVal(p1.glowBoost, p2.glowBoost);
-  currentCycle.planktonBoost = lerpVal(p1.planktonAlpha, p2.planktonAlpha);
-  currentCycle.phaseName = p1.name;
-  currentCycle.phaseIcon = p1.icon;
-
-  if (cycleIconEl && cycleNameEl) {
-    cycleIconEl.textContent = currentCycle.phaseIcon;
-    cycleNameEl.textContent = currentCycle.phaseName;
-  }
-}
-
 // ============================================================
 // §5  BACKGROUND, FOOD & PARTICLES
 // ============================================================
-
-function initPlankton() {
-  plankton.length = 0;
-  for (let i = 0; i < PLANKTON_COUNT; i++) {
-    plankton.push({
-      x: Math.random() * width,
-      y: Math.random() * height,
-      size: 1 + Math.random() * 2.2,
-      baseAlpha: 0.15 + Math.random() * 0.45,
-      vx: (Math.random() - 0.5) * 0.35,
-      vy: -0.15 - Math.random() * 0.35,
-      pulseSpeed: 0.02 + Math.random() * 0.03,
-      pulsePhase: Math.random() * Math.PI * 2,
-      color: Math.random() > 0.4 ? 'rgba(56, 189, 248, ' : 'rgba(45, 212, 191, '
-    });
-  }
-}
-
-function updatePlankton() {
-  for (const p of plankton) {
-    p.x = wrap(p.x + p.vx, width);
-    p.y = wrap(p.y + p.vy, height);
-  }
-}
 
 function isFarFromAllSnakes(x, y, minDist = 60) {
   const minDistSq = minDist * minDist;
@@ -885,18 +857,6 @@ function spawnFoodBurst(x, y, color, count = 10) {
   }
 }
 
-function spawnWakeTrail(x, y, color) {
-  if (trailParticles.length > MAX_TRAIL_PARTICLES || Math.random() > 0.4) return;
-  trailParticles.push({
-    x,
-    y,
-    size: 2 + Math.random() * 2.5,
-    alpha: 0.45,
-    color,
-    decay: 0.025 + Math.random() * 0.02
-  });
-}
-
 function updateParticles() {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
@@ -908,11 +868,6 @@ function updateParticles() {
     if (p.alpha <= 0) particles.splice(i, 1);
   }
 
-  for (let i = trailParticles.length - 1; i >= 0; i--) {
-    const t = trailParticles[i];
-    t.alpha -= t.decay;
-    if (t.alpha <= 0) trailParticles.splice(i, 1);
-  }
 }
 
 // ============================================================
@@ -981,8 +936,8 @@ function createBot(config, index) {
     palette: config.palette,
     tongueTimer: Math.floor(Math.random() * 150),
     tongueProgress: 0,
-    bulges: [],
     growQueue: 0,
+    glowTrailTimer: 0,
     alive: true,
     respawnTimer: 0,
     sameTurnCount: 0, // Anti-spin watchdog
@@ -1009,8 +964,8 @@ function respawnBot(bot) {
   bot.speed = getActiveSpeed() * (0.95 + Math.random() * 0.1);
   bot.length = INITIAL_SEGMENTS - 5 + Math.floor(Math.random() * 8);
   bot.segments = [];
-  bot.bulges = [];
   bot.growQueue = 0;
+  bot.glowTrailTimer = 0;
   bot.alive = true;
   bot.respawnTimer = 0;
   bot.sameTurnCount = 0;
@@ -1123,24 +1078,12 @@ function advanceSnake(snake) {
   snake.x = wrap(snake.x + Math.cos(snake.angle) * snake.speed, width);
   snake.y = wrap(snake.y + Math.sin(snake.angle) * snake.speed, height);
 
-  if (snake.segments.length > 0) {
-    const tail = snake.segments[snake.segments.length - 1];
-    spawnWakeTrail(tail.x, tail.y, snake.palette.bodyEnd);
-  }
-
   snake.tongueTimer++;
   if (snake.tongueTimer > 180) {
     snake.tongueProgress = Math.sin(((snake.tongueTimer - 180) / 25) * Math.PI);
     if (snake.tongueTimer >= 205) {
       snake.tongueTimer = 0;
       snake.tongueProgress = 0;
-    }
-  }
-
-  for (let b = snake.bulges.length - 1; b >= 0; b--) {
-    snake.bulges[b].index += 0.75;
-    if (snake.bulges[b].index >= snake.segments.length) {
-      snake.bulges.splice(b, 1);
     }
   }
 
@@ -1181,16 +1124,16 @@ function advanceSnake(snake) {
 }
 
 function dissolveSnakeIntoFood(snake) {
-  for (let i = 0; i < snake.segments.length; i += 2) {
+  for (let i = 0; i < snake.segments.length; i += 6) {
     const seg = snake.segments[i];
     const foodScheme = {
       core: snake.palette.head,
       glow: snake.palette.glow
     };
     foodOrbs.push(spawnFoodOrb(seg.x, seg.y, foodScheme));
-    spawnFoodBurst(seg.x, seg.y, snake.palette.head, 4);
+    spawnFoodBurst(seg.x, seg.y, snake.palette.head, 1);
   }
-  spawnFoodBurst(snake.x, snake.y, snake.palette.head, 16);
+  spawnFoodBurst(snake.x, snake.y, snake.palette.head, 6);
 }
 
 function killBot(bot) {
@@ -1263,10 +1206,9 @@ function checkFoodConsumptionAll() {
     for (let i = foodOrbs.length - 1; i >= 0; i--) {
       const orb = foodOrbs[i];
       if (toroidDistSq(snake.x, snake.y, orb.x, orb.y) < eatDistSq) {
-        spawnFoodBurst(orb.x, orb.y, orb.color, 8);
+        spawnFoodBurst(orb.x, orb.y, orb.color, 2);
         foodOrbs.splice(i, 1);
 
-        snake.bulges.push({ index: 0, strength: 0.65 });
         snake.growQueue++;
         snake.length++;
 
@@ -1347,7 +1289,6 @@ function update() {
 
   updateFood();
   updateParticles();
-  updatePlankton();
   updateHUDAndLeaderboard();
 
   if (shakeIntensity > 0) {
@@ -1388,7 +1329,31 @@ function startGame() {
   initSnake();
   initBots();
   applyDifficultySpeeds();
+  ensureGameLoop();
 }
+
+function goHome() {
+  isGameRunning = false;
+  isPaused = false;
+  isGameOver = false;
+  keys.left = false;
+  keys.right = false;
+  mouse.active = false;
+  pauseOverlayEl.style.display = 'none';
+  overlayEl.style.display = 'none';
+  hudEl.style.display = 'none';
+  lbEl.style.display = 'none';
+  menuScreenEl.style.display = 'flex';
+  updateMenuRecordsDisplay();
+}
+
+window.handleAndroidBack = function () {
+  if (isGameRunning || isPaused || isGameOver) {
+    goHome();
+    return true;
+  }
+  return false;
+};
 
 function togglePause() {
   if (!isGameRunning || isGameOver) return;
@@ -1399,11 +1364,27 @@ function togglePause() {
   } else {
     totalPausedDuration += performance.now() - pauseStartTime;
     pauseOverlayEl.style.display = 'none';
+    ensureGameLoop();
   }
 }
 
 function initInput() {
   window.addEventListener('resize', onResize);
+
+  const pauseButton = document.getElementById('pause-btn');
+  const homeButton = document.getElementById('home-btn');
+  pauseButton.addEventListener('pointerdown', (e) => e.stopPropagation());
+  pauseButton.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+  pauseButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    togglePause();
+  });
+  homeButton.addEventListener('pointerdown', (e) => e.stopPropagation());
+  homeButton.addEventListener('click', (e) => { e.stopPropagation(); goHome(); });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && isGameRunning && !isPaused && !isGameOver) togglePause();
+  });
 
   window.addEventListener('keydown', (e) => {
     initAudio();
@@ -1435,9 +1416,9 @@ function initInput() {
     mouse.active = true;
   });
 
-  window.addEventListener('touchstart', onTouch, { passive: false });
-  window.addEventListener('touchmove', onTouch, { passive: false });
-  window.addEventListener('touchend', () => { mouse.active = false; }, { passive: false });
+  window.addEventListener('touchstart', onTouch, { passive: true });
+  window.addEventListener('touchmove', onTouch, { passive: true });
+  window.addEventListener('touchend', () => { mouse.active = false; }, { passive: true });
 
   overlayEl.addEventListener('click', () => {
     if (isGameOver) restartGame();
@@ -1449,7 +1430,6 @@ function initInput() {
 }
 
 function onTouch(e) {
-  e.preventDefault();
   initAudio();
   if (isPaused) {
     togglePause();
@@ -1469,8 +1449,12 @@ function onTouch(e) {
 function onResize() {
   width = window.innerWidth;
   height = window.innerHeight;
-  canvas.width = width;
-  canvas.height = height;
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.25);
+  canvas.width = Math.round(width * pixelRatio);
+  canvas.height = Math.round(height * pixelRatio);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
 }
 
 function initSnake() {
@@ -1481,7 +1465,6 @@ function initSnake() {
   player.length = INITIAL_SEGMENTS;
   player.speed = getActiveSpeed();
   player.growQueue = 0;
-  player.bulges = [];
   player.segments = [];
   player.alive = true;
   
@@ -1511,6 +1494,7 @@ function restartGame() {
   initSnake();
   initBots();
   applyDifficultySpeeds();
+  ensureGameLoop();
 }
 
 // ============================================================
@@ -1518,79 +1502,21 @@ function restartGame() {
 // ============================================================
 
 function renderBackground() {
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
-  bgGrad.addColorStop(0, currentCycle.bgTop);
-  bgGrad.addColorStop(0.5, currentCycle.bgMid);
-  bgGrad.addColorStop(1, currentCycle.bgBot);
-  ctx.fillStyle = bgGrad;
+  ctx.fillStyle = '#111827';
   ctx.fillRect(0, 0, width, height);
-
-  ctx.save();
-  ctx.globalCompositeOperation = 'screen';
-  for (let i = 0; i < 4; i++) {
-    const rayAngle = -0.35 + Math.sin(animFrame * 0.008 + i * 1.5) * 0.05;
-    const rayX = ((width * (0.2 + i * 0.28)) + Math.sin(animFrame * 0.005 + i) * 60) % width;
-
-    const rayGrad = ctx.createLinearGradient(rayX, 0, rayX + Math.tan(rayAngle) * height, height);
-    rayGrad.addColorStop(0, currentCycle.rayColor);
-    rayGrad.addColorStop(0.5, currentCycle.rayColor);
-    rayGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
-    ctx.fillStyle = rayGrad;
-    ctx.beginPath();
-    ctx.moveTo(rayX - 35, 0);
-    ctx.lineTo(rayX + 55, 0);
-    ctx.lineTo(rayX + Math.tan(rayAngle) * height + 120, height);
-    ctx.lineTo(rayX + Math.tan(rayAngle) * height - 80, height);
-    ctx.closePath();
-    ctx.fill();
-  }
-  ctx.restore();
-
-  for (const p of plankton) {
-    const pulse = Math.sin(animFrame * p.pulseSpeed + p.pulsePhase);
-    const alpha = Math.min(1, (p.baseAlpha + pulse * 0.15) * (1 + currentCycle.planktonBoost * 1.6));
-    ctx.fillStyle = p.color + alpha + ')';
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
-  }
 }
 
 function renderFood() {
-  const glowScale = currentCycle.glowMultiplier;
   for (const orb of foodOrbs) {
-    const pulse = Math.sin(animFrame * orb.pulseSpeed + orb.pulsePhase);
-    const radius = orb.baseRadius + pulse * 1.2;
-
-    ctx.fillStyle = orb.glow;
-    ctx.beginPath();
-    ctx.arc(orb.x, orb.y, radius * (2.2 * glowScale), 0, Math.PI * 2);
-    ctx.fill();
-
+    const radius = Math.max(2, orb.baseRadius * 0.72);
     ctx.fillStyle = orb.color;
     ctx.beginPath();
     ctx.arc(orb.x, orb.y, radius, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(orb.x - radius * 0.25, orb.y - radius * 0.25, radius * 0.35, 0, Math.PI * 2);
     ctx.fill();
   }
 }
 
 function renderParticles() {
-  for (const t of trailParticles) {
-    ctx.save();
-    ctx.globalAlpha = t.alpha;
-    ctx.fillStyle = t.color;
-    ctx.beginPath();
-    ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
   for (const p of particles) {
     ctx.save();
     ctx.globalAlpha = p.alpha;
@@ -1684,13 +1610,6 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     const progress = i / segs.length;
     let radius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));
 
-    for (const b of snake.bulges) {
-      const dist = Math.abs(i - b.index);
-      if (dist < 3.5) {
-        radius *= (1 + (1 - dist / 3.5) * b.strength);
-      }
-    }
-
     const perpAngle = seg.angle + Math.PI / 2;
     const drawX = seg.x + Math.cos(perpAngle) * seg.lateralOffset;
     const drawY = seg.y + Math.sin(perpAngle) * seg.lateralOffset;
@@ -1700,12 +1619,7 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     ctx.beginPath();
     ctx.arc(drawX, drawY, radius, 0, Math.PI * 2);
     ctx.fillStyle = segColor;
-    if (i % 6 === 0) {
-      ctx.shadowColor = pal.glow;
-      ctx.shadowBlur = Math.round(6 * currentCycle.glowMultiplier);
-    } else {
-      ctx.shadowBlur = 0;
-    }
+    ctx.shadowBlur = 0;
     ctx.fill();
 
     if (i % 2 === 0 && radius > 5) {
@@ -1720,8 +1634,7 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   ctx.translate(snake.x, snake.y);
   ctx.rotate(snake.angle);
 
-  ctx.shadowColor = pal.glow;
-  ctx.shadowBlur = Math.round(16 * currentCycle.glowMultiplier);
+  ctx.shadowBlur = 0;
 
   ctx.beginPath();
   ctx.ellipse(2, 0, HEAD_RADIUS + 1, HEAD_RADIUS - 1.5, 0, 0, Math.PI * 2);
@@ -1796,8 +1709,6 @@ function drawSnakeToroidal(snake) {
 }
 
 function render() {
-  updateDayNightCycle();
-
   ctx.save();
   if (shakeIntensity > 0) {
     const sx = (Math.random() - 0.5) * shakeIntensity;
@@ -1822,8 +1733,18 @@ function render() {
 // §10  LOOP & STARTUP
 // ============================================================
 function gameLoop() {
+  if (!isGameRunning || isPaused || isGameOver) {
+    loopActive = false;
+    return;
+  }
   update();
   render();
+  requestAnimationFrame(gameLoop);
+}
+
+function ensureGameLoop() {
+  if (loopActive) return;
+  loopActive = true;
   requestAnimationFrame(gameLoop);
 }
 
@@ -1848,19 +1769,15 @@ window.addEventListener('DOMContentLoaded', () => {
   menuBestTime = document.getElementById('menu-best-time');
   menuBestLen = document.getElementById('menu-best-len');
   cardDiffLabel = document.getElementById('card-diff-label');
-  cycleIconEl = document.getElementById('cycle-icon');
-  cycleNameEl = document.getElementById('cycle-name');
 
   isMuted = localStorage.getItem('neonSerpents_muted') === '1';
   if (muteBtnEl) muteBtnEl.textContent = isMuted ? '🔇' : '🔊';
 
   onResize();
-  initPlankton();
   initFood();
   initInput();
   initBots();
   updateMenuRecordsDisplay();
-  requestAnimationFrame(gameLoop);
 });
 </script>
 </body>

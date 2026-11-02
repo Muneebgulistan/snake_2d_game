@@ -1,0 +1,9 @@
+node_modules/
+expo-preview/preview-qr.png
+android/.gradle/
+android/local.properties
+android/**/build/
+android/.idea/
+*.jks
+*.keystore
+keystore.properties

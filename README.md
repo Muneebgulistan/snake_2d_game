@@ -1,59 +1,65 @@
-# 🌌 Neon Serpents
+# Serpent Run
 
-A continuous, smooth, deep-sea toroidal arena serpent game built in a **single index.html file** with vanilla JavaScript, HTML5 Canvas, Web Audio API, and zero external dependencies.
+A lightweight snake survival game for Android and the browser. Steer through a wraparound arena, collect food, grow, and avoid the other snakes. Progress and sound preferences are saved on the device.
 
-![HTML5](https://img.shields.io/badge/HTML5-Canvas-E34F26?logo=html5&logoColor=white)
-![JavaScript](https://img.shields.io/badge/Vanilla-JavaScript-F7DF1E?logo=javascript&logoColor=black)
-![No Dependencies](https://img.shields.io/badge/Dependencies-None-brightgreen)
-![60 FPS](https://img.shields.io/badge/Performance-60FPS-blue)
+## Run in a browser
 
-## 🎮 How to Play
+Open `src/game/index.html` in a modern browser for a quick local play. The same page is copied into `www/` for Android packaging.
 
-Open `index.html` in any modern web browser or mobile browser — no build tools, no servers, and no installations required.
+## Play on Android
 
-## ✨ Features
+### Preview with Expo Go
 
-- **Open Wrap-Around Toroidal World**: No walls! Serpents crossing any screen edge seamlessly re-emerge on the opposite edge with zero visual cuts or glitchy lines.
-- **Realistic Organic Serpent Mechanics**:
-  - Continuous non-grid physics with smooth angular steering.
-  - Tapered body anatomy (broad muscular head tapering to a fine tail).
-  - Living swimming sine-wave undulation slither.
-  - Dynamic gradient coloration, glowing dorsal diamond scale patterns, and forked flicking tongue.
-  - Realistic eyes with pupils tracking movement direction.
-- **Atmospheric Deep-Sea Abyss**:
-  - Dark ocean gradient with shifting caustic light rays and ambient bioluminescent marine plankton.
-- **Living Bioluminescent Food & Digestion**:
-  - Glowing, pulsing neon food orbs floating with gentle currents.
-  - Eating orbs triggers an organic digestion bulge ripple traveling down the serpent vertebrae alongside satisfying particle bursts.
-- **6 Intelligent AI Bots**:
-  - Six distinct opponent serpents: *Viper, Hydra, Cobra, Abyss, Phantom, and Apex*.
-  - Independent food hunting, whisker obstacle avoidance, anti-spin watchdogs, and strategic head-cutting trapping maneuvers.
-  - Defeated serpents dissolve into glowing food and respawn safely after 3 seconds.
-- **Live Leaderboard & Floating Name Tags**:
-  - Live HUD leaderboard ranking all 7 serpents by length.
-  - Color-coded neon name tags floating above heads.
-  - Speed-boost wake bubbles and screen-shake on death.
-- **Difficulty Modes (Speed Scaling)**:
-  - **Easy**: Slower pacing (2.4 px/f).
-  - **Normal**: Medium pacing (3.3 px/f).
-  - **Hard**: High-octane speed (4.2 px/f).
-  - Bot count (exactly 6), food count, and turning agility remain identical across all modes.
-- **Synthesized Web Audio & Persistence**:
-  - Procedural sound effects for eating, bot dissolution, player death, and tranquil ambient deep-sea underwater drone.
-  - 🔊 / 🔇 Instant mute toggle.
-  - Best survival times and lengths persist across browser sessions in `localStorage` separately for each difficulty.
-- **Pause & Mobile Support**:
-  - Pause with **P** or **Space**.
-  - Intuitive touch/drag steering on mobile devices with full responsive scaling.
+The Expo project is in `expo-preview/`. Install its dependencies, then start the LAN preview:
 
-## 🕹️ Controls
+```sh
+cd expo-preview
+npm install
+npm run preview
+```
 
-| Action | Keyboard / Mouse | Mobile Touch |
-|---|---|---|
-| **Steer** | Mouse Cursor or **A** / **D** / Arrow Keys | Touch & Drag anywhere |
-| **Pause / Resume** | **P** or **Spacebar** | Tap Pause overlay |
-| **Restart** | **Enter** | Tap Screen |
+Scan the QR code with Expo Go while your phone and computer are on the same Wi-Fi. Keep the development server open while playing. Expo Go is for previews; use the Android app project below for a store release.
 
-## 📄 License
+### Run or build the Android app
 
-MIT — Feel free to use, modify, and build upon!
+Install Node.js 22 or newer, Android Studio, Android SDK Platform 36, and the matching build tools. Then:
+
+```sh
+npm install
+npm run cap:sync
+npm run android:open
+```
+
+Run on a connected device from Android Studio. `npm run android:debug` creates a local debug build. For Google Play, generate a signed Android App Bundle (`.aab`) in Android Studio and protect the upload key and passwords. The application ID is `com.muneeb.neonserpents`; keep it unchanged after creating the Play Console app.
+
+## Controls
+
+- **Touch:** drag in the direction you want the snake to turn.
+- **Pause:** tap the pause control.
+- **Home:** tap the home icon or use Android Back during a game.
+- **Keyboard:** mouse, A/D or arrow keys to steer; P or Space to pause; Enter to restart after a game ends.
+
+Choose Easy, Normal, or Hard from the home screen. The game works offline after installation.
+
+## Project layout
+
+```text
+src/game/       Canonical game page, privacy policy, and game icon
+assets/         Store artwork and Android launcher icon sources
+scripts/        Web sync and Android icon helpers
+www/            Generated web files consumed by Capacitor
+android/        Capacitor Android Studio project
+expo-preview/   Expo Go wrapper for device previews
+```
+
+Edit the game in `src/game/`. Regenerate the Capacitor web bundle with `npm run web:sync`; update the Android project's assets with `npm run cap:sync`. The Expo preview copies the same source when `npm run preview` starts.
+
+## Privacy and Play Store preparation
+
+The game has no accounts, ads, analytics, or external game service. Best times, lengths, and sound preference are stored locally on the device. Review `src/game/privacy-policy.html` and publish it at a stable HTTPS address before submitting it to Google Play. A store copy draft and release checklist are in `play-store-listing.md`.
+
+Before release, build and test a signed `.aab` on real Android devices, create store screenshots and a feature graphic, enter the hosted privacy policy URL, complete Play Console declarations, and use Play App Signing. Store artwork is in `assets/`.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
