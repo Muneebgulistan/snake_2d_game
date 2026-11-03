@@ -359,6 +359,12 @@
     border-radius: 12px; font-family: inherit; font-size: 20px; font-weight: 600; cursor: pointer;
   }
   #leaderboard { background: rgba(17,24,39,.9); border-color: rgba(255,255,255,.14); box-shadow: 0 2px 8px rgba(0,0,0,.15); backdrop-filter: none; }
+  #rare-indicator {
+    position: absolute; z-index: 14; display: none; pointer-events: none;
+    width: 58px; height: 54px; align-items: center; justify-content: center; flex-direction: column;
+    color: #fff7d6; font-size: 25px; line-height: 22px; text-shadow: 0 1px 8px rgba(255,207,92,.8);
+  }
+  #rare-indicator small { font-size: 10px; font-weight: 700; letter-spacing: .3px; }
   .lb-item.is-player { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.35); }
   .lb-item.is-player .lb-length { color: #a7f3d0; }
   #menu-screen { background: #111827; backdrop-filter: none; }
@@ -417,6 +423,7 @@
   <div class="lb-title">Leaderboard</div>
   <div class="lb-list" id="lb-list"></div>
 </div>
+<div id="rare-indicator" aria-hidden="true"><span>↑</span><small>Rare orb</small></div>
 
 <!-- Menu Start Screen -->
 <div id="menu-screen">
@@ -500,6 +507,10 @@ const CYCLE_PHASES = [
   { name: 'Dusk', icon: '◒', top: [87, 58, 113], mid: [180, 105, 85], bot: [55, 40, 71], ray: [255, 184, 133], rays: 0.07, glow: 0.24, plankton: 0.04 },
   { name: 'Night', icon: '☾', top: [4, 8, 16], mid: [6, 14, 26], bot: [2, 5, 11], ray: [92, 117, 145], rays: 0.00, glow: 1.00, plankton: 0.24 }
 ];
+const RARE_ORB_MIN_INTERVAL_MS = 40000;
+const RARE_ORB_MAX_INTERVAL_MS = 60000;
+const RARE_ORB_LIFETIME_MS = 25000;
+const RARE_ORB_TRAIL_MS = 6000;
 
 const FOOD_COLORS = [
   { core: '#22d3ee', glow: 'rgba(34, 211, 238, 0.5)' },
@@ -582,6 +593,8 @@ let animFrame = 0;
 let loopActive = false;
 const cycleEpoch = performance.now();
 let currentCycle = { ...CYCLE_PHASES[0], progress: 0, nightFactor: 0 };
+let rareOrb = null;
+let nextRareOrbAt = performance.now() + RARE_ORB_MIN_INTERVAL_MS + Math.random() * (RARE_ORB_MAX_INTERVAL_MS - RARE_ORB_MIN_INTERVAL_MS);
 
 let currentDifficulty = 'normal';
 let isGameRunning = false;
@@ -619,6 +632,11 @@ const player = {
   palette: PALETTE_PLAYER,
   tongueTimer: 0,
   tongueProgress: 0,
+  glowTrailUntil: 0,
+  glowTrailSamples: [],
+  trailWorldX: width / 2,
+  trailWorldY: height / 2,
+  lastTrailSampleAt: 0,
   growQueue: 0,
   glowTrailTimer: 0,
   alive: true,
@@ -647,6 +665,7 @@ let menuBestLen = null;
 let cardDiffLabel = null;
 let cycleIconEl = null;
 let cycleNameEl = null;
+let rareIndicatorEl = null;
 
 // ============================================================
 // §3  AUDIO SYNTHESIS (NO EXTERNAL FILES)
@@ -705,6 +724,16 @@ function playTone(freqStart, freqEnd, duration, type = 'sine', volume = 0.1) {
 
 function sfxEat() {
   playTone(840, 1280, 0.08, 'sine', 0.09);
+}
+
+function sfxRareOrbSpawn() {
+  playTone(620, 1040, 0.24, 'sine', 0.12);
+  playTone(930, 1390, 0.3, 'triangle', 0.07);
+}
+
+function sfxRareOrbEat() {
+  playTone(880, 1480, 0.2, 'sine', 0.13);
+  playTone(1320, 1760, 0.32, 'sine', 0.08);
 }
 
 function sfxBotDeath() {
@@ -911,6 +940,42 @@ function updateFood() {
   }
 }
 
+function scheduleNextRareOrb(now = performance.now()) {
+  nextRareOrbAt = now + RARE_ORB_MIN_INTERVAL_MS + Math.random() * (RARE_ORB_MAX_INTERVAL_MS - RARE_ORB_MIN_INTERVAL_MS);
+}
+
+function isClearRareOrbSpot(x, y) {
+  const clearanceSq = 34 * 34;
+  for (const snake of [player, ...bots]) {
+    if (!snake.alive) continue;
+    if (toroidDistSq(snake.x, snake.y, x, y) < clearanceSq) return false;
+    for (const segment of snake.segments) {
+      if (toroidDistSq(segment.x, segment.y, x, y) < clearanceSq) return false;
+    }
+  }
+  return true;
+}
+
+function maybeSpawnRareOrb(now = performance.now()) {
+  if (!isGameRunning || isPaused || isGameOver) return;
+  if (rareOrb && now >= rareOrb.expiresAt) {
+    rareOrb = null;
+    scheduleNextRareOrb(now);
+  }
+  if (rareOrb || now < nextRareOrbAt) return;
+
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const x = Math.random() * width;
+    const y = Math.random() * height;
+    if (!isClearRareOrbSpot(x, y)) continue;
+    rareOrb = { x, y, spawnedAt: now, expiresAt: now + RARE_ORB_LIFETIME_MS };
+    nextRareOrbAt = Infinity;
+    sfxRareOrbSpawn();
+    return;
+  }
+  nextRareOrbAt = now + 2000;
+}
+
 function spawnFoodBurst(x, y, color, count = 10) {
   if (particles.length > MAX_PARTICLES) return;
   for (let i = 0; i < count; i++) {
@@ -1008,6 +1073,11 @@ function createBot(config, index) {
     palette: config.palette,
     tongueTimer: Math.floor(Math.random() * 150),
     tongueProgress: 0,
+    glowTrailUntil: 0,
+    glowTrailSamples: [],
+    trailWorldX: pos.x,
+    trailWorldY: pos.y,
+    lastTrailSampleAt: 0,
     growQueue: 0,
     glowTrailTimer: 0,
     alive: true,
@@ -1031,6 +1101,11 @@ function respawnBot(bot) {
   const pos = findSafeSpawnCoords();
   bot.x = pos.x;
   bot.y = pos.y;
+  bot.trailWorldX = pos.x;
+  bot.trailWorldY = pos.y;
+  bot.glowTrailUntil = 0;
+  bot.glowTrailSamples = [];
+  bot.lastTrailSampleAt = 0;
   bot.angle = Math.random() * Math.PI * 2;
   bot.targetAngle = bot.angle;
   bot.speed = getActiveSpeed() * (0.95 + Math.random() * 0.1);
@@ -1065,6 +1140,14 @@ function updateBotAI(bot) {
     if (dSq < nearestDistSq) {
       nearestDistSq = dSq;
       nearestFood = orb;
+    }
+  }
+
+  if (rareOrb) {
+    const rareDistanceSq = toroidDistSq(bot.x, bot.y, rareOrb.x, rareOrb.y);
+    if (rareDistanceSq < nearestDistSq * 4 || rareDistanceSq < 420 * 420) {
+      nearestDistSq = rareDistanceSq;
+      nearestFood = rareOrb;
     }
   }
 
@@ -1147,8 +1230,25 @@ function updateBotAI(bot) {
 function advanceSnake(snake) {
   if (!snake.alive) return;
 
-  snake.x = wrap(snake.x + Math.cos(snake.angle) * snake.speed, width);
-  snake.y = wrap(snake.y + Math.sin(snake.angle) * snake.speed, height);
+  const moveX = Math.cos(snake.angle) * snake.speed;
+  const moveY = Math.sin(snake.angle) * snake.speed;
+  snake.trailWorldX += moveX;
+  snake.trailWorldY += moveY;
+  snake.x = wrap(snake.x + moveX, width);
+  snake.y = wrap(snake.y + moveY, height);
+
+  const now = performance.now();
+  if (now < snake.glowTrailUntil) {
+    if (now - snake.lastTrailSampleAt >= 32) {
+      snake.glowTrailSamples.push({ x: snake.trailWorldX, y: snake.trailWorldY, time: now });
+      snake.lastTrailSampleAt = now;
+    }
+    while (snake.glowTrailSamples.length && now - snake.glowTrailSamples[0].time > RARE_ORB_TRAIL_MS) {
+      snake.glowTrailSamples.shift();
+    }
+  } else if (snake.glowTrailSamples.length) {
+    snake.glowTrailSamples.length = 0;
+  }
 
   snake.tongueTimer++;
   if (snake.tongueTimer > 180) {
@@ -1290,6 +1390,22 @@ function checkFoodConsumptionAll() {
         }
       }
     }
+
+    if (rareOrb && toroidDistSq(snake.x, snake.y, rareOrb.x, rareOrb.y) < (HEAD_RADIUS + 14) ** 2) {
+      const eatenOrb = rareOrb;
+      rareOrb = null;
+      scheduleNextRareOrb();
+      snake.length += 3;
+      snake.growQueue += 3;
+      snake.glowTrailSamples = [];
+      snake.glowTrailUntil = performance.now() + RARE_ORB_TRAIL_MS;
+      snake.trailWorldX = snake.x;
+      snake.trailWorldY = snake.y;
+      snake.lastTrailSampleAt = 0;
+      spawnFoodBurst(eatenOrb.x, eatenOrb.y, '#fff1b8', 4);
+      sfxRareOrbEat();
+      if (snake.isPlayer && statLengthEl) statLengthEl.textContent = snake.length;
+    }
   }
 }
 
@@ -1323,6 +1439,7 @@ function update() {
   if (!isGameRunning || isPaused) return;
 
   animFrame++;
+  maybeSpawnRareOrb();
 
   if (player.alive) {
     if (keys.left) {
@@ -1401,6 +1518,7 @@ function startGame() {
 
   initSnake();
   initBots();
+  scheduleNextRareOrb();
   applyDifficultySpeeds();
   ensureGameLoop();
 }
@@ -1409,6 +1527,8 @@ function goHome() {
   isGameRunning = false;
   isPaused = false;
   isGameOver = false;
+  rareOrb = null;
+  if (rareIndicatorEl) rareIndicatorEl.style.display = 'none';
   keys.left = false;
   keys.right = false;
   mouse.active = false;
@@ -1533,6 +1653,18 @@ function onResize() {
 function initSnake() {
   player.x = width / 2;
   player.y = height / 2;
+  player.trailWorldX = player.x;
+  player.trailWorldY = player.y;
+  player.glowTrailUntil = 0;
+  player.glowTrailSamples = [];
+  player.lastTrailSampleAt = 0;
+  rareOrb = null;
+  if (rareIndicatorEl) rareIndicatorEl.style.display = 'none';
+  player.trailWorldX = player.x;
+  player.trailWorldY = player.y;
+  player.glowTrailUntil = 0;
+  player.glowTrailSamples = [];
+  player.lastTrailSampleAt = 0;
   player.angle = -Math.PI / 2;
   player.targetAngle = -Math.PI / 2;
   player.length = INITIAL_SEGMENTS;
@@ -1566,6 +1698,7 @@ function restartGame() {
   isPaused = false;
   initSnake();
   initBots();
+  scheduleNextRareOrb();
   applyDifficultySpeeds();
   ensureGameLoop();
 }
@@ -1629,6 +1762,94 @@ function renderFood() {
     ctx.fill();
   }
   ctx.shadowBlur = 0;
+}
+
+function renderRareOrb() {
+  if (!rareOrb) {
+    if (rareIndicatorEl) rareIndicatorEl.style.display = 'none';
+    return;
+  }
+
+  const now = performance.now();
+  const shimmer = 0.82 + Math.sin(now * 0.009) * 0.18;
+  const rotation = now * 0.0012;
+  ctx.save();
+  ctx.translate(rareOrb.x, rareOrb.y);
+  ctx.globalAlpha = shimmer;
+  ctx.shadowColor = 'rgba(255, 224, 145, 0.95)';
+  ctx.shadowBlur = 12 + currentCycle.nightFactor * 8;
+  ctx.fillStyle = '#fff8df';
+  ctx.beginPath();
+  ctx.arc(0, 0, 6.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.rotate(rotation);
+  ctx.strokeStyle = '#ffe5a4';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([7, 4]);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 14, 9, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#ffffff';
+  for (let i = 0; i < 3; i++) {
+    const a = rotation * 1.7 + i * Math.PI * 2 / 3;
+    ctx.beginPath();
+    ctx.arc(Math.cos(a) * 17, Math.sin(a) * 12, 1.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  if (rareIndicatorEl && animFrame % 4 === 0) {
+    let dx = toroidDelta(width / 2, rareOrb.x, width);
+    let dy = toroidDelta(height / 2, rareOrb.y, height);
+    if (Math.abs(dx) + Math.abs(dy) < 1) dy = -1;
+    const edgeFactor = Math.min(
+      (width / 2 - 32) / Math.max(1, Math.abs(dx)),
+      (height / 2 - 32) / Math.max(1, Math.abs(dy))
+    );
+    rareIndicatorEl.style.left = `${width / 2 + dx * edgeFactor}px`;
+    rareIndicatorEl.style.top = `${height / 2 + dy * edgeFactor}px`;
+    rareIndicatorEl.style.transform = 'translate(-50%, -50%)';
+    const arrow = rareIndicatorEl.querySelector('span');
+    if (arrow) arrow.style.transform = `rotate(${Math.atan2(dy, dx) * 180 / Math.PI + 90}deg)`;
+    rareIndicatorEl.style.display = 'flex';
+  }
+}
+
+function drawGlowTrail(snake) {
+  const samples = snake.glowTrailSamples;
+  if (!samples || samples.length < 2 || performance.now() >= snake.glowTrailUntil) return;
+  const now = performance.now();
+  const groupSize = 8;
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#fff0bd';
+  ctx.shadowColor = 'rgba(255, 219, 135, 0.9)';
+  ctx.shadowBlur = 7;
+  for (let start = 0; start < samples.length - 1; start += groupSize) {
+    const end = Math.min(samples.length - 1, start + groupSize);
+    const age = (now - samples[Math.floor((start + end) / 2)].time) / RARE_ORB_TRAIL_MS;
+    const fade = Math.max(0, 1 - age);
+    ctx.globalAlpha = fade * 0.72;
+    ctx.lineWidth = 1.5 + fade * 4;
+    ctx.beginPath();
+    for (let i = start; i < end; i++) {
+      const first = samples[i];
+      const second = samples[i + 1];
+      const x1 = snake.x + first.x - snake.trailWorldX;
+      const y1 = snake.y + first.y - snake.trailWorldY;
+      const x2 = snake.x + second.x - snake.trailWorldX;
+      const y2 = snake.y + second.y - snake.trailWorldY;
+      const shiftX = Math.round((width / 2 - (x1 + x2) / 2) / width) * width;
+      const shiftY = Math.round((height / 2 - (y1 + y2) / 2) / height) * height;
+      ctx.moveTo(x1 + shiftX, y1 + shiftY);
+      ctx.lineTo(x2 + shiftX, y2 + shiftY);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function renderParticles() {
@@ -1834,7 +2055,11 @@ function render() {
 
   renderBackground();
   renderFood();
+  renderRareOrb();
   renderParticles();
+
+  for (const bot of bots) drawGlowTrail(bot);
+  drawGlowTrail(player);
 
   for (const bot of bots) {
     drawSnakeToroidal(bot);
@@ -1887,6 +2112,7 @@ window.addEventListener('DOMContentLoaded', () => {
   cardDiffLabel = document.getElementById('card-diff-label');
   cycleIconEl = document.getElementById('cycle-icon');
   cycleNameEl = document.getElementById('cycle-name');
+  rareIndicatorEl = document.getElementById('rare-indicator');
 
   isMuted = localStorage.getItem('neonSerpents_muted') === '1';
   if (muteBtnEl) muteBtnEl.textContent = isMuted ? '🔇' : '🔊';
