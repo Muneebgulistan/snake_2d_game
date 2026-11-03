@@ -375,6 +375,52 @@
   .diff-btn.active { background: #064e3b; border-color: #10b981; color: #d1fae5; box-shadow: none; }
   .play-btn { background: #059669; color: #fff; border-radius: 14px; min-height: 54px; box-shadow: none; letter-spacing: .2px; }
   .play-btn:hover { transform: none; background: #047857; box-shadow: none; }
+  .menu-secondary {
+    margin-top: 12px; min-height: 44px; padding: 8px 22px; border-radius: 12px;
+    border: 1px solid #374151; background: #1f2937; color: #f3f4f6;
+    font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  #skins-screen {
+    position: absolute; inset: 0; z-index: 70; display: none; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px; padding: max(20px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom));
+    background: #111827; text-align: center;
+  }
+  #skins-screen h2 { color: #f9fafb; font-size: 30px; margin: 0; }
+  .skins-subtitle { color: #9ca3af; font-size: 14px; }
+  #skin-list {
+    width: min(100%, 620px); max-height: min(62vh, 540px); overflow-y: auto;
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
+    padding: 2px; touch-action: pan-y;
+  }
+  .skin-card {
+    display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0;
+    padding: 10px 12px; text-align: left; border: 1px solid #374151; border-radius: 14px;
+    color: #f3f4f6; background: #1f2937; cursor: pointer; font: inherit;
+  }
+  .skin-card.selected { border-color: #10b981; box-shadow: inset 0 0 0 1px #10b981; }
+  .skin-card.locked { filter: grayscale(.88); opacity: .66; cursor: default; }
+  .skin-name-row { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; }
+  .skin-state { color: #a7f3d0; font-size: 11px; white-space: nowrap; }
+  .skin-card.locked .skin-state { color: #9ca3af; }
+  .skin-progress { min-height: 14px; color: #9ca3af; font-size: 10px; line-height: 1.3; }
+  .skin-preview { display: flex; align-items: center; height: 18px; padding-left: 4px; }
+  .skin-preview i {
+    width: 12px; height: 12px; margin-left: -3px; border-radius: 50%;
+    background: linear-gradient(145deg, var(--skin-light), var(--skin-dark));
+    border: 1px solid rgba(255,255,255,.24); animation: skinWiggle .9s ease-in-out infinite alternate;
+  }
+  .skin-preview i:nth-child(2) { animation-delay: -.12s; }
+  .skin-preview i:nth-child(3) { animation-delay: -.24s; }
+  .skin-preview i:nth-child(4) { animation-delay: -.36s; }
+  .skin-preview i:nth-child(5) { animation-delay: -.48s; }
+  .skin-preview i:nth-child(6) { animation-delay: -.6s; }
+  @keyframes skinWiggle { from { transform: translateY(2px); } to { transform: translateY(-2px); } }
+  #skin-unlock-toast {
+    position: absolute; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); z-index: 90;
+    display: none; transform: translateX(-50%); padding: 12px 18px; border-radius: 14px;
+    border: 1px solid #34d399; background: #064e3b; color: #ecfdf5; font-weight: 700;
+    box-shadow: 0 8px 26px rgba(0,0,0,.28); text-align: center; pointer-events: none;
+  }
   .menu-records span { color: #a7f3d0; }
   .menu-hint { color: #9ca3af; }
   .privacy-link { color: #a7f3d0; }
@@ -388,6 +434,8 @@
     #leaderboard { min-width: 132px; padding: 8px 10px; }
     #hud { gap: 5px; }
     .hud-stat { padding: 6px 8px; }
+    #skin-list { gap: 8px; }
+    .skin-card { padding: 9px; }
   }
 </style>
 </head>
@@ -407,7 +455,7 @@
   </div>
   <div class="hud-stat">
     <span>Length:</span>
-    <span id="stat-length" class="hud-val">30</span>
+    <span id="stat-length" class="hud-val">22</span>
   </div>
   <div class="hud-stat">
     <span>Rank:</span>
@@ -440,10 +488,11 @@
   </div>
 
   <div class="menu-records">
-    Best Record (<span id="diff-name-label">Normal</span>): Time: <span id="menu-best-time">00:00</span> &bull; Length: <span id="menu-best-len">30</span>
+    Best Record (<span id="diff-name-label">Normal</span>): Time: <span id="menu-best-time">00:00</span> &bull; Length: <span id="menu-best-len">22</span>
   </div>
 
   <button class="play-btn" onclick="startGame()">Play</button>
+  <button class="menu-secondary" onclick="openSkins()">Skins</button>
 
   <div class="menu-hint">
     Touch and drag to steer &bull; Tap pause anytime<br>
@@ -451,6 +500,14 @@
   </div>
   <a class="privacy-link" href="privacy-policy.html">Privacy Policy</a>
 </div>
+
+<div id="skins-screen" aria-label="Snake skins">
+  <h2>Snake skins</h2>
+  <div class="skins-subtitle">Choose a look. Every skin plays the same.</div>
+  <div id="skin-list"></div>
+  <button class="menu-secondary" type="button" onclick="closeSkins()">Back to home</button>
+</div>
+<div id="skin-unlock-toast" role="status" aria-live="polite"></div>
 
 <!-- Pause Overlay -->
 <div id="pause-overlay">
@@ -472,11 +529,11 @@
     </div>
     <div class="score-row">
       <span class="label">Final Length:</span>
-      <span id="final-length" class="val">30</span>
+      <span id="final-length" class="val">22</span>
     </div>
     <div class="score-row">
       <span class="label">Best Length:</span>
-      <span id="best-length" class="best">30</span>
+      <span id="best-length" class="best">22</span>
     </div>
   </div>
   <div class="restart-hint">Press Enter or Tap to Restart</div>
@@ -530,6 +587,40 @@ const PALETTE_PLAYER = {
   eyePupil: '#064e3b',
   tongue: '#f43f5e'
 };
+
+const SKINS = [
+  { id: 'classic', name: 'Classic Green', palette: { ...PALETTE_PLAYER, pattern: 'scales' }, unlock: { type: 'default' } },
+  { id: 'ocean', name: 'Ocean Blue', palette: { head: '#7dd3fc', bodyStart: '#38bdf8', bodyEnd: '#1d4ed8', scale: 'rgba(224,242,254,.45)', glow: 'rgba(56,189,248,.75)', eyeIris: '#0369a1', eyePupil: '#082f49', tongue: '#fb7185', pattern: 'bands' }, unlock: { type: 'time', seconds: 60 } },
+  { id: 'magma', name: 'Magma', palette: { head: '#fdba74', bodyStart: '#f97316', bodyEnd: '#7c2d12', scale: 'rgba(254,215,170,.55)', glow: 'rgba(249,115,22,.82)', eyeIris: '#9a3412', eyePupil: '#431407', tongue: '#fef3c7', pattern: 'embers' }, unlock: { type: 'time', seconds: 180 } },
+  { id: 'aurora', name: 'Aurora', palette: { head: '#e9d5ff', bodyStart: '#a78bfa', bodyEnd: '#0f766e', scale: 'rgba(240,253,250,.58)', glow: 'rgba(167,139,250,.82)', eyeIris: '#6d28d9', eyePupil: '#2e1065', tongue: '#f0abfc', pattern: 'ribbons' }, unlock: { type: 'time', seconds: 300 } },
+  { id: 'ghost', name: 'Ghost', palette: { head: '#f8fafc', bodyStart: '#cbd5e1', bodyEnd: '#64748b', scale: 'rgba(255,255,255,.48)', glow: 'rgba(226,232,240,.8)', eyeIris: '#64748b', eyePupil: '#1e293b', tongue: '#c4b5fd', pattern: 'spots' }, unlock: { type: 'length', length: 60 } },
+  { id: 'golden', name: 'Golden Dragon', palette: { head: '#fef08a', bodyStart: '#facc15', bodyEnd: '#92400e', scale: 'rgba(255,251,191,.7)', glow: 'rgba(250,204,21,.9)', eyeIris: '#a16207', eyePupil: '#422006', tongue: '#fb7185', pattern: 'dragon' }, unlock: { type: 'time', seconds: 600 } }
+];
+const SKIN_UNLOCKS_KEY = 'serpentRun_unlockedSkins';
+const SELECTED_SKIN_KEY = 'serpentRun_selectedSkin';
+
+function safeStorageGet(key) {
+  try { return localStorage.getItem(key); } catch (_) { return null; }
+}
+
+function safeStorageSet(key, value) {
+  try { localStorage.setItem(key, value); } catch (_) {}
+}
+
+function loadUnlockedSkins() {
+  try {
+    const stored = JSON.parse(safeStorageGet(SKIN_UNLOCKS_KEY) || '[]');
+    return new Set(['classic', ...(Array.isArray(stored) ? stored.filter(id => SKINS.some(skin => skin.id === id)) : [])]);
+  } catch (_) { return new Set(['classic']); }
+}
+
+const unlockedSkinIds = loadUnlockedSkins();
+let selectedSkinId = safeStorageGet(SELECTED_SKIN_KEY) || 'classic';
+if (!unlockedSkinIds.has(selectedSkinId)) selectedSkinId = 'classic';
+
+function getSkin(skinId = selectedSkinId) {
+  return SKINS.find(skin => skin.id === skinId) || SKINS[0];
+}
 
 const BOT_CONFIGS = [
   {
@@ -629,7 +720,7 @@ const player = {
   turnRate: TURN_RATE,
   length: INITIAL_SEGMENTS,
   segments: [],
-  palette: PALETTE_PLAYER,
+  palette: getSkin().palette,
   tongueTimer: 0,
   tongueProgress: 0,
   glowTrailUntil: 0,
@@ -666,6 +757,10 @@ let cardDiffLabel = null;
 let cycleIconEl = null;
 let cycleNameEl = null;
 let rareIndicatorEl = null;
+let skinsScreenEl = null;
+let skinListEl = null;
+let skinUnlockToastEl = null;
+let skinUnlockToastTimer = 0;
 
 // ============================================================
 // §3  AUDIO SYNTHESIS (NO EXTERNAL FILES)
@@ -878,6 +973,85 @@ function updateMenuRecordsDisplay() {
   if (menuBestTime) menuBestTime.textContent = formatTime(bTime);
   if (menuBestLen) menuBestLen.textContent = bLen;
   if (cardDiffLabel) cardDiffLabel.textContent = capitalized;
+}
+
+function getOverallBestTime() {
+  return Math.max(0, ...['easy', 'normal', 'hard'].map(getBestTime));
+}
+
+function getOverallBestLength() {
+  return Math.max(INITIAL_SEGMENTS, ...['easy', 'normal', 'hard'].map(getBestLength));
+}
+
+function persistUnlockedSkins() {
+  safeStorageSet(SKIN_UNLOCKS_KEY, JSON.stringify([...unlockedSkinIds]));
+}
+
+function renderSkinMenu() {
+  if (!skinListEl) return;
+  const bestTime = Math.max(getOverallBestTime(), isGameRunning ? survivalSeconds : 0);
+  const bestLength = Math.max(getOverallBestLength(), isGameRunning ? player.length : INITIAL_SEGMENTS);
+  skinListEl.innerHTML = SKINS.map(skin => {
+    const unlocked = unlockedSkinIds.has(skin.id);
+    const selected = selectedSkinId === skin.id;
+    const hint = skin.unlock.type === 'time'
+      ? `Survive ${formatTime(skin.unlock.seconds)} (best: ${formatTime(bestTime)})`
+      : skin.unlock.type === 'length'
+        ? `Reach length ${skin.unlock.length} (best: ${bestLength})`
+        : 'Available from the start';
+    const state = selected ? 'Selected' : unlocked ? 'Unlocked' : 'Locked';
+    const disabled = unlocked ? '' : 'disabled';
+    return `<button class="skin-card ${selected ? 'selected' : ''} ${unlocked ? '' : 'locked'}" type="button" ${disabled} onclick="selectSkin('${skin.id}')" style="--skin-light:${skin.palette.head};--skin-dark:${skin.palette.bodyEnd}" aria-label="${skin.name}, ${state}. ${hint}">
+      <span class="skin-name-row"><span>${skin.name}</span><span class="skin-state">${state}</span></span>
+      <span class="skin-preview" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      <span class="skin-progress">${hint}</span>
+    </button>`;
+  }).join('');
+}
+
+function openSkins() {
+  menuScreenEl.style.display = 'none';
+  if (skinsScreenEl) skinsScreenEl.style.display = 'flex';
+  renderSkinMenu();
+}
+
+function closeSkins() {
+  if (skinsScreenEl) skinsScreenEl.style.display = 'none';
+  if (menuScreenEl) menuScreenEl.style.display = 'flex';
+}
+
+function selectSkin(skinId) {
+  if (!unlockedSkinIds.has(skinId)) return;
+  selectedSkinId = skinId;
+  safeStorageSet(SELECTED_SKIN_KEY, selectedSkinId);
+  player.palette = getSkin().palette;
+  renderSkinMenu();
+}
+
+function showSkinUnlockToast(skin) {
+  if (!skinUnlockToastEl) return;
+  skinUnlockToastEl.textContent = `${skin.name} unlocked`;
+  skinUnlockToastEl.style.display = 'block';
+  clearTimeout(skinUnlockToastTimer);
+  skinUnlockToastTimer = setTimeout(() => { skinUnlockToastEl.style.display = 'none'; }, 3200);
+}
+
+function checkSkinUnlocks() {
+  let changed = false;
+  for (const skin of SKINS) {
+    if (unlockedSkinIds.has(skin.id) || skin.unlock.type === 'default') continue;
+    const earned = skin.unlock.type === 'time'
+      ? survivalSeconds >= skin.unlock.seconds
+      : player.length >= skin.unlock.length;
+    if (!earned) continue;
+    unlockedSkinIds.add(skin.id);
+    changed = true;
+    showSkinUnlockToast(skin);
+  }
+  if (changed) {
+    persistUnlockedSkins();
+    renderSkinMenu();
+  }
 }
 
 // ============================================================
@@ -1415,6 +1589,7 @@ function updateHUDAndLeaderboard() {
     survivalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
     if (statTimeEl) statTimeEl.textContent = formatTime(survivalSeconds);
   }
+  checkSkinUnlocks();
 
   const allSnakes = [player, ...bots];
   allSnakes.sort((a, b) => b.length - a.length);
@@ -1510,6 +1685,7 @@ function applyDifficultySpeeds() {
 function startGame() {
   initAudio();
   menuScreenEl.style.display = 'none';
+  if (skinsScreenEl) skinsScreenEl.style.display = 'none';
   hudEl.style.display = 'flex';
   lbEl.style.display = 'block';
   isGameRunning = true;
@@ -1537,10 +1713,15 @@ function goHome() {
   hudEl.style.display = 'none';
   lbEl.style.display = 'none';
   menuScreenEl.style.display = 'flex';
+  if (skinsScreenEl) skinsScreenEl.style.display = 'none';
   updateMenuRecordsDisplay();
 }
 
 window.handleAndroidBack = function () {
+  if (skinsScreenEl && skinsScreenEl.style.display === 'flex') {
+    closeSkins();
+    return true;
+  }
   if (isGameRunning || isPaused || isGameOver) {
     goHome();
     return true;
@@ -1660,15 +1841,11 @@ function initSnake() {
   player.lastTrailSampleAt = 0;
   rareOrb = null;
   if (rareIndicatorEl) rareIndicatorEl.style.display = 'none';
-  player.trailWorldX = player.x;
-  player.trailWorldY = player.y;
-  player.glowTrailUntil = 0;
-  player.glowTrailSamples = [];
-  player.lastTrailSampleAt = 0;
   player.angle = -Math.PI / 2;
   player.targetAngle = -Math.PI / 2;
   player.length = INITIAL_SEGMENTS;
   player.speed = getActiveSpeed();
+  player.palette = getSkin().palette;
   player.growQueue = 0;
   player.segments = [];
   player.alive = true;
@@ -1879,6 +2056,43 @@ function drawDiamondScale(cx, cy, radius, angle, color) {
   ctx.restore();
 }
 
+function drawSkinPattern(cx, cy, radius, angle, palette, index) {
+  const pattern = palette.pattern || 'scales';
+  if ((pattern === 'scales' || pattern === 'dragon') && index % 2 === 0 && radius > 4) {
+    drawDiamondScale(cx, cy, radius * 0.72, angle, palette.scale);
+    return;
+  }
+  if (pattern === 'ribbons' && index % 3 === 0 && radius > 4) {
+    drawDiamondScale(cx, cy, radius * 0.62, angle + Math.PI / 2, palette.scale);
+    return;
+  }
+  if (pattern === 'bands' && index % 3 === 0) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle + Math.PI / 2);
+    ctx.fillStyle = palette.scale;
+    ctx.fillRect(-radius * 0.68, -Math.max(0.8, radius * 0.18), radius * 1.36, Math.max(1.6, radius * 0.36));
+    ctx.restore();
+    return;
+  }
+  if (pattern === 'embers' && index % 4 === 1) {
+    ctx.fillStyle = palette.scale;
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.max(1, radius * 0.28), 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+  if (pattern === 'spots' && index % 3 === 0 && radius > 4) {
+    const side = angle + Math.PI / 2;
+    ctx.fillStyle = palette.scale;
+    for (const direction of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(side) * radius * 0.35 * direction, cy + Math.sin(side) * radius * 0.35 * direction, Math.max(0.8, radius * 0.15), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
 function drawNameTag(name, x, y, color) {
   ctx.save();
   ctx.font = 'bold 11px system-ui, sans-serif';
@@ -1959,9 +2173,7 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     ctx.shadowBlur = i % 6 === 0 ? currentCycle.nightFactor * 5 : 0;
     ctx.fill();
 
-    if (i % 2 === 0 && radius > 5) {
-      drawDiamondScale(drawX, drawY, radius * 0.75, seg.angle, pal.scale);
-    }
+    drawSkinPattern(drawX, drawY, radius, seg.angle, pal, i);
   }
 
   ctx.shadowColor = pal.glow;
@@ -2113,6 +2325,9 @@ window.addEventListener('DOMContentLoaded', () => {
   cycleIconEl = document.getElementById('cycle-icon');
   cycleNameEl = document.getElementById('cycle-name');
   rareIndicatorEl = document.getElementById('rare-indicator');
+  skinsScreenEl = document.getElementById('skins-screen');
+  skinListEl = document.getElementById('skin-list');
+  skinUnlockToastEl = document.getElementById('skin-unlock-toast');
 
   isMuted = localStorage.getItem('neonSerpents_muted') === '1';
   if (muteBtnEl) muteBtnEl.textContent = isMuted ? '🔇' : '🔊';
@@ -2123,6 +2338,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initInput();
   initBots();
   updateMenuRecordsDisplay();
+  renderSkinMenu();
 });
 </script>
 </body>
