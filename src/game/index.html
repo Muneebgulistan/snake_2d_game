@@ -26,6 +26,7 @@
     position: absolute;
     top: 0;
     left: 0;
+    touch-action: none;
   }
   #hud {
     position: absolute;
@@ -421,6 +422,19 @@
     border: 1px solid #34d399; background: #064e3b; color: #ecfdf5; font-weight: 700;
     box-shadow: 0 8px 26px rgba(0,0,0,.28); text-align: center; pointer-events: none;
   }
+  #touch-joystick {
+    position: absolute; z-index: 12; display: none; width: 112px; height: 112px;
+    transform: translate(-50%, -50%); pointer-events: none;
+  }
+  .joystick-ring {
+    position: absolute; inset: 8px; border: 2px solid rgba(255,255,255,.45);
+    border-radius: 50%; background: rgba(17,24,39,.18); box-shadow: 0 2px 12px rgba(0,0,0,.16);
+  }
+  #joystick-thumb {
+    position: absolute; left: 50%; top: 50%; width: 28px; height: 28px;
+    margin: -14px 0 0 -14px; border-radius: 50%; background: rgba(243,244,246,.82);
+    border: 2px solid rgba(16,185,129,.95); box-shadow: 0 1px 8px rgba(0,0,0,.3);
+  }
   .menu-records span { color: #a7f3d0; }
   .menu-hint { color: #9ca3af; }
   .privacy-link { color: #a7f3d0; }
@@ -472,6 +486,7 @@
   <div class="lb-list" id="lb-list"></div>
 </div>
 <div id="rare-indicator" aria-hidden="true"><span>↑</span><small>Rare orb</small></div>
+<div id="touch-joystick" aria-hidden="true"><div class="joystick-ring"><div id="joystick-thumb"></div></div></div>
 
 <!-- Menu Start Screen -->
 <div id="menu-screen">
@@ -568,6 +583,8 @@ const RARE_ORB_MIN_INTERVAL_MS = 40000;
 const RARE_ORB_MAX_INTERVAL_MS = 60000;
 const RARE_ORB_LIFETIME_MS = 25000;
 const RARE_ORB_TRAIL_MS = 6000;
+const TOUCH_DEAD_ZONE = 10;
+const TOUCH_MAX_TURN_RATE = 2.4;
 
 const FOOD_COLORS = [
   { core: '#22d3ee', glow: 'rgba(34, 211, 238, 0.5)' },
@@ -682,6 +699,7 @@ let width = window.innerWidth;
 let height = window.innerHeight;
 let animFrame = 0;
 let loopActive = false;
+let lastFrameTime = performance.now();
 const cycleEpoch = performance.now();
 let currentCycle = { ...CYCLE_PHASES[0], progress: 0, nightFactor: 0 };
 let rareOrb = null;
@@ -735,6 +753,8 @@ const player = {
 
 const keys = { left: false, right: false };
 const mouse = { x: width / 2, y: height / 2, active: false };
+const joystick = { active: false, pointerId: null, originX: 0, originY: 0, dx: 0, dy: 0, hasDirection: false };
+const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0;
 
 let hudEl = null;
 let lbEl = null;
@@ -761,6 +781,8 @@ let skinsScreenEl = null;
 let skinListEl = null;
 let skinUnlockToastEl = null;
 let skinUnlockToastTimer = 0;
+let joystickEl = null;
+let joystickThumbEl = null;
 
 // ============================================================
 // §3  AUDIO SYNTHESIS (NO EXTERNAL FILES)
@@ -1613,25 +1635,39 @@ function updateHUDAndLeaderboard() {
 function update() {
   if (!isGameRunning || isPaused) return;
 
+  const frameNow = performance.now();
+  const frameSeconds = Math.min(0.05, Math.max(0, (frameNow - lastFrameTime) / 1000));
+  lastFrameTime = frameNow;
   animFrame++;
   maybeSpawnRareOrb();
 
   if (player.alive) {
-    if (keys.left) {
-      player.targetAngle -= player.turnRate;
-      mouse.active = false;
-    } else if (keys.right) {
-      player.targetAngle += player.turnRate;
-      mouse.active = false;
-    } else if (mouse.active) {
-      const dx = toroidDelta(player.x, mouse.x, width);
-      const dy = toroidDelta(player.y, mouse.y, height);
-      if (Math.hypot(dx, dy) > 15) {
-        player.targetAngle = Math.atan2(dy, dx);
+    if (joystick.active) {
+      if (joystick.hasDirection) {
+        player.targetAngle = Math.atan2(joystick.dy, joystick.dx);
+        const diff = angleDifference(player.angle, player.targetAngle);
+        const maxTurn = TOUCH_MAX_TURN_RATE * frameSeconds;
+        player.angle += Math.sign(diff) * Math.min(Math.abs(diff), maxTurn);
+      } else {
+        player.targetAngle = player.angle;
       }
+    } else {
+      if (keys.left) {
+        player.targetAngle -= player.turnRate;
+        mouse.active = false;
+      } else if (keys.right) {
+        player.targetAngle += player.turnRate;
+        mouse.active = false;
+      } else if (mouse.active) {
+        const dx = toroidDelta(player.x, mouse.x, width);
+        const dy = toroidDelta(player.y, mouse.y, height);
+        if (Math.hypot(dx, dy) > 15) {
+          player.targetAngle = Math.atan2(dy, dx);
+        }
+      }
+      const diff = angleDifference(player.angle, player.targetAngle);
+      player.angle += Math.sign(diff) * Math.min(Math.abs(diff), player.turnRate);
     }
-    const diff = angleDifference(player.angle, player.targetAngle);
-    player.angle += Math.sign(diff) * Math.min(Math.abs(diff), player.turnRate);
   }
 
   advanceSnake(player);
@@ -1708,6 +1744,10 @@ function goHome() {
   keys.left = false;
   keys.right = false;
   mouse.active = false;
+  joystick.active = false;
+  joystick.pointerId = null;
+  joystick.hasDirection = false;
+  if (joystickEl) joystickEl.style.display = 'none';
   pauseOverlayEl.style.display = 'none';
   overlayEl.style.display = 'none';
   hudEl.style.display = 'none';
@@ -1785,14 +1825,70 @@ function initInput() {
   });
 
   window.addEventListener('mousemove', (e) => {
+    if (isTouchDevice) return;
     mouse.x = e.clientX;
     mouse.y = e.clientY;
     mouse.active = true;
   });
 
-  window.addEventListener('touchstart', onTouch, { passive: true });
-  window.addEventListener('touchmove', onTouch, { passive: true });
-  window.addEventListener('touchend', () => { mouse.active = false; }, { passive: true });
+  canvas.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'touch' || !isGameRunning || isPaused || isGameOver || joystick.active) return;
+    e.preventDefault();
+    initAudio();
+    keys.left = false;
+    keys.right = false;
+    mouse.active = false;
+    joystick.active = true;
+    joystick.pointerId = e.pointerId;
+    joystick.originX = e.clientX;
+    joystick.originY = e.clientY;
+    joystick.dx = 0;
+    joystick.dy = 0;
+    joystick.hasDirection = false;
+    player.targetAngle = player.angle;
+    if (joystickEl) {
+      joystickEl.style.left = `${e.clientX}px`;
+      joystickEl.style.top = `${e.clientY}px`;
+      joystickEl.style.display = 'block';
+    }
+    if (joystickThumbEl) joystickThumbEl.style.transform = 'translate(0, 0)';
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (!joystick.active || e.pointerId !== joystick.pointerId) return;
+    e.preventDefault();
+    const dx = e.clientX - joystick.originX;
+    const dy = e.clientY - joystick.originY;
+    const distance = Math.hypot(dx, dy);
+    joystick.hasDirection = distance >= TOUCH_DEAD_ZONE;
+    if (joystick.hasDirection) {
+      joystick.dx = dx;
+      joystick.dy = dy;
+    } else {
+      joystick.dx = 0;
+      joystick.dy = 0;
+      player.targetAngle = player.angle;
+    }
+    const thumbDistance = Math.min(36, distance);
+    const thumbX = distance ? dx / distance * thumbDistance : 0;
+    const thumbY = distance ? dy / distance * thumbDistance : 0;
+    if (joystickThumbEl) joystickThumbEl.style.transform = `translate(${thumbX}px, ${thumbY}px)`;
+  });
+
+  const stopTouchSteering = (e) => {
+    if (!joystick.active || e.pointerId !== joystick.pointerId) return;
+    joystick.active = false;
+    joystick.pointerId = null;
+    joystick.dx = 0;
+    joystick.dy = 0;
+    joystick.hasDirection = false;
+    player.targetAngle = player.angle;
+    if (joystickEl) joystickEl.style.display = 'none';
+  };
+  canvas.addEventListener('pointerup', stopTouchSteering);
+  canvas.addEventListener('pointercancel', stopTouchSteering);
+  canvas.addEventListener('lostpointercapture', stopTouchSteering);
 
   overlayEl.addEventListener('click', () => {
     if (isGameOver) restartGame();
@@ -1801,23 +1897,6 @@ function initInput() {
   pauseOverlayEl.addEventListener('click', () => {
     if (isPaused) togglePause();
   });
-}
-
-function onTouch(e) {
-  initAudio();
-  if (isPaused) {
-    togglePause();
-    return;
-  }
-  if (isGameOver) {
-    restartGame();
-    return;
-  }
-  if (e.touches.length > 0) {
-    mouse.x = e.touches[0].clientX;
-    mouse.y = e.touches[0].clientY;
-    mouse.active = true;
-  }
 }
 
 function onResize() {
@@ -2325,6 +2404,8 @@ window.addEventListener('DOMContentLoaded', () => {
   cycleIconEl = document.getElementById('cycle-icon');
   cycleNameEl = document.getElementById('cycle-name');
   rareIndicatorEl = document.getElementById('rare-indicator');
+  joystickEl = document.getElementById('touch-joystick');
+  joystickThumbEl = document.getElementById('joystick-thumb');
   skinsScreenEl = document.getElementById('skins-screen');
   skinListEl = document.getElementById('skin-list');
   skinUnlockToastEl = document.getElementById('skin-unlock-toast');
