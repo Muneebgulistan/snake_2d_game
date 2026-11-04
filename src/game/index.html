@@ -562,10 +562,18 @@
   <div class="restart-hint">Press Enter or Tap to Restart</div>
 </div>
 
+<script src="config.js"></script>
 <script>
 // ============================================================
 // §1  CONSTANTS & DIFFICULTY SPEEDS
 // ============================================================
+const GAME_CONFIG = window.GAME_CONFIG || {};
+const WORLD_WIDTH = GAME_CONFIG.WORLD_WIDTH || 8000;
+const WORLD_HEIGHT = GAME_CONFIG.WORLD_HEIGHT || 8000;
+const REFERENCE_VIEW_WIDTH = GAME_CONFIG.REFERENCE_VIEW_WIDTH || 1600;
+const REFERENCE_VIEW_HEIGHT = GAME_CONFIG.REFERENCE_VIEW_HEIGHT || 900;
+const CAMERA_LERP = GAME_CONFIG.CAMERA_LERP || 0.12;
+const CAMERA_ZOOM_OUT_MAX = GAME_CONFIG.CAMERA_ZOOM_OUT_MAX || 0.25;
 const SPEED_CONFIGS = {
   easy: 2.8,
   normal: 3.6,
@@ -711,6 +719,10 @@ let canvas = null;
 let ctx = null;
 let width = window.innerWidth;
 let height = window.innerHeight;
+let cameraX = WORLD_WIDTH / 2;
+let cameraY = WORLD_HEIGHT / 2;
+let cameraZoom = 1;
+let deviceScale = 1;
 let animFrame = 0;
 let loopActive = false;
 let lastFrameTime = performance.now();
@@ -744,8 +756,8 @@ const bots = [];
 const player = {
   name: 'You',
   isPlayer: true,
-  x: width / 2,
-  y: height / 2,
+  x: WORLD_WIDTH / 2,
+  y: WORLD_HEIGHT / 2,
   angle: -Math.PI / 2,
   targetAngle: -Math.PI / 2,
   speed: SPEED_CONFIGS.normal,
@@ -757,8 +769,8 @@ const player = {
   tongueProgress: 0,
   glowTrailUntil: 0,
   glowTrailSamples: [],
-  trailWorldX: width / 2,
-  trailWorldY: height / 2,
+  trailWorldX: WORLD_WIDTH / 2,
+  trailWorldY: WORLD_HEIGHT / 2,
   lastTrailSampleAt: 0,
   growQueue: 0,
   glowTrailTimer: 0,
@@ -907,9 +919,46 @@ function toroidDelta(a, b, size) {
 }
 
 function toroidDistSq(x1, y1, x2, y2) {
-  const dx = toroidDelta(x1, x2, width);
-  const dy = toroidDelta(y1, y2, height);
+  const dx = toroidDelta(x1, x2, WORLD_WIDTH);
+  const dy = toroidDelta(y1, y2, WORLD_HEIGHT);
   return dx * dx + dy * dy;
+}
+
+function screenToWorld(screenX, screenY) {
+  return {
+    x: wrap(cameraX + (screenX - width / 2) / cameraZoom, WORLD_WIDTH),
+    y: wrap(cameraY + (screenY - height / 2) / cameraZoom, WORLD_HEIGHT),
+  };
+}
+
+function updateCamera() {
+  cameraX = wrap(cameraX + toroidDelta(cameraX, player.x, WORLD_WIDTH) * CAMERA_LERP, WORLD_WIDTH);
+  cameraY = wrap(cameraY + toroidDelta(cameraY, player.y, WORLD_HEIGHT) * CAMERA_LERP, WORLD_HEIGHT);
+  const baseZoom = Math.sqrt((width * height) / (REFERENCE_VIEW_WIDTH * REFERENCE_VIEW_HEIGHT));
+  const growthZoomOut = Math.min(CAMERA_ZOOM_OUT_MAX, Math.max(0, (player.length - INITIAL_SEGMENTS) / 80 * CAMERA_ZOOM_OUT_MAX));
+  const targetZoom = baseZoom / (1 + growthZoomOut);
+  cameraZoom += (targetZoom - cameraZoom) * 0.08;
+}
+
+function cameraViewBounds(margin = 0) {
+  const halfWidth = width / (2 * cameraZoom) + margin;
+  const halfHeight = height / (2 * cameraZoom) + margin;
+  return { left: cameraX - halfWidth, right: cameraX + halfWidth, top: cameraY - halfHeight, bottom: cameraY + halfHeight };
+}
+
+function forEachVisibleWrappedPoint(x, y, margin, draw) {
+  const bounds = cameraViewBounds(margin);
+  const baseX = cameraX + toroidDelta(cameraX, x, WORLD_WIDTH);
+  const baseY = cameraY + toroidDelta(cameraY, y, WORLD_HEIGHT);
+  for (const shiftX of [-WORLD_WIDTH, 0, WORLD_WIDTH]) {
+    const drawX = baseX + shiftX;
+    if (drawX + margin < bounds.left || drawX - margin > bounds.right) continue;
+    for (const shiftY of [-WORLD_HEIGHT, 0, WORLD_HEIGHT]) {
+      const drawY = baseY + shiftY;
+      if (drawY + margin < bounds.top || drawY - margin > bounds.bottom) continue;
+      draw(drawX, drawY);
+    }
+  }
 }
 
 function angleDifference(current, target) {
@@ -966,8 +1015,8 @@ function initPlankton() {
   plankton.length = 0;
   for (let i = 0; i < 20; i++) {
     plankton.push({
-      x: Math.random() * width,
-      y: Math.random() * height,
+      x: Math.random() * WORLD_WIDTH,
+      y: Math.random() * WORLD_HEIGHT,
       size: 0.7 + Math.random() * 1.1,
       drift: 0.08 + Math.random() * 0.18,
       phase: Math.random() * Math.PI * 2
@@ -979,8 +1028,8 @@ function updatePlankton() {
   for (const dot of plankton) {
     dot.y -= dot.drift;
     if (dot.y < -4) {
-      dot.y = height + 4;
-      dot.x = Math.random() * width;
+      dot.y = wrap(dot.y, WORLD_HEIGHT);
+      dot.x = wrap(dot.x, WORLD_WIDTH);
     }
   }
 }
@@ -1114,14 +1163,14 @@ function isFarFromAllSnakes(x, y, minDist = 60) {
 }
 
 function spawnFoodOrb(customX, customY, customColor) {
-  let x = customX !== undefined ? customX : Math.random() * width;
-  let y = customY !== undefined ? customY : Math.random() * height;
+  let x = customX !== undefined ? customX : Math.random() * WORLD_WIDTH;
+  let y = customY !== undefined ? customY : Math.random() * WORLD_HEIGHT;
 
   if (customX === undefined) {
     for (let attempt = 0; attempt < 25; attempt++) {
       if (isFarFromAllSnakes(x, y, 45)) break;
-      x = Math.random() * width;
-      y = Math.random() * height;
+      x = Math.random() * WORLD_WIDTH;
+      y = Math.random() * WORLD_HEIGHT;
     }
   }
 
@@ -1153,8 +1202,8 @@ function updateFood() {
   const now = performance.now();
   for (const orb of foodOrbs) {
     if (now < orb.burstAt + orb.burstDelay) continue;
-    orb.x = wrap(orb.x + orb.vx, width);
-    orb.y = wrap(orb.y + orb.vy, height);
+    orb.x = wrap(orb.x + orb.vx, WORLD_WIDTH);
+    orb.y = wrap(orb.y + orb.vy, WORLD_HEIGHT);
   }
   while (foodOrbs.length < FOOD_COUNT) {
     foodOrbs.push(spawnFoodOrb());
@@ -1186,8 +1235,8 @@ function maybeSpawnRareOrb(now = performance.now()) {
   if (rareOrb || now < nextRareOrbAt) return;
 
   for (let attempt = 0; attempt < 50; attempt++) {
-    const x = Math.random() * width;
-    const y = Math.random() * height;
+    const x = Math.random() * WORLD_WIDTH;
+    const y = Math.random() * WORLD_HEIGHT;
     if (!isClearRareOrbSpot(x, y)) continue;
     rareOrb = { x, y, spawnedAt: now, expiresAt: now + RARE_ORB_LIFETIME_MS };
     nextRareOrbAt = Infinity;
@@ -1218,8 +1267,8 @@ function spawnFoodBurst(x, y, color, count = 10) {
 function updateParticles() {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
-    p.x = wrap(p.x + p.vx, width);
-    p.y = wrap(p.y + p.vy, height);
+    p.x = wrap(p.x + p.vx, WORLD_WIDTH);
+    p.y = wrap(p.y + p.vy, WORLD_HEIGHT);
     p.vx *= 0.94;
     p.vy *= 0.94;
     p.alpha -= p.decay;
@@ -1237,14 +1286,14 @@ function getActiveSpeed() {
 }
 
 function findSafeSpawnCoords() {
-  let bestX = Math.random() * width;
-  let bestY = Math.random() * height;
+  let bestX = Math.random() * WORLD_WIDTH;
+  let bestY = Math.random() * WORLD_HEIGHT;
   let maxMinDistSq = -1;
 
   const allSnakes = [player, ...bots];
   for (let attempt = 0; attempt < 40; attempt++) {
-    const cx = Math.random() * width;
-    const cy = Math.random() * height;
+    const cx = Math.random() * WORLD_WIDTH;
+    const cy = Math.random() * WORLD_HEIGHT;
     let closestDistSq = Infinity;
 
     for (const s of allSnakes) {
@@ -1282,6 +1331,7 @@ function createBot(config, index) {
 
   return {
     name: config.name,
+    aiOffset: index % 4,
     isPlayer: false,
     x: pos.x,
     y: pos.y,
@@ -1366,6 +1416,23 @@ function updateBotAI(bot) {
   const brain = bot.personality;
   const now = performance.now();
 
+  const farFromView = Math.abs(toroidDelta(cameraX, bot.x, WORLD_WIDTH)) > width / (2 * cameraZoom) + 140 ||
+    Math.abs(toroidDelta(cameraY, bot.y, WORLD_HEIGHT)) > height / (2 * cameraZoom) + 140;
+  if (farFromView) {
+    if (animFrame % 4 === bot.aiOffset) {
+      let target = rareOrb;
+      let nearestDistance = target ? toroidDistSq(bot.x, bot.y, target.x, target.y) : Infinity;
+      for (const orb of foodOrbs) {
+        const distance = toroidDistSq(bot.x, bot.y, orb.x, orb.y);
+        if (distance < nearestDistance) { nearestDistance = distance; target = orb; }
+      }
+      if (target) bot.targetAngle = Math.atan2(toroidDelta(bot.y, target.y, WORLD_HEIGHT), toroidDelta(bot.x, target.x, WORLD_WIDTH));
+    }
+    const farTurn = angleDifference(bot.angle, bot.targetAngle);
+    bot.angle += Math.sign(farTurn) * Math.min(Math.abs(farTurn), bot.turnRate * 0.7);
+    return;
+  }
+
   // Retarget on a short reaction delay. The whisker avoidance below still runs every frame.
   if (now >= brain.nextDecisionAt) {
     let nearestFood = null;
@@ -1392,7 +1459,7 @@ function updateBotAI(bot) {
 
     let desiredAngle = bot.angle;
     if (target) {
-      desiredAngle = Math.atan2(toroidDelta(bot.y, target.y, height), toroidDelta(bot.x, target.x, width));
+      desiredAngle = Math.atan2(toroidDelta(bot.y, target.y, WORLD_HEIGHT), toroidDelta(bot.x, target.x, WORLD_WIDTH));
     }
 
     const enemies = allSnakes.filter(s => s !== bot && s.alive && s.length < bot.length);
@@ -1404,9 +1471,9 @@ function updateBotAI(bot) {
     }
 
     const predictIntercept = (enemy, leadFrames = 60, offset = 36) => {
-      const x = wrap(enemy.x + Math.cos(enemy.angle) * enemy.speed * leadFrames + Math.cos(enemy.angle) * offset, width);
-      const y = wrap(enemy.y + Math.sin(enemy.angle) * enemy.speed * leadFrames + Math.sin(enemy.angle) * offset, height);
-      return Math.atan2(toroidDelta(bot.y, y, height), toroidDelta(bot.x, x, width));
+      const x = wrap(enemy.x + Math.cos(enemy.angle) * enemy.speed * leadFrames + Math.cos(enemy.angle) * offset, WORLD_WIDTH);
+      const y = wrap(enemy.y + Math.sin(enemy.angle) * enemy.speed * leadFrames + Math.sin(enemy.angle) * offset, WORLD_HEIGHT);
+      return Math.atan2(toroidDelta(bot.y, y, WORLD_HEIGHT), toroidDelta(bot.x, x, WORLD_WIDTH));
     };
 
     if (!rareTarget && brain.style === 'hunter' && (player.alive || closestEnemy)) {
@@ -1419,18 +1486,18 @@ function updateBotAI(bot) {
       if (nearby) {
         brain.orbitAngle += bot.name < nearby.name ? 0.075 : -0.075;
         brain.orbitRadius = Math.max(62, brain.orbitRadius - 0.08);
-        const orbitX = wrap(nearby.x + Math.cos(brain.orbitAngle) * brain.orbitRadius, width);
-        const orbitY = wrap(nearby.y + Math.sin(brain.orbitAngle) * brain.orbitRadius, height);
-        desiredAngle = Math.atan2(toroidDelta(bot.y, orbitY, height), toroidDelta(bot.x, orbitX, width));
+        const orbitX = wrap(nearby.x + Math.cos(brain.orbitAngle) * brain.orbitRadius, WORLD_WIDTH);
+        const orbitY = wrap(nearby.y + Math.sin(brain.orbitAngle) * brain.orbitRadius, WORLD_HEIGHT);
+        desiredAngle = Math.atan2(toroidDelta(bot.y, orbitY, WORLD_HEIGHT), toroidDelta(bot.x, orbitX, WORLD_WIDTH));
       }
     } else if (!rareTarget && brain.style === 'opportunist' && closestEnemy && closestEnemyDistSq < 210 * 210) {
       desiredAngle = predictIntercept(closestEnemy, 45, 28);
     } else if (!rareTarget && brain.style === 'scavenger' && !nearestDrop) {
       const nearbySnakes = allSnakes.filter(s => s !== bot && s.alive && toroidDistSq(bot.x, bot.y, s.x, s.y) < 210 * 210);
       if (nearbySnakes.length >= 2) {
-        const fightX = wrap((nearbySnakes[0].x + nearbySnakes[1].x) / 2, width);
-        const fightY = wrap((nearbySnakes[0].y + nearbySnakes[1].y) / 2, height);
-        desiredAngle = Math.atan2(toroidDelta(bot.y, fightY, height), toroidDelta(bot.x, fightX, width));
+        const fightX = wrap((nearbySnakes[0].x + nearbySnakes[1].x) / 2, WORLD_WIDTH);
+        const fightY = wrap((nearbySnakes[0].y + nearbySnakes[1].y) / 2, WORLD_HEIGHT);
+        desiredAngle = Math.atan2(toroidDelta(bot.y, fightY, WORLD_HEIGHT), toroidDelta(bot.x, fightX, WORLD_WIDTH));
       }
     }
 
@@ -1450,8 +1517,8 @@ function updateBotAI(bot) {
 
   for (const sa of sensorAngles) {
     const checkAngle = bot.angle + sa;
-    const probeX = wrap(bot.x + Math.cos(checkAngle) * lookDist, width);
-    const probeY = wrap(bot.y + Math.sin(checkAngle) * lookDist, height);
+    const probeX = wrap(bot.x + Math.cos(checkAngle) * lookDist, WORLD_WIDTH);
+    const probeY = wrap(bot.y + Math.sin(checkAngle) * lookDist, WORLD_HEIGHT);
 
     let probeDanger = 0;
     for (const other of allSnakes) {
@@ -1505,8 +1572,8 @@ function advanceSnake(snake) {
   const moveY = Math.sin(snake.angle) * snake.speed;
   snake.trailWorldX += moveX;
   snake.trailWorldY += moveY;
-  snake.x = wrap(snake.x + moveX, width);
-  snake.y = wrap(snake.y + moveY, height);
+  snake.x = wrap(snake.x + moveX, WORLD_WIDTH);
+  snake.y = wrap(snake.y + moveY, WORLD_HEIGHT);
 
   const now = performance.now();
   if (now < snake.glowTrailUntil) {
@@ -1546,15 +1613,15 @@ function advanceSnake(snake) {
 
   for (let i = 0; i < snake.segments.length; i++) {
     const seg = snake.segments[i];
-    const dx = toroidDelta(seg.x, prevX, width);
-    const dy = toroidDelta(seg.y, prevY, height);
+    const dx = toroidDelta(seg.x, prevX, WORLD_WIDTH);
+    const dy = toroidDelta(seg.y, prevY, WORLD_HEIGHT);
     const dist = Math.hypot(dx, dy);
 
     if (dist > SEGMENT_SPACING) {
       const segAngle = Math.atan2(dy, dx);
       seg.angle = segAngle;
-      seg.x = wrap(prevX - Math.cos(segAngle) * SEGMENT_SPACING, width);
-      seg.y = wrap(prevY - Math.sin(segAngle) * SEGMENT_SPACING, height);
+      seg.x = wrap(prevX - Math.cos(segAngle) * SEGMENT_SPACING, WORLD_WIDTH);
+      seg.y = wrap(prevY - Math.sin(segAngle) * SEGMENT_SPACING, WORLD_HEIGHT);
     }
 
     const waveProgress = i / snake.segments.length;
@@ -1782,8 +1849,9 @@ function update() {
         player.targetAngle += player.turnRate;
         mouse.active = false;
       } else if (mouse.active) {
-        const dx = toroidDelta(player.x, mouse.x, width);
-        const dy = toroidDelta(player.y, mouse.y, height);
+        const target = screenToWorld(mouse.x, mouse.y);
+        const dx = toroidDelta(player.x, target.x, WORLD_WIDTH);
+        const dy = toroidDelta(player.y, target.y, WORLD_HEIGHT);
         if (Math.hypot(dx, dy) > 15) {
           player.targetAngle = Math.atan2(dy, dx);
         }
@@ -1806,6 +1874,8 @@ function update() {
     updateBotAI(bot);
     advanceSnake(bot);
   }
+
+  updateCamera();
 
   checkAllCollisions();
   checkFoodConsumptionAll();
@@ -1907,6 +1977,7 @@ function togglePause() {
 
 function initInput() {
   window.addEventListener('resize', onResize);
+  window.addEventListener('orientationchange', onResize);
 
   const pauseButton = document.getElementById('pause-btn');
   const homeButton = document.getElementById('home-btn');
@@ -2025,17 +2096,21 @@ function initInput() {
 function onResize() {
   width = window.innerWidth;
   height = window.innerHeight;
-  const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.25);
-  canvas.width = Math.round(width * pixelRatio);
-  canvas.height = Math.round(height * pixelRatio);
+  const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+  deviceScale = Math.min(window.devicePixelRatio || 1, mobile ? 1.5 : 2);
+  canvas.width = Math.round(width * deviceScale);
+  canvas.height = Math.round(height * deviceScale);
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
-  ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+  ctx.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
+  updateCamera();
 }
 
 function initSnake() {
-  player.x = width / 2;
-  player.y = height / 2;
+  player.x = WORLD_WIDTH / 2;
+  player.y = WORLD_HEIGHT / 2;
+  cameraX = player.x;
+  cameraY = player.y;
   player.trailWorldX = player.x;
   player.trailWorldY = player.y;
   player.glowTrailUntil = 0;
@@ -2091,12 +2166,31 @@ function restartGame() {
 // ============================================================
 
 function renderBackground() {
-  const bg = ctx.createLinearGradient(0, 0, 0, height);
+  const bounds = cameraViewBounds(20);
+  const viewWidth = bounds.right - bounds.left;
+  const viewHeight = bounds.bottom - bounds.top;
+  const bg = ctx.createLinearGradient(bounds.left, bounds.top, bounds.left, bounds.bottom);
   bg.addColorStop(0, currentCycle.top);
   bg.addColorStop(0.5, currentCycle.mid);
   bg.addColorStop(1, currentCycle.bottom);
   ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, width, height);
+  ctx.fillRect(bounds.left, bounds.top, viewWidth, viewHeight);
+
+  // The 200-unit grid divides the world evenly, so it lines up at every wrap seam.
+  ctx.save();
+  ctx.strokeStyle = 'rgba(160, 220, 235, 0.055)';
+  ctx.lineWidth = 1 / cameraZoom;
+  ctx.beginPath();
+  for (let x = Math.floor(bounds.left / 200) * 200; x <= bounds.right; x += 200) {
+    ctx.moveTo(x, bounds.top);
+    ctx.lineTo(x, bounds.bottom);
+  }
+  for (let y = Math.floor(bounds.top / 200) * 200; y <= bounds.bottom; y += 200) {
+    ctx.moveTo(bounds.left, y);
+    ctx.lineTo(bounds.right, y);
+  }
+  ctx.stroke();
+  ctx.restore();
 
   if (currentCycle.rayStrength > 0.005) {
     ctx.save();
@@ -2104,16 +2198,16 @@ function renderBackground() {
     ctx.globalAlpha = Math.min(0.85, currentCycle.rayStrength * 4.2);
     for (let i = 0; i < 3; i++) {
       const sway = Math.sin(animFrame * 0.006 + i * 1.9) * 18;
-      const x = width * (0.16 + i * 0.34) + sway;
-      const ray = ctx.createLinearGradient(x, 0, x + 80, height);
+      const x = bounds.left + viewWidth * (0.16 + i * 0.34) + sway;
+      const ray = ctx.createLinearGradient(x, bounds.top, x + 80, bounds.bottom);
       ray.addColorStop(0, currentCycle.rayColor);
       ray.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.fillStyle = ray;
       ctx.beginPath();
-      ctx.moveTo(x - 25, 0);
-      ctx.lineTo(x + 22, 0);
-      ctx.lineTo(x + 125, height);
-      ctx.lineTo(x + 30, height);
+      ctx.moveTo(x - 25, bounds.top);
+      ctx.lineTo(x + 22, bounds.top);
+      ctx.lineTo(x + 125, bounds.bottom);
+      ctx.lineTo(x + 30, bounds.bottom);
       ctx.closePath();
       ctx.fill();
     }
@@ -2126,9 +2220,11 @@ function renderBackground() {
       const twinkle = 0.72 + Math.sin(animFrame * 0.035 + dot.phase) * 0.28;
       ctx.globalAlpha = planktonAlpha * twinkle;
       ctx.fillStyle = '#9cf8df';
-      ctx.beginPath();
-      ctx.arc(dot.x, dot.y, dot.size, 0, Math.PI * 2);
-      ctx.fill();
+      forEachVisibleWrappedPoint(dot.x, dot.y, dot.size + 1, (x, y) => {
+        ctx.beginPath();
+        ctx.arc(x, y, dot.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
     }
     ctx.globalAlpha = 1;
   }
@@ -2144,9 +2240,11 @@ function renderFood() {
     ctx.shadowColor = orb.glow;
     ctx.shadowBlur = 2 + currentCycle.nightFactor * 12;
     ctx.fillStyle = orb.color;
-    ctx.beginPath();
-    ctx.arc(orb.x, orb.y, radius, 0, Math.PI * 2);
-    ctx.fill();
+    forEachVisibleWrappedPoint(orb.x, orb.y, radius + 4, (x, y) => {
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    });
   }
   ctx.globalAlpha = 1;
   ctx.shadowBlur = 0;
@@ -2166,7 +2264,7 @@ function renderFloatingTexts() {
     ctx.textAlign = 'center';
     ctx.shadowColor = 'rgba(15,23,42,.8)';
     ctx.shadowBlur = 4;
-    ctx.fillText(item.text, item.x, item.y - age * 0.035);
+    forEachVisibleWrappedPoint(item.x, item.y - age * 0.035, 24, (x, y) => ctx.fillText(item.text, x, y));
     ctx.restore();
   }
 }
@@ -2180,36 +2278,38 @@ function renderRareOrb() {
   const now = performance.now();
   const shimmer = 0.82 + Math.sin(now * 0.009) * 0.18;
   const rotation = now * 0.0012;
-  ctx.save();
-  ctx.translate(rareOrb.x, rareOrb.y);
-  ctx.globalAlpha = shimmer;
-  ctx.shadowColor = 'rgba(255, 224, 145, 0.95)';
-  ctx.shadowBlur = 12 + currentCycle.nightFactor * 8;
-  ctx.fillStyle = '#fff8df';
-  ctx.beginPath();
-  ctx.arc(0, 0, 6.5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.rotate(rotation);
-  ctx.strokeStyle = '#ffe5a4';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([7, 4]);
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 14, 9, 0, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle = '#ffffff';
-  for (let i = 0; i < 3; i++) {
-    const a = rotation * 1.7 + i * Math.PI * 2 / 3;
+  forEachVisibleWrappedPoint(rareOrb.x, rareOrb.y, 20, (x, y) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.globalAlpha = shimmer;
+    ctx.shadowColor = 'rgba(255, 224, 145, 0.95)';
+    ctx.shadowBlur = 12 + currentCycle.nightFactor * 8;
+    ctx.fillStyle = '#fff8df';
     ctx.beginPath();
-    ctx.arc(Math.cos(a) * 17, Math.sin(a) * 12, 1.4, 0, Math.PI * 2);
+    ctx.arc(0, 0, 6.5, 0, Math.PI * 2);
     ctx.fill();
-  }
-  ctx.restore();
+    ctx.shadowBlur = 0;
+    ctx.rotate(rotation);
+    ctx.strokeStyle = '#ffe5a4';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([7, 4]);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 14, 9, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 3; i++) {
+      const a = rotation * 1.7 + i * Math.PI * 2 / 3;
+      ctx.beginPath();
+      ctx.arc(Math.cos(a) * 17, Math.sin(a) * 12, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  });
 
   if (rareIndicatorEl && animFrame % 4 === 0) {
-    let dx = toroidDelta(width / 2, rareOrb.x, width);
-    let dy = toroidDelta(height / 2, rareOrb.y, height);
+    let dx = toroidDelta(player.x, rareOrb.x, WORLD_WIDTH) * cameraZoom;
+    let dy = toroidDelta(player.y, rareOrb.y, WORLD_HEIGHT) * cameraZoom;
     if (Math.abs(dx) + Math.abs(dy) < 1) dy = -1;
     const edgeFactor = Math.min(
       (width / 2 - 32) / Math.max(1, Math.abs(dx)),
@@ -2249,8 +2349,8 @@ function drawGlowTrail(snake) {
       const y1 = snake.y + first.y - snake.trailWorldY;
       const x2 = snake.x + second.x - snake.trailWorldX;
       const y2 = snake.y + second.y - snake.trailWorldY;
-      const shiftX = Math.round((width / 2 - (x1 + x2) / 2) / width) * width;
-      const shiftY = Math.round((height / 2 - (y1 + y2) / 2) / height) * height;
+      const shiftX = Math.round((cameraX - (x1 + x2) / 2) / WORLD_WIDTH) * WORLD_WIDTH;
+      const shiftY = Math.round((cameraY - (y1 + y2) / 2) / WORLD_HEIGHT) * WORLD_HEIGHT;
       ctx.moveTo(x1 + shiftX, y1 + shiftY);
       ctx.lineTo(x2 + shiftX, y2 + shiftY);
     }
@@ -2264,9 +2364,11 @@ function renderParticles() {
     ctx.save();
     ctx.globalAlpha = p.alpha;
     ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
+    forEachVisibleWrappedPoint(p.x, p.y, p.size + 2, (x, y) => {
+      ctx.beginPath();
+      ctx.arc(x, y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
     ctx.restore();
   }
 }
@@ -2393,8 +2495,8 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     let radius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));
 
     const perpAngle = seg.angle + Math.PI / 2;
-    const drawX = seg.x + Math.cos(perpAngle) * seg.lateralOffset;
-    const drawY = seg.y + Math.sin(perpAngle) * seg.lateralOffset;
+    const drawX = snake.x + toroidDelta(snake.x, seg.x, WORLD_WIDTH) + Math.cos(perpAngle) * seg.lateralOffset;
+    const drawY = snake.y + toroidDelta(snake.y, seg.y, WORLD_HEIGHT) + Math.sin(perpAngle) * seg.lateralOffset;
 
     const segColor = interpolateColor(pal.bodyStart, pal.bodyEnd, progress);
 
@@ -2483,38 +2585,39 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   ctx.restore();
 }
 
-/** Optimized Toroidal Drawing: Only draws clones when spanning an edge */
 function drawSnakeToroidal(snake) {
   if (!snake.alive) return;
-
-  // Always draw primary instance
-  drawRealisticSnakeAt(snake, 0, 0);
-
-  // Check if near boundaries (within head radius + tail reach)
-  const margin = HEAD_RADIUS * 2 + 15;
-  const nearLeft = snake.x < margin;
-  const nearRight = snake.x > width - margin;
-  const nearTop = snake.y < margin;
-  const nearBottom = snake.y > height - margin;
-
-  if (nearLeft) drawRealisticSnakeAt(snake, width, 0);
-  if (nearRight) drawRealisticSnakeAt(snake, -width, 0);
-  if (nearTop) drawRealisticSnakeAt(snake, 0, height);
-  if (nearBottom) drawRealisticSnakeAt(snake, 0, -height);
-
-  if (nearLeft && nearTop) drawRealisticSnakeAt(snake, width, height);
-  if (nearLeft && nearBottom) drawRealisticSnakeAt(snake, width, -height);
-  if (nearRight && nearTop) drawRealisticSnakeAt(snake, -width, height);
-  if (nearRight && nearBottom) drawRealisticSnakeAt(snake, -width, -height);
+  const bounds = cameraViewBounds(HEAD_RADIUS + 12);
+  const tailReach = Math.min(snake.length * SEGMENT_SPACING, Math.max(WORLD_WIDTH, WORLD_HEIGHT) * 0.45);
+  const baseX = cameraX + toroidDelta(cameraX, snake.x, WORLD_WIDTH);
+  const baseY = cameraY + toroidDelta(cameraY, snake.y, WORLD_HEIGHT);
+  const baseOffsetX = baseX - snake.x;
+  const baseOffsetY = baseY - snake.y;
+  for (const shiftX of [-WORLD_WIDTH, 0, WORLD_WIDTH]) {
+    const headX = baseX + shiftX;
+    if (headX + tailReach < bounds.left || headX - tailReach > bounds.right) continue;
+    for (const shiftY of [-WORLD_HEIGHT, 0, WORLD_HEIGHT]) {
+      const headY = baseY + shiftY;
+      if (headY + tailReach < bounds.top || headY - tailReach > bounds.bottom) continue;
+      drawRealisticSnakeAt(snake, baseOffsetX + shiftX, baseOffsetY + shiftY);
+    }
+  }
 }
 
 function render() {
   updateDayNightCycle();
+  ctx.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+  ctx.setTransform(
+    deviceScale * cameraZoom, 0, 0, deviceScale * cameraZoom,
+    deviceScale * (width / 2 - cameraX * cameraZoom),
+    deviceScale * (height / 2 - cameraY * cameraZoom)
+  );
   ctx.save();
   if (shakeIntensity > 0) {
     const sx = (Math.random() - 0.5) * shakeIntensity;
     const sy = (Math.random() - 0.5) * shakeIntensity;
-    ctx.translate(sx, sy);
+    ctx.translate(sx / cameraZoom, sy / cameraZoom);
   }
 
   renderBackground();
@@ -2532,6 +2635,53 @@ function render() {
 
   drawSnakeToroidal(player);
 
+  ctx.restore();
+  ctx.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
+  renderMinimap();
+}
+
+function renderMinimap() {
+  const size = Math.min(126, Math.max(92, width * 0.24));
+  const radius = size / 2;
+  const cx = width - radius - 14;
+  const cy = height - radius - 18;
+  const mapRadius = radius - 7;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(2, 12, 25, 0.78)';
+  ctx.fill();
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(148, 210, 225, 0.13)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx - mapRadius, cy);
+  ctx.lineTo(cx + mapRadius, cy);
+  ctx.moveTo(cx, cy - mapRadius);
+  ctx.lineTo(cx, cy + mapRadius);
+  ctx.stroke();
+
+  const drawMapDot = (x, y, color, dotRadius) => {
+    const dx = toroidDelta(player.x, x, WORLD_WIDTH) / WORLD_WIDTH * (mapRadius * 2);
+    const dy = toroidDelta(player.y, y, WORLD_HEIGHT) / WORLD_HEIGHT * (mapRadius * 2);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(cx + dx, cy + dy, dotRadius, 0, Math.PI * 2);
+    ctx.fill();
+  };
+  for (const bot of bots) if (bot.alive) drawMapDot(bot.x, bot.y, bot.palette.head, 2.5);
+  if (rareOrb) drawMapDot(rareOrb.x, rareOrb.y, '#ffe6a5', 3);
+  const boss = window.activeBoss;
+  if (boss && boss.active) drawMapDot(boss.x, boss.y, '#fb7185', 4);
+  ctx.fillStyle = '#c7f9df';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(224, 242, 254, 0.65)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius - 1, 0, Math.PI * 2);
+  ctx.stroke();
   ctx.restore();
 }
 

@@ -5,6 +5,7 @@ A lightweight snake survival game for Android and the browser. Steer through a w
 ## Game features
 
 - A smoothly changing three-minute underwater day and night cycle. It changes the scenery only, so game rules stay consistent.
+- An 8000 × 8000 wraparound world with a smooth following camera, a view scaled by screen area, and a circular minimap.
 - Six rival snakes with Hunter, Encircler, Opportunist, and Scavenger behaviors. Easy, Normal, and Hard change movement speed.
 - Rare glow orbs that grant a short cosmetic trail and three extra segments, plus scattered food rewards when a snake is defeated.
 - Six collectible player skins with survival-time and length unlocks. Skin progress and selection are saved locally; bot colors stay independent.
@@ -52,7 +53,7 @@ Choose Easy, Normal, or Hard from the home screen. The game works offline after 
 ## Project layout
 
 ```text
-src/game/       Canonical game page, privacy policy, and game icon
+src/game/       Canonical game page, world configuration, privacy policy, and game icon
 assets/         Store artwork and Android launcher icon sources
 scripts/        Web sync and Android icon helpers
 www/            Generated web files consumed by Capacitor
