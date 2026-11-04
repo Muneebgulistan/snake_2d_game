@@ -584,7 +584,16 @@ const TURN_RATE = 0.075;
 const SEGMENT_SPACING = 6;
 const INITIAL_SEGMENTS = 22;
 const HEAD_RADIUS = 9;
-const FOOD_COUNT = 42;
+const FOOD_DENSITY = GAME_CONFIG.FOOD_DENSITY ?? 1;
+const FOOD_VALUE = GAME_CONFIG.FOOD_VALUE ?? 1;
+const FOOD_COUNT = Math.max(1, Math.round(42 * FOOD_DENSITY * (WORLD_WIDTH * WORLD_HEIGHT) / (REFERENCE_VIEW_WIDTH * REFERENCE_VIEW_HEIGHT)));
+const MAX_VISIBLE_FOOD = 15;
+const FOOD_RESPAWN_DELAY_MS = 900;
+const FOOD_GRID_COLUMNS = Math.ceil(Math.sqrt(FOOD_COUNT));
+const FOOD_GRID_ROWS = Math.ceil(FOOD_COUNT / FOOD_GRID_COLUMNS);
+const foodGridTaken = new Uint8Array(FOOD_COUNT);
+let foodGridCursor = 0;
+let nextFoodSpawnAt = 0;
 const BOT_COUNT = 6;
 const RESPAWN_DELAY_FRAMES = 180;
 const MAX_PARTICLES = 18;
@@ -1178,7 +1187,9 @@ function spawnFoodOrb(customX, customY, customColor) {
   return {
     x,
     y,
-    value: scheme.value || 1,
+    value: scheme.value ?? FOOD_VALUE,
+    isDeathDrop: scheme.isDeathDrop === true || (scheme.value ?? 1) > 1,
+    gridCell: -1,
     baseRadius: 4.5 + Math.random() * 2,
     color: scheme.core,
     glow: scheme.glow,
@@ -1193,9 +1204,54 @@ function spawnFoodOrb(customX, customY, customColor) {
 
 function initFood() {
   foodOrbs.length = 0;
+  foodGridTaken.fill(0);
+  foodGridCursor = 0;
   for (let i = 0; i < FOOD_COUNT; i++) {
-    foodOrbs.push(spawnFoodOrb());
+    const orb = spawnGridFoodOrb();
+    if (!orb) break;
+    foodOrbs.push(orb);
   }
+  nextFoodSpawnAt = performance.now() + FOOD_RESPAWN_DELAY_MS;
+}
+
+function countNormalFood() {
+  let count = 0;
+  for (const orb of foodOrbs) if (!orb.isDeathDrop) count++;
+  return count;
+}
+
+function countVisibleNormalFood() {
+  const halfWidth = width / (2 * cameraZoom);
+  const halfHeight = height / (2 * cameraZoom);
+  let count = 0;
+  for (const orb of foodOrbs) {
+    if (orb.isDeathDrop) continue;
+    if (Math.abs(toroidDelta(player.x, orb.x, WORLD_WIDTH)) <= halfWidth &&
+        Math.abs(toroidDelta(player.y, orb.y, WORLD_HEIGHT)) <= halfHeight) count++;
+  }
+  return count;
+}
+
+function spawnGridFoodOrb() {
+  for (let attempt = 0; attempt < FOOD_COUNT; attempt++) {
+    const cell = (foodGridCursor + attempt) % FOOD_COUNT;
+    if (foodGridTaken[cell]) continue;
+    const column = cell % FOOD_GRID_COLUMNS;
+    const row = Math.floor(cell / FOOD_GRID_COLUMNS);
+    const cellWidth = WORLD_WIDTH / FOOD_GRID_COLUMNS;
+    const cellHeight = WORLD_HEIGHT / FOOD_GRID_ROWS;
+    const jitterX = (Math.random() - 0.5) * cellWidth * 0.36;
+    const jitterY = (Math.random() - 0.5) * cellHeight * 0.36;
+    const x = wrap((column + 0.5) * cellWidth + jitterX, WORLD_WIDTH);
+    const y = wrap((row + 0.5) * cellHeight + jitterY, WORLD_HEIGHT);
+    if (!isFarFromAllSnakes(x, y, 85)) continue;
+    const orb = spawnFoodOrb(x, y);
+    orb.gridCell = cell;
+    foodGridTaken[cell] = 1;
+    foodGridCursor = (cell + 1) % FOOD_COUNT;
+    return orb;
+  }
+  return null;
 }
 
 function updateFood() {
@@ -1205,8 +1261,14 @@ function updateFood() {
     orb.x = wrap(orb.x + orb.vx, WORLD_WIDTH);
     orb.y = wrap(orb.y + orb.vy, WORLD_HEIGHT);
   }
-  while (foodOrbs.length < FOOD_COUNT) {
-    foodOrbs.push(spawnFoodOrb());
+  if (countNormalFood() < FOOD_COUNT && now >= nextFoodSpawnAt) {
+    if (countVisibleNormalFood() >= MAX_VISIBLE_FOOD) {
+      nextFoodSpawnAt = now + 400;
+      return;
+    }
+    const orb = spawnGridFoodOrb();
+    if (orb) foodOrbs.push(orb);
+    nextFoodSpawnAt = now + (orb ? FOOD_RESPAWN_DELAY_MS : 1200);
   }
 }
 
@@ -1764,14 +1826,15 @@ function checkFoodConsumptionAll() {
       if (toroidDistSq(snake.x, snake.y, orb.x, orb.y) < eatDistSq) {
         spawnFoodBurst(orb.x, orb.y, orb.color, 2);
         foodOrbs.splice(i, 1);
+        if (!orb.isDeathDrop && orb.gridCell >= 0) foodGridTaken[orb.gridCell] = 0;
 
-        snake.growQueue++;
-        snake.length += orb.value || 1;
-        snake.growQueue += (orb.value || 1) - 1;
+        const growth = orb.isDeathDrop ? orb.value : Math.max(1, Math.round(FOOD_VALUE));
+        snake.growQueue += growth;
+        snake.length += growth;
 
         if (snake.isPlayer) {
           sfxEat();
-          if (orb.value > 1) floatingTexts.push({ x: snake.x, y: snake.y, text: `+${orb.value}`, time: performance.now() });
+          if (orb.isDeathDrop) floatingTexts.push({ x: snake.x, y: snake.y, text: `+${growth}`, time: performance.now() });
           if (statLengthEl) statLengthEl.textContent = snake.length;
         }
       }
