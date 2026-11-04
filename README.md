@@ -1,6 +1,14 @@
 # Serpent Run
 
-A lightweight snake survival game for Android and the browser. Steer through a wraparound arena, collect food, grow, and avoid the other snakes. Progress and sound preferences are saved on the device.
+A lightweight snake survival game for Android and the browser. Steer through a wraparound arena, collect food, grow, and avoid the other snakes. Best runs, skin unlocks and selection, and sound preferences are saved on the device.
+
+## Game features
+
+- A smoothly changing three-minute underwater day and night cycle. It changes the scenery only, so game rules stay consistent.
+- Six rival snakes with Hunter, Encircler, Opportunist, and Scavenger behaviors. Easy, Normal, and Hard change movement speed.
+- Rare glow orbs that grant a short cosmetic trail and three extra segments, plus scattered food rewards when a snake is defeated.
+- Six collectible player skins with survival-time and length unlocks. Skin progress and selection are saved locally; bot colors stay independent.
+- Wrapped arena movement, touch drag steering, keyboard and mouse controls, pause, and a home button.
 
 ## Run in a browser
 

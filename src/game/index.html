@@ -1306,8 +1306,14 @@ function createBot(config, index) {
     respawnTimer: 0,
     sameTurnCount: 0, // Anti-spin watchdog
     personality: {
+      ...BOT_PERSONALITIES[index % BOT_PERSONALITIES.length],
       aggressiveness: 0.2 + Math.random() * 0.5,
-      lookAheadDist: 50 + Math.random() * 30
+      lookAheadDist: 68 + Math.random() * 24,
+      orbitAngle: Math.random() * Math.PI * 2,
+      orbitRadius: 150,
+      reactionMs: 75 + Math.random() * 125,
+      nextDecisionAt: 0,
+      cachedDesiredAngle: initialAngle
     }
   };
 }
@@ -1339,6 +1345,9 @@ function respawnBot(bot) {
   bot.protectedUntil = performance.now() + 2000;
   bot.respawnTimer = 0;
   bot.sameTurnCount = 0;
+  bot.personality.nextDecisionAt = 0;
+  bot.personality.cachedDesiredAngle = bot.angle;
+  bot.personality.orbitRadius = 150;
 
   for (let i = 0; i < bot.length; i++) {
     bot.segments.push({
@@ -1354,47 +1363,86 @@ function updateBotAI(bot) {
   if (!bot.alive) return;
 
   const allSnakes = [player, ...bots];
+  const brain = bot.personality;
+  const now = performance.now();
 
-  // 1. Food targeting
-  let nearestFood = null;
-  let nearestDistSq = Infinity;
-  for (const orb of foodOrbs) {
-    const dSq = toroidDistSq(bot.x, bot.y, orb.x, orb.y);
-    if (dSq < nearestDistSq) {
-      nearestDistSq = dSq;
-      nearestFood = orb;
+  // Retarget on a short reaction delay. The whisker avoidance below still runs every frame.
+  if (now >= brain.nextDecisionAt) {
+    let nearestFood = null;
+    let nearestFoodDistSq = Infinity;
+    let nearestDrop = null;
+    let nearestDropDistSq = Infinity;
+    for (const orb of foodOrbs) {
+      const dSq = toroidDistSq(bot.x, bot.y, orb.x, orb.y);
+      if (dSq < nearestFoodDistSq) { nearestFoodDistSq = dSq; nearestFood = orb; }
+      if (orb.value > 1 && dSq < nearestDropDistSq) { nearestDropDistSq = dSq; nearestDrop = orb; }
     }
-  }
 
-  if (rareOrb) {
-    const rareDistanceSq = toroidDistSq(bot.x, bot.y, rareOrb.x, rareOrb.y);
-    if (rareDistanceSq < nearestDistSq * 4 || rareDistanceSq < 420 * 420) {
-      nearestDistSq = rareDistanceSq;
-      nearestFood = rareOrb;
+    let target = nearestFood;
+    if (brain.style === 'scavenger' && nearestDrop) target = nearestDrop;
+    let targetDistSq = target ? toroidDistSq(bot.x, bot.y, target.x, target.y) : Infinity;
+    let rareTarget = false;
+    if (rareOrb) {
+      const rareDistanceSq = toroidDistSq(bot.x, bot.y, rareOrb.x, rareOrb.y);
+      if (rareDistanceSq < targetDistSq * 1.8 || rareDistanceSq < 560 * 560) {
+        target = rareOrb;
+        rareTarget = true;
+      }
     }
-  }
 
-  let desiredAngle = bot.angle;
-  if (nearestFood) {
-    const dx = toroidDelta(bot.x, nearestFood.x, width);
-    const dy = toroidDelta(bot.y, nearestFood.y, height);
-    desiredAngle = Math.atan2(dy, dx);
-  }
-
-  // 2. Trapping / cutting off other snakes
-  if (player.alive && Math.random() < bot.personality.aggressiveness) {
-    const dToPlayerSq = toroidDistSq(bot.x, bot.y, player.x, player.y);
-    if (dToPlayerSq < 180 * 180 && dToPlayerSq > 50 * 50) {
-      const leadDist = 50;
-      const leadX = wrap(player.x + Math.cos(player.angle) * leadDist, width);
-      const leadY = wrap(player.y + Math.sin(player.angle) * leadDist, height);
-      const cdx = toroidDelta(bot.x, leadX, width);
-      const cdy = toroidDelta(bot.y, leadY, height);
-      desiredAngle = Math.atan2(cdy, cdx);
+    let desiredAngle = bot.angle;
+    if (target) {
+      desiredAngle = Math.atan2(toroidDelta(bot.y, target.y, height), toroidDelta(bot.x, target.x, width));
     }
+
+    const enemies = allSnakes.filter(s => s !== bot && s.alive && s.length < bot.length);
+    let closestEnemy = null;
+    let closestEnemyDistSq = Infinity;
+    for (const enemy of enemies) {
+      const dSq = toroidDistSq(bot.x, bot.y, enemy.x, enemy.y);
+      if (dSq < closestEnemyDistSq) { closestEnemyDistSq = dSq; closestEnemy = enemy; }
+    }
+
+    const predictIntercept = (enemy, leadFrames = 60, offset = 36) => {
+      const x = wrap(enemy.x + Math.cos(enemy.angle) * enemy.speed * leadFrames + Math.cos(enemy.angle) * offset, width);
+      const y = wrap(enemy.y + Math.sin(enemy.angle) * enemy.speed * leadFrames + Math.sin(enemy.angle) * offset, height);
+      return Math.atan2(toroidDelta(bot.y, y, height), toroidDelta(bot.x, x, width));
+    };
+
+    if (!rareTarget && brain.style === 'hunter' && (player.alive || closestEnemy)) {
+      const playerDistanceSq = player.alive ? toroidDistSq(bot.x, bot.y, player.x, player.y) : Infinity;
+      const huntTarget = closestEnemy && closestEnemy !== player && closestEnemyDistSq < playerDistanceSq * 0.7
+        ? closestEnemy : (player.alive ? player : closestEnemy);
+      desiredAngle = predictIntercept(huntTarget);
+    } else if (!rareTarget && brain.style === 'encircler') {
+      const nearby = allSnakes.filter(s => s !== bot && s.alive).sort((a, b) => toroidDistSq(bot.x, bot.y, a.x, a.y) - toroidDistSq(bot.x, bot.y, b.x, b.y))[0];
+      if (nearby) {
+        brain.orbitAngle += bot.name < nearby.name ? 0.075 : -0.075;
+        brain.orbitRadius = Math.max(62, brain.orbitRadius - 0.08);
+        const orbitX = wrap(nearby.x + Math.cos(brain.orbitAngle) * brain.orbitRadius, width);
+        const orbitY = wrap(nearby.y + Math.sin(brain.orbitAngle) * brain.orbitRadius, height);
+        desiredAngle = Math.atan2(toroidDelta(bot.y, orbitY, height), toroidDelta(bot.x, orbitX, width));
+      }
+    } else if (!rareTarget && brain.style === 'opportunist' && closestEnemy && closestEnemyDistSq < 210 * 210) {
+      desiredAngle = predictIntercept(closestEnemy, 45, 28);
+    } else if (!rareTarget && brain.style === 'scavenger' && !nearestDrop) {
+      const nearbySnakes = allSnakes.filter(s => s !== bot && s.alive && toroidDistSq(bot.x, bot.y, s.x, s.y) < 210 * 210);
+      if (nearbySnakes.length >= 2) {
+        const fightX = wrap((nearbySnakes[0].x + nearbySnakes[1].x) / 2, width);
+        const fightY = wrap((nearbySnakes[0].y + nearbySnakes[1].y) / 2, height);
+        desiredAngle = Math.atan2(toroidDelta(bot.y, fightY, height), toroidDelta(bot.x, fightX, width));
+      }
+    }
+
+    // Small errors and reaction lag keep the bots beatable.
+    if (Math.random() < 0.025) desiredAngle += (Math.random() < 0.5 ? -1 : 1) * (0.25 + Math.random() * 0.5);
+    brain.cachedDesiredAngle = desiredAngle;
+    brain.nextDecisionAt = now + brain.reactionMs;
   }
 
-  // 3. Obstacle avoidance (with anti-spin check)
+  const desiredAngle = brain.cachedDesiredAngle;
+
+  // Whisker sensors check wrapped distances to bodies ahead on every frame.
   const lookDist = bot.personality.lookAheadDist;
   const sensorAngles = [0, 0.45, -0.45, 0.9, -0.9, 1.4, -1.4];
   let bestDanger = 0;
@@ -1428,7 +1476,7 @@ function updateBotAI(bot) {
   if (bestDanger > 0) {
     bot.targetAngle = bot.angle + avoidTurn;
   } else {
-    bot.targetAngle = desiredAngle + (Math.random() - 0.5) * 0.15;
+    bot.targetAngle = desiredAngle;
   }
 
   // Anti-spin watchdog: if turning in the same direction for > 85 frames, unstick
@@ -2429,7 +2477,8 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
 
   ctx.restore();
 
-  drawNameTag(snake.name, snake.x, snake.y, pal.head);
+  const tagName = snake.isPlayer ? snake.name : `${snake.personality.icon} ${snake.name}`;
+  drawNameTag(tagName, snake.x, snake.y, pal.head);
 
   ctx.restore();
 }
