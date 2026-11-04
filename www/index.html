@@ -437,6 +437,12 @@
   }
   .menu-records span { color: #a7f3d0; }
   .menu-hint { color: #9ca3af; }
+  #kill-message {
+    position: absolute; z-index: 10; top: 76px; left: 50%; transform: translateX(-50%);
+    padding: 7px 12px; border-radius: 999px; background: rgba(2,6,23,.82);
+    color: #fef3c7; font-size: 12px; font-weight: 700; opacity: 0; pointer-events: none;
+    transition: opacity .16s ease;
+  }
   .privacy-link { color: #a7f3d0; }
   #pause-overlay, #overlay { background: rgba(17,24,39,.96); backdrop-filter: none; }
   #pause-overlay h2, #overlay h2 { color: #f9fafb; text-shadow: none; }
@@ -475,6 +481,7 @@
     <span>Rank:</span>
     <span id="stat-rank" class="hud-val">#1</span>
   </div>
+  <div class="hud-stat"><span>Kills:</span><span id="stat-kills" class="hud-val">0</span></div>
   <button id="pause-btn" type="button" aria-label="Pause game" title="Pause game">Ⅱ</button>
   <button id="home-btn" type="button" aria-label="Return to home" title="Home">⌂</button>
   <button id="mute-btn" type="button" aria-label="Toggle sound" onclick="toggleMute()">🔊</button>
@@ -486,6 +493,7 @@
   <div class="lb-list" id="lb-list"></div>
 </div>
 <div id="rare-indicator" aria-hidden="true"><span>↑</span><small>Rare orb</small></div>
+<div id="kill-message" aria-live="polite"></div>
 <div id="touch-joystick" aria-hidden="true"><div class="joystick-ring"><div id="joystick-thumb"></div></div></div>
 
 <!-- Menu Start Screen -->
@@ -569,7 +577,7 @@ const SEGMENT_SPACING = 6;
 const INITIAL_SEGMENTS = 22;
 const HEAD_RADIUS = 9;
 const FOOD_COUNT = 42;
-const BOT_COUNT = 4;
+const BOT_COUNT = 6;
 const RESPAWN_DELAY_FRAMES = 180;
 const MAX_PARTICLES = 18;
 const CYCLE_DURATION_MS = 180000;
@@ -689,6 +697,12 @@ const BOT_CONFIGS = [
     }
   }
 ];
+const BOT_PERSONALITIES = [
+  { name: 'Hunter', icon: '⚔', style: 'hunter' },
+  { name: 'Encircler', icon: '◉', style: 'encircler' },
+  { name: 'Opportunist', icon: '⚡', style: 'opportunist' },
+  { name: 'Scavenger', icon: '✦', style: 'scavenger' }
+];
 
 // ============================================================
 // §2  STATE & AUDIO
@@ -749,6 +763,7 @@ const player = {
   growQueue: 0,
   glowTrailTimer: 0,
   alive: true,
+  protectedUntil: 0,
 };
 
 const keys = { left: false, right: false };
@@ -781,6 +796,11 @@ let skinsScreenEl = null;
 let skinListEl = null;
 let skinUnlockToastEl = null;
 let skinUnlockToastTimer = 0;
+let statKillsEl = null;
+let killMessageEl = null;
+let killMessageTimer = 0;
+let playerKillCount = 0;
+const floatingTexts = [];
 let joystickEl = null;
 let joystickThumbEl = null;
 
@@ -1109,6 +1129,7 @@ function spawnFoodOrb(customX, customY, customColor) {
   return {
     x,
     y,
+    value: scheme.value || 1,
     baseRadius: 4.5 + Math.random() * 2,
     color: scheme.core,
     glow: scheme.glow,
@@ -1116,6 +1137,8 @@ function spawnFoodOrb(customX, customY, customColor) {
     pulsePhase: Math.random() * Math.PI * 2,
     vx: (Math.random() - 0.5) * 0.25,
     vy: (Math.random() - 0.5) * 0.25,
+    burstAt: 0,
+    burstDelay: 0,
   };
 }
 
@@ -1127,7 +1150,9 @@ function initFood() {
 }
 
 function updateFood() {
+  const now = performance.now();
   for (const orb of foodOrbs) {
+    if (now < orb.burstAt + orb.burstDelay) continue;
     orb.x = wrap(orb.x + orb.vx, width);
     orb.y = wrap(orb.y + orb.vy, height);
   }
@@ -1277,6 +1302,7 @@ function createBot(config, index) {
     growQueue: 0,
     glowTrailTimer: 0,
     alive: true,
+    protectedUntil: performance.now() + 2000,
     respawnTimer: 0,
     sameTurnCount: 0, // Anti-spin watchdog
     personality: {
@@ -1310,6 +1336,7 @@ function respawnBot(bot) {
   bot.growQueue = 0;
   bot.glowTrailTimer = 0;
   bot.alive = true;
+  bot.protectedUntil = performance.now() + 2000;
   bot.respawnTimer = 0;
   bot.sameTurnCount = 0;
 
@@ -1492,23 +1519,45 @@ function advanceSnake(snake) {
 }
 
 function dissolveSnakeIntoFood(snake) {
-  for (let i = 0; i < snake.segments.length; i += 6) {
+  const orbValue = snake.length > 50 ? 4 : 2;
+  let totalReward = 0;
+  for (let i = 0; i < snake.segments.length; i += 2) {
     const seg = snake.segments[i];
     const foodScheme = {
       core: snake.palette.head,
-      glow: snake.palette.glow
+      glow: snake.palette.glow,
+      value: orbValue
     };
-    foodOrbs.push(spawnFoodOrb(seg.x, seg.y, foodScheme));
-    spawnFoodBurst(seg.x, seg.y, snake.palette.head, 1);
+    const orb = spawnFoodOrb(seg.x, seg.y, foodScheme);
+    orb.burstAt = performance.now();
+    orb.burstDelay = Math.min(700, (i / 2) * 16);
+    orb.vx += (Math.random() - 0.5) * 1.2;
+    orb.vy += (Math.random() - 0.5) * 1.2;
+    foodOrbs.push(orb);
+    totalReward += orbValue;
+    if (i % 8 === 0) spawnFoodBurst(seg.x, seg.y, snake.palette.head, 1);
   }
   spawnFoodBurst(snake.x, snake.y, snake.palette.head, 6);
+  return totalReward;
 }
 
-function killBot(bot) {
+function showKillMessage(bot, reward) {
+  playerKillCount++;
+  if (statKillsEl) statKillsEl.textContent = playerKillCount;
+  if (killMessageEl) {
+    killMessageEl.textContent = `You trapped ${bot.name} (+${reward})`;
+    killMessageEl.style.opacity = '1';
+    clearTimeout(killMessageTimer);
+    killMessageTimer = setTimeout(() => { if (killMessageEl) killMessageEl.style.opacity = '0'; }, 2200);
+  }
+}
+
+function killBot(bot, killer = null) {
   if (!bot.alive) return;
   bot.alive = false;
   bot.respawnTimer = RESPAWN_DELAY_FRAMES;
-  dissolveSnakeIntoFood(bot);
+  const reward = dissolveSnakeIntoFood(bot);
+  if (killer === player) showKillMessage(bot, reward);
   sfxBotDeath();
 }
 
@@ -1537,24 +1586,47 @@ function handlePlayerDeath() {
 
 function checkAllCollisions() {
   const allSnakes = [player, ...bots];
+  const now = performance.now();
+  const headHitRadius = HEAD_RADIUS * 1.4;
+
+  // Head-to-head collisions resolve by length. Spawn protection applies to both snakes.
+  for (let a = 0; a < allSnakes.length; a++) {
+    const first = allSnakes[a];
+    if (!first.alive || now < first.protectedUntil) continue;
+    for (let b = a + 1; b < allSnakes.length; b++) {
+      const second = allSnakes[b];
+      if (!second.alive || now < second.protectedUntil) continue;
+      if (toroidDistSq(first.x, first.y, second.x, second.y) >= headHitRadius * headHitRadius) continue;
+      const sizeDiff = Math.abs(first.length - second.length);
+      if (sizeDiff <= 1) {
+        if (first.isPlayer) handlePlayerDeath(); else killBot(first, null);
+        if (second.isPlayer) handlePlayerDeath(); else killBot(second, null);
+      } else {
+        const loser = first.length < second.length ? first : second;
+        const winner = loser === first ? second : first;
+        if (loser.isPlayer) handlePlayerDeath(); else killBot(loser, winner);
+      }
+    }
+  }
 
   for (const snake of allSnakes) {
-    if (!snake.alive) continue;
+    if (!snake.alive || now < snake.protectedUntil) continue;
 
     for (const other of allSnakes) {
-      if (!other.alive || other === snake) continue;
+      if (!other.alive || other === snake || now < other.protectedUntil) continue;
 
-      for (let i = 0; i < other.segments.length; i++) {
+      // The first segment overlaps the head; head-to-head is resolved above.
+      for (let i = 1; i < other.segments.length; i++) {
         const seg = other.segments[i];
         const progress = i / other.segments.length;
         const segRadius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));
-        const hitRadius = (HEAD_RADIUS * 0.75) + (segRadius * 0.8);
+        const hitRadius = (HEAD_RADIUS + segRadius) * 0.7;
 
         if (toroidDistSq(snake.x, snake.y, seg.x, seg.y) < hitRadius * hitRadius) {
           if (snake.isPlayer) {
             handlePlayerDeath();
           } else {
-            killBot(snake);
+            killBot(snake, other.isPlayer ? player : other);
           }
           break;
         }
@@ -1573,15 +1645,18 @@ function checkFoodConsumptionAll() {
 
     for (let i = foodOrbs.length - 1; i >= 0; i--) {
       const orb = foodOrbs[i];
+      if (performance.now() < orb.burstAt + orb.burstDelay) continue;
       if (toroidDistSq(snake.x, snake.y, orb.x, orb.y) < eatDistSq) {
         spawnFoodBurst(orb.x, orb.y, orb.color, 2);
         foodOrbs.splice(i, 1);
 
         snake.growQueue++;
-        snake.length++;
+        snake.length += orb.value || 1;
+        snake.growQueue += (orb.value || 1) - 1;
 
         if (snake.isPlayer) {
           sfxEat();
+          if (orb.value > 1) floatingTexts.push({ x: snake.x, y: snake.y, text: `+${orb.value}`, time: performance.now() });
           if (statLengthEl) statLengthEl.textContent = snake.length;
         }
       }
@@ -1928,6 +2003,10 @@ function initSnake() {
   player.growQueue = 0;
   player.segments = [];
   player.alive = true;
+  player.protectedUntil = performance.now() + 2000;
+  playerKillCount = 0;
+  floatingTexts.length = 0;
+  if (statKillsEl) statKillsEl.textContent = '0';
   
   for (let i = 0; i < player.length; i++) {
     player.segments.push({
@@ -2008,8 +2087,12 @@ function renderBackground() {
 }
 
 function renderFood() {
+  const now = performance.now();
   for (const orb of foodOrbs) {
-    const radius = Math.max(2, orb.baseRadius * 0.72);
+    const birthProgress = orb.burstAt ? Math.min(1, Math.max(0, (now - orb.burstAt - orb.burstDelay) / 220)) : 1;
+    if (birthProgress <= 0) continue;
+    const radius = Math.max(1, orb.baseRadius * 0.72 * (orb.burstAt ? birthProgress : 1));
+    ctx.globalAlpha = orb.burstAt ? birthProgress : 1;
     ctx.shadowColor = orb.glow;
     ctx.shadowBlur = 2 + currentCycle.nightFactor * 12;
     ctx.fillStyle = orb.color;
@@ -2017,7 +2100,27 @@ function renderFood() {
     ctx.arc(orb.x, orb.y, radius, 0, Math.PI * 2);
     ctx.fill();
   }
+  ctx.globalAlpha = 1;
   ctx.shadowBlur = 0;
+}
+
+function renderFloatingTexts() {
+  const now = performance.now();
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    const item = floatingTexts[i];
+    const age = now - item.time;
+    if (age > 900) { floatingTexts.splice(i, 1); continue; }
+    const fade = 1 - age / 900;
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.fillStyle = '#fff1b8';
+    ctx.font = 'bold 15px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(15,23,42,.8)';
+    ctx.shadowBlur = 4;
+    ctx.fillText(item.text, item.x, item.y - age * 0.035);
+    ctx.restore();
+  }
 }
 
 function renderRareOrb() {
@@ -2234,6 +2337,8 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   }
 
   // Body segments
+  const protectedNow = performance.now() < snake.protectedUntil;
+  const protectionAlpha = 0.42 + Math.sin(performance.now() * 0.035) * 0.34;
   for (let i = segs.length - 1; i >= 0; i--) {
     const seg = segs[i];
     const progress = i / segs.length;
@@ -2252,6 +2357,16 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     ctx.shadowBlur = i % 6 === 0 ? currentCycle.nightFactor * 5 : 0;
     ctx.fill();
 
+    if (protectedNow && i % 2 === 0) {
+      ctx.globalAlpha = protectionAlpha;
+      ctx.strokeStyle = '#e0f2fe';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(drawX, drawY, radius + 1.2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
     drawSkinPattern(drawX, drawY, radius, seg.angle, pal, i);
   }
 
@@ -2267,6 +2382,15 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   ctx.ellipse(2, 0, HEAD_RADIUS + 1, HEAD_RADIUS - 1.5, 0, 0, Math.PI * 2);
   ctx.fillStyle = pal.head;
   ctx.fill();
+  if (protectedNow) {
+    ctx.globalAlpha = protectionAlpha;
+    ctx.strokeStyle = '#e0f2fe';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(2, 0, HEAD_RADIUS + 4, HEAD_RADIUS + 1.5, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
 
   ctx.shadowBlur = 0;
 
@@ -2346,6 +2470,7 @@ function render() {
 
   renderBackground();
   renderFood();
+  renderFloatingTexts();
   renderRareOrb();
   renderParticles();
 
@@ -2390,6 +2515,8 @@ window.addEventListener('DOMContentLoaded', () => {
   statTimeEl = document.getElementById('stat-time');
   statLengthEl = document.getElementById('stat-length');
   statRankEl = document.getElementById('stat-rank');
+  statKillsEl = document.getElementById('stat-kills');
+  killMessageEl = document.getElementById('kill-message');
   lbListEl = document.getElementById('lb-list');
   overlayEl = document.getElementById('overlay');
   finalTimeEl = document.getElementById('final-time');
