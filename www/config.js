@@ -8,4 +8,6 @@ window.GAME_CONFIG = Object.freeze({
   CAMERA_ZOOM_OUT_MAX: 0.25,
   FOOD_DENSITY: 0.3,
   FOOD_VALUE: 0.3,
+  GRAPHICS_QUALITY: 'auto',
+  FPS_COUNTER_DEFAULT: false,
 });

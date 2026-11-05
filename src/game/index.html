@@ -387,6 +387,16 @@
     background: #111827; text-align: center;
   }
   #skins-screen h2 { color: #f9fafb; font-size: 30px; margin: 0; }
+  #settings-screen {
+    position: absolute; inset: 0; z-index: 71; display: none; flex-direction: column;
+    align-items: center; justify-content: center; gap: 16px; padding: 24px;
+    background: #111827; text-align: center;
+  }
+  #settings-screen h2 { color: #f9fafb; font-size: 30px; }
+  .settings-row { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; color: #cbd5e1; }
+  .settings-option { min-height: 42px; padding: 8px 13px; border-radius: 10px; border: 1px solid #475569; background: #1f2937; color: #e2e8f0; font: inherit; cursor: pointer; }
+  .settings-option.active { border-color: #38bdf8; color: #bae6fd; background: #0c4a6e; }
+  #fps-counter { position: absolute; top: 54px; left: 50%; transform: translateX(-50%); z-index: 12; display: none; padding: 4px 7px; border-radius: 6px; background: rgba(2,6,23,.68); color: #e0f2fe; font: 11px ui-monospace, monospace; pointer-events: none; }
   .skins-subtitle { color: #9ca3af; font-size: 14px; }
   #skin-list {
     width: min(100%, 620px); max-height: min(62vh, 540px); overflow-y: auto;
@@ -516,6 +526,7 @@
 
   <button class="play-btn" onclick="startGame()">Play</button>
   <button class="menu-secondary" onclick="openSkins()">Skins</button>
+  <button class="menu-secondary" onclick="openSettings()">Settings</button>
 
   <div class="menu-hint">
     Touch and drag to steer &bull; Tap pause anytime<br>
@@ -530,7 +541,19 @@
   <div id="skin-list"></div>
   <button class="menu-secondary" type="button" onclick="closeSkins()">Back to home</button>
 </div>
+<div id="settings-screen" aria-label="Settings">
+  <h2>Settings</h2>
+  <div class="settings-row"><span>Graphics</span>
+    <button class="settings-option" data-quality="auto" onclick="setGraphicsQuality('auto')">Auto</button>
+    <button class="settings-option" data-quality="high" onclick="setGraphicsQuality('high')">High</button>
+    <button class="settings-option" data-quality="medium" onclick="setGraphicsQuality('medium')">Medium</button>
+    <button class="settings-option" data-quality="low" onclick="setGraphicsQuality('low')">Low</button>
+  </div>
+  <div class="settings-row"><span>Show FPS</span><button id="fps-toggle" class="settings-option" onclick="toggleFpsCounter()">Off</button></div>
+  <button class="menu-secondary" type="button" onclick="closeSettings()">Back to home</button>
+</div>
 <div id="skin-unlock-toast" role="status" aria-live="polite"></div>
+<div id="fps-counter" aria-live="off">60 FPS</div>
 
 <!-- Pause Overlay -->
 <div id="pause-overlay">
@@ -594,9 +617,19 @@ const FOOD_GRID_ROWS = Math.ceil(FOOD_COUNT / FOOD_GRID_COLUMNS);
 const foodGridTaken = new Uint8Array(FOOD_COUNT);
 let foodGridCursor = 0;
 let nextFoodSpawnAt = 0;
+let normalFoodCount = 0;
 const BOT_COUNT = 6;
 const RESPAWN_DELAY_FRAMES = 180;
-const MAX_PARTICLES = 18;
+const PARTICLE_LIMITS = { low: 150, medium: 260, high: 400 };
+let maxParticles = PARTICLE_LIMITS.medium;
+let graphicsQuality = 'medium';
+let qualityPreference = 'auto';
+let fpsCounterEnabled = false;
+let lowFpsSince = 0;
+let averageFrameMs = 16.7;
+let lastFpsDisplayAt = 0;
+let lastHudRefreshAt = 0;
+const QUALITY_ORDER = ['high', 'medium', 'low'];
 const CYCLE_DURATION_MS = 180000;
 const CYCLE_PHASES = [
   { name: 'Dawn', icon: '☼', top: [18, 48, 56], mid: [29, 93, 99], bot: [12, 36, 48], ray: [111, 206, 195], rays: 0.04, glow: 0.18, plankton: 0.02 },
@@ -610,6 +643,7 @@ const RARE_ORB_LIFETIME_MS = 25000;
 const RARE_ORB_TRAIL_MS = 6000;
 const TOUCH_DEAD_ZONE = 10;
 const TOUCH_MAX_TURN_RATE = 2.4;
+const BOT_SENSOR_ANGLES = [0, 0.45, -0.45, 0.9, -0.9, 1.4, -1.4];
 
 const FOOD_COLORS = [
   { core: '#22d3ee', glow: 'rgba(34, 211, 238, 0.5)' },
@@ -647,6 +681,124 @@ function safeStorageGet(key) {
 
 function safeStorageSet(key, value) {
   try { localStorage.setItem(key, value); } catch (_) {}
+}
+
+function initRenderCaches() {
+  backgroundTileCanvas = document.createElement('canvas');
+  backgroundTileCanvas.width = SPATIAL_CELL_SIZE;
+  backgroundTileCanvas.height = SPATIAL_CELL_SIZE;
+  const tileCtx = backgroundTileCanvas.getContext('2d');
+  tileCtx.strokeStyle = 'rgba(160, 220, 235, 0.06)';
+  tileCtx.lineWidth = 1;
+  tileCtx.strokeRect(0.5, 0.5, SPATIAL_CELL_SIZE - 1, SPATIAL_CELL_SIZE - 1);
+  backgroundGridPattern = ctx.createPattern(backgroundTileCanvas, 'repeat');
+  backgroundLayerCanvas = document.createElement('canvas');
+  backgroundLayerCanvas.width = 320;
+  backgroundLayerCanvas.height = 180;
+  backgroundLayerContext = backgroundLayerCanvas.getContext('2d');
+  backgroundCacheFrame = -1;
+}
+
+function getGlowSprite(color) {
+  let sprite = glowSpriteCache.get(color);
+  if (sprite) return sprite;
+  sprite = document.createElement('canvas');
+  sprite.width = 64;
+  sprite.height = 64;
+  const glowCtx = sprite.getContext('2d');
+  const gradient = glowCtx.createRadialGradient(32, 32, 1, 32, 32, 32);
+  gradient.addColorStop(0, color);
+  gradient.addColorStop(0.32, color);
+  gradient.addColorStop(1, 'rgba(0,0,0,0)');
+  glowCtx.fillStyle = gradient;
+  glowCtx.fillRect(0, 0, 64, 64);
+  glowSpriteCache.set(color, sprite);
+  return sprite;
+}
+
+function drawCachedGlow(color, x, y, radius, opacity = 1) {
+  const size = radius * 4;
+  const previousAlpha = ctx.globalAlpha;
+  ctx.globalAlpha = previousAlpha * opacity;
+  ctx.drawImage(getGlowSprite(color), x - size / 2, y - size / 2, size, size);
+  ctx.globalAlpha = previousAlpha;
+}
+
+function updateSettingsUI() {
+  if (!settingsScreenEl) return;
+  for (const button of settingsScreenEl.querySelectorAll('[data-quality]')) {
+    button.classList.toggle('active', button.dataset.quality === qualityPreference);
+  }
+  if (fpsToggleEl) {
+    fpsToggleEl.textContent = fpsCounterEnabled ? 'On' : 'Off';
+    fpsToggleEl.classList.toggle('active', fpsCounterEnabled);
+  }
+}
+
+function initializeGraphicsSettings() {
+  const savedQuality = safeStorageGet('serpentRun_graphicsQuality') || GAME_CONFIG.GRAPHICS_QUALITY || 'auto';
+  qualityPreference = ['auto', 'high', 'medium', 'low'].includes(savedQuality) ? savedQuality : 'auto';
+  const savedFps = safeStorageGet('serpentRun_fpsCounter');
+  fpsCounterEnabled = savedFps === null ? Boolean(GAME_CONFIG.FPS_COUNTER_DEFAULT) : savedFps === '1';
+  applyGraphicsQuality(qualityPreference === 'auto' ? (isMobileDevice ? 'medium' : 'high') : qualityPreference);
+  updateSettingsUI();
+}
+
+function applyGraphicsQuality(level) {
+  graphicsQuality = level;
+  maxParticles = PARTICLE_LIMITS[level] || PARTICLE_LIMITS.medium;
+  if (particles.length > maxParticles) particles.length = maxParticles;
+  backgroundCacheFrame = -1;
+  if (fpsCounterEl) fpsCounterEl.style.display = fpsCounterEnabled ? 'block' : 'none';
+  updateSettingsUI();
+}
+
+function setGraphicsQuality(level) {
+  qualityPreference = level;
+  if (level === 'auto') {
+    applyGraphicsQuality(isMobileDevice ? 'medium' : 'high');
+  } else {
+    safeStorageSet('serpentRun_graphicsQuality', level);
+    applyGraphicsQuality(level);
+  }
+  if (level === 'auto') safeStorageSet('serpentRun_graphicsQuality', 'auto');
+}
+
+function toggleFpsCounter() {
+  fpsCounterEnabled = !fpsCounterEnabled;
+  safeStorageSet('serpentRun_fpsCounter', fpsCounterEnabled ? '1' : '0');
+  if (fpsCounterEl) fpsCounterEl.style.display = fpsCounterEnabled ? 'block' : 'none';
+  updateSettingsUI();
+}
+
+function openSettings() {
+  if (menuScreenEl) menuScreenEl.style.display = 'none';
+  if (skinsScreenEl) skinsScreenEl.style.display = 'none';
+  if (settingsScreenEl) settingsScreenEl.style.display = 'flex';
+  updateSettingsUI();
+}
+
+function closeSettings() {
+  if (settingsScreenEl) settingsScreenEl.style.display = 'none';
+  if (menuScreenEl) menuScreenEl.style.display = 'flex';
+}
+
+function updateFrameMetrics(frameNow, frameMs) {
+  averageFrameMs += (frameMs - averageFrameMs) * 0.08;
+  if (averageFrameMs > 25) {
+    if (!lowFpsSince) lowFpsSince = frameNow;
+    if (qualityPreference === 'auto' && graphicsQuality !== 'low' && frameNow - lowFpsSince >= 3000) {
+      const currentIndex = QUALITY_ORDER.indexOf(graphicsQuality);
+      applyGraphicsQuality(QUALITY_ORDER[Math.min(QUALITY_ORDER.length - 1, currentIndex + 1)]);
+      lowFpsSince = frameNow;
+    }
+  } else {
+    lowFpsSince = 0;
+  }
+  if (fpsCounterEnabled && fpsCounterEl && frameNow - lastFpsDisplayAt >= 500) {
+    fpsCounterEl.textContent = `${Math.round(1000 / Math.max(1, averageFrameMs))} FPS · ${graphicsQuality}`;
+    lastFpsDisplayAt = frameNow;
+  }
 }
 
 function loadUnlockedSkins() {
@@ -734,7 +886,10 @@ let cameraZoom = 1;
 let deviceScale = 1;
 let animFrame = 0;
 let loopActive = false;
-let lastFrameTime = performance.now();
+const FIXED_STEP_MS = 1000 / 60;
+let fixedStepAccumulator = 0;
+let lastLoopFrameTime = performance.now();
+let isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
 const cycleEpoch = performance.now();
 let currentCycle = { ...CYCLE_PHASES[0], progress: 0, nightFactor: 0 };
 let rareOrb = null;
@@ -761,6 +916,16 @@ const foodOrbs = [];
 const particles = [];
 const plankton = [];
 const bots = [];
+const foodOrbPool = [];
+const particlePool = [];
+const floatingTextPool = [];
+const glowSpriteCache = new Map();
+let backgroundTileCanvas = null;
+let backgroundGridPattern = null;
+let backgroundLayerCanvas = null;
+let backgroundLayerContext = null;
+let backgroundCacheFrame = -1;
+let backgroundCacheQuality = '';
 
 const player = {
   name: 'You',
@@ -786,6 +951,114 @@ const player = {
   alive: true,
   protectedUntil: 0,
 };
+const snakeRoster = [player];
+const leaderboardOrder = [player];
+const SPATIAL_CELL_SIZE = 200;
+const SPATIAL_COLUMNS = WORLD_WIDTH / SPATIAL_CELL_SIZE;
+const SPATIAL_ROWS = WORLD_HEIGHT / SPATIAL_CELL_SIZE;
+const spatialHeads = new Int32Array(SPATIAL_COLUMNS * SPATIAL_ROWS);
+let spatialCapacity = 4096;
+let spatialNext = new Int32Array(spatialCapacity);
+let spatialX = new Float32Array(spatialCapacity);
+let spatialY = new Float32Array(spatialCapacity);
+let spatialRadius = new Float32Array(spatialCapacity);
+let spatialIndex = new Int32Array(spatialCapacity);
+let spatialKind = new Uint8Array(spatialCapacity);
+let spatialOwner = new Array(spatialCapacity);
+let spatialSegment = new Array(spatialCapacity);
+let spatialItemCount = 0;
+
+function growSpatialCapacity(minimum) {
+  if (minimum <= spatialCapacity) return;
+  let capacity = spatialCapacity;
+  while (capacity < minimum) capacity *= 2;
+  const next = new Int32Array(capacity); next.set(spatialNext); spatialNext = next;
+  const x = new Float32Array(capacity); x.set(spatialX); spatialX = x;
+  const y = new Float32Array(capacity); y.set(spatialY); spatialY = y;
+  const radius = new Float32Array(capacity); radius.set(spatialRadius); spatialRadius = radius;
+  const index = new Int32Array(capacity); index.set(spatialIndex); spatialIndex = index;
+  const kind = new Uint8Array(capacity); kind.set(spatialKind); spatialKind = kind;
+  spatialOwner.length = capacity;
+  spatialSegment.length = capacity;
+  spatialCapacity = capacity;
+}
+
+function insertSpatialItem(x, y, owner, segment, segmentIndex, kind, radius) {
+  const slot = spatialItemCount++;
+  if (slot >= spatialCapacity) growSpatialCapacity(slot + 1);
+  const cellX = Math.floor(wrap(x, WORLD_WIDTH) / SPATIAL_CELL_SIZE);
+  const cellY = Math.floor(wrap(y, WORLD_HEIGHT) / SPATIAL_CELL_SIZE);
+  const cell = cellY * SPATIAL_COLUMNS + cellX;
+  spatialX[slot] = x;
+  spatialY[slot] = y;
+  spatialRadius[slot] = radius;
+  spatialIndex[slot] = segmentIndex;
+  spatialKind[slot] = kind;
+  spatialOwner[slot] = owner;
+  spatialSegment[slot] = segment;
+  spatialNext[slot] = spatialHeads[cell];
+  spatialHeads[cell] = slot;
+}
+
+function buildSpatialHash() {
+  spatialHeads.fill(-1);
+  spatialItemCount = 0;
+  for (const snake of snakeRoster) {
+    if (!snake.alive) continue;
+    insertSpatialItem(snake.x, snake.y, snake, null, -1, 1, HEAD_RADIUS);
+    const length = snake.segments.length;
+    for (let i = 1; i < length; i++) {
+      const segment = snake.segments[i];
+      const progress = i / length;
+      const bodyRadius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));
+      insertSpatialItem(segment.x, segment.y, snake, segment, i, 0, (HEAD_RADIUS + bodyRadius) * 0.7);
+    }
+  }
+  for (const orb of foodOrbs) {
+    insertSpatialItem(orb.x, orb.y, null, orb, -1, 2, HEAD_RADIUS + 8);
+  }
+}
+
+function spatialDangerAt(x, y, radius, requester) {
+  const cellX = Math.floor(wrap(x, WORLD_WIDTH) / SPATIAL_CELL_SIZE);
+  const cellY = Math.floor(wrap(y, WORLD_HEIGHT) / SPATIAL_CELL_SIZE);
+  const radiusSq = radius * radius;
+  let danger = 0;
+  for (let oy = -1; oy <= 1; oy++) {
+    const row = wrap(cellY + oy, SPATIAL_ROWS);
+    for (let ox = -1; ox <= 1; ox++) {
+      const column = wrap(cellX + ox, SPATIAL_COLUMNS);
+      for (let slot = spatialHeads[row * SPATIAL_COLUMNS + column]; slot !== -1; slot = spatialNext[slot]) {
+        if (spatialKind[slot] === 2) continue;
+        const owner = spatialOwner[slot];
+        if (!owner.alive || (owner === requester && (spatialKind[slot] === 1 || spatialIndex[slot] < 6))) continue;
+        const objectX = spatialKind[slot] ? owner.x : spatialSegment[slot].x;
+        const objectY = spatialKind[slot] ? owner.y : spatialSegment[slot].y;
+        const distanceSq = toroidDistSq(x, y, objectX, objectY);
+        if (distanceSq < radiusSq) danger += 1 / (1 + Math.sqrt(distanceSq));
+      }
+    }
+  }
+  return danger;
+}
+
+function findSpatialBodyCollision(snake, now) {
+  const cellX = Math.floor(wrap(snake.x, WORLD_WIDTH) / SPATIAL_CELL_SIZE);
+  const cellY = Math.floor(wrap(snake.y, WORLD_HEIGHT) / SPATIAL_CELL_SIZE);
+  for (let oy = -1; oy <= 1; oy++) {
+    const row = wrap(cellY + oy, SPATIAL_ROWS);
+    for (let ox = -1; ox <= 1; ox++) {
+      const column = wrap(cellX + ox, SPATIAL_COLUMNS);
+      for (let slot = spatialHeads[row * SPATIAL_COLUMNS + column]; slot !== -1; slot = spatialNext[slot]) {
+        const owner = spatialOwner[slot];
+        if (spatialKind[slot] !== 0 || owner === snake || !owner.alive || now < owner.protectedUntil) continue;
+        const segment = spatialSegment[slot];
+        if (toroidDistSq(snake.x, snake.y, segment.x, segment.y) < spatialRadius[slot] ** 2) return owner;
+      }
+    }
+  }
+  return null;
+}
 
 const keys = { left: false, right: false };
 const mouse = { x: width / 2, y: height / 2, active: false };
@@ -824,6 +1097,9 @@ let playerKillCount = 0;
 const floatingTexts = [];
 let joystickEl = null;
 let joystickThumbEl = null;
+let settingsScreenEl = null;
+let fpsCounterEl = null;
+let fpsToggleEl = null;
 
 // ============================================================
 // §3  AUDIO SYNTHESIS (NO EXTERNAL FILES)
@@ -952,23 +1228,14 @@ function updateCamera() {
 function cameraViewBounds(margin = 0) {
   const halfWidth = width / (2 * cameraZoom) + margin;
   const halfHeight = height / (2 * cameraZoom) + margin;
-  return { left: cameraX - halfWidth, right: cameraX + halfWidth, top: cameraY - halfHeight, bottom: cameraY + halfHeight };
+  cameraBounds.left = cameraX - halfWidth;
+  cameraBounds.right = cameraX + halfWidth;
+  cameraBounds.top = cameraY - halfHeight;
+  cameraBounds.bottom = cameraY + halfHeight;
+  return cameraBounds;
 }
 
-function forEachVisibleWrappedPoint(x, y, margin, draw) {
-  const bounds = cameraViewBounds(margin);
-  const baseX = cameraX + toroidDelta(cameraX, x, WORLD_WIDTH);
-  const baseY = cameraY + toroidDelta(cameraY, y, WORLD_HEIGHT);
-  for (const shiftX of [-WORLD_WIDTH, 0, WORLD_WIDTH]) {
-    const drawX = baseX + shiftX;
-    if (drawX + margin < bounds.left || drawX - margin > bounds.right) continue;
-    for (const shiftY of [-WORLD_HEIGHT, 0, WORLD_HEIGHT]) {
-      const drawY = baseY + shiftY;
-      if (drawY + margin < bounds.top || drawY - margin > bounds.bottom) continue;
-      draw(drawX, drawY);
-    }
-  }
-}
+const cameraBounds = { left: 0, right: 0, top: 0, bottom: 0 };
 
 function angleDifference(current, target) {
   return Math.atan2(Math.sin(target - current), Math.cos(target - current));
@@ -1000,20 +1267,20 @@ function updateDayNightCycle(now = performance.now()) {
   const to = CYCLE_PHASES[(phaseIndex + 1) % CYCLE_PHASES.length];
   const linear = phasePosition - phaseIndex;
   const blend = linear * linear * (3 - 2 * linear);
-  const lerp = (a, b) => a + (b - a) * blend;
-  const color = (a, b) => mixRgb(a, b, blend);
-
   currentCycle.name = from.name;
   currentCycle.icon = from.icon;
-  currentCycle.top = color(from.top, to.top);
-  currentCycle.mid = color(from.mid, to.mid);
-  currentCycle.bottom = color(from.bot, to.bot);
-  const ray = from.ray.map((component, index) => Math.round(lerp(component, to.ray[index])));
-  currentCycle.rayColor = `rgba(${ray[0]}, ${ray[1]}, ${ray[2]}, ${lerp(from.rays, to.rays).toFixed(3)})`;
-  currentCycle.rayStrength = lerp(from.rays, to.rays);
-  currentCycle.glow = lerp(from.glow, to.glow);
-  currentCycle.plankton = lerp(from.plankton, to.plankton);
-  currentCycle.nightFactor = lerp(from.name === 'Night' ? 1 : 0, to.name === 'Night' ? 1 : 0);
+  currentCycle.top = mixRgb(from.top, to.top, blend);
+  currentCycle.mid = mixRgb(from.mid, to.mid, blend);
+  currentCycle.bottom = mixRgb(from.bot, to.bot, blend);
+  const rayR = Math.round(from.ray[0] + (to.ray[0] - from.ray[0]) * blend);
+  const rayG = Math.round(from.ray[1] + (to.ray[1] - from.ray[1]) * blend);
+  const rayB = Math.round(from.ray[2] + (to.ray[2] - from.ray[2]) * blend);
+  const rayStrength = from.rays + (to.rays - from.rays) * blend;
+  currentCycle.rayColor = `rgba(${rayR}, ${rayG}, ${rayB}, ${rayStrength.toFixed(3)})`;
+  currentCycle.rayStrength = rayStrength;
+  currentCycle.glow = from.glow + (to.glow - from.glow) * blend;
+  currentCycle.plankton = from.plankton + (to.plankton - from.plankton) * blend;
+  currentCycle.nightFactor = (from.name === 'Night' ? 1 : 0) + ((to.name === 'Night' ? 1 : 0) - (from.name === 'Night' ? 1 : 0)) * blend;
   currentCycle.progress = cycleProgress;
 
   if (cycleIconEl && cycleIconEl.textContent !== currentCycle.icon) cycleIconEl.textContent = currentCycle.icon;
@@ -1028,14 +1295,20 @@ function initPlankton() {
       y: Math.random() * WORLD_HEIGHT,
       size: 0.7 + Math.random() * 1.1,
       drift: 0.08 + Math.random() * 0.18,
-      phase: Math.random() * Math.PI * 2
+      phase: Math.random() * Math.PI * 2,
+      updateOffset: Math.floor(Math.random() * 4)
     });
   }
 }
 
 function updatePlankton() {
+  if (graphicsQuality === 'low') return;
+  const halfWidth = width / (2 * cameraZoom) + 100;
+  const halfHeight = height / (2 * cameraZoom) + 100;
   for (const dot of plankton) {
-    dot.y -= dot.drift;
+    const far = Math.abs(toroidDelta(cameraX, dot.x, WORLD_WIDTH)) > halfWidth || Math.abs(toroidDelta(cameraY, dot.y, WORLD_HEIGHT)) > halfHeight;
+    if (far && animFrame % 4 !== dot.updateOffset) continue;
+    dot.y -= dot.drift * (far ? 4 : 1);
     if (dot.y < -4) {
       dot.y = wrap(dot.y, WORLD_HEIGHT);
       dot.x = wrap(dot.x, WORLD_WIDTH);
@@ -1160,7 +1433,7 @@ function checkSkinUnlocks() {
 
 function isFarFromAllSnakes(x, y, minDist = 60) {
   const minDistSq = minDist * minDist;
-  const allSnakes = [player, ...bots];
+  const allSnakes = snakeRoster;
   for (const s of allSnakes) {
     if (!s.alive) continue;
     if (toroidDistSq(s.x, s.y, x, y) < minDistSq) return false;
@@ -1184,26 +1457,33 @@ function spawnFoodOrb(customX, customY, customColor) {
   }
 
   const scheme = customColor || FOOD_COLORS[Math.floor(Math.random() * FOOD_COLORS.length)];
-  return {
-    x,
-    y,
-    value: scheme.value ?? FOOD_VALUE,
-    isDeathDrop: scheme.isDeathDrop === true || (scheme.value ?? 1) > 1,
-    gridCell: -1,
-    baseRadius: 4.5 + Math.random() * 2,
-    color: scheme.core,
-    glow: scheme.glow,
-    pulseSpeed: 0.04 + Math.random() * 0.04,
-    pulsePhase: Math.random() * Math.PI * 2,
-    vx: (Math.random() - 0.5) * 0.25,
-    vy: (Math.random() - 0.5) * 0.25,
-    burstAt: 0,
-    burstDelay: 0,
-  };
+  const orb = foodOrbPool.pop() || {};
+  orb.x = x;
+  orb.y = y;
+  orb.value = scheme.value ?? FOOD_VALUE;
+  orb.isDeathDrop = scheme.isDeathDrop === true || (scheme.value ?? 1) > 1;
+  orb.gridCell = -1;
+  orb.baseRadius = 4.5 + Math.random() * 2;
+  orb.color = scheme.core;
+  orb.glow = scheme.glow;
+  orb.pulseSpeed = 0.04 + Math.random() * 0.04;
+  orb.pulsePhase = Math.random() * Math.PI * 2;
+  orb.vx = (Math.random() - 0.5) * 0.25;
+  orb.vy = (Math.random() - 0.5) * 0.25;
+  orb.burstAt = 0;
+  orb.burstDelay = 0;
+  orb.updateOffset = Math.floor(Math.random() * 4);
+  orb.consumed = false;
+  return orb;
+}
+
+function recycleFoodOrb(orb) {
+  if (foodOrbPool.length < 2048) foodOrbPool.push(orb);
 }
 
 function initFood() {
   foodOrbs.length = 0;
+  normalFoodCount = 0;
   foodGridTaken.fill(0);
   foodGridCursor = 0;
   for (let i = 0; i < FOOD_COUNT; i++) {
@@ -1215,9 +1495,7 @@ function initFood() {
 }
 
 function countNormalFood() {
-  let count = 0;
-  for (const orb of foodOrbs) if (!orb.isDeathDrop) count++;
-  return count;
+  return normalFoodCount;
 }
 
 function countVisibleNormalFood() {
@@ -1248,6 +1526,7 @@ function spawnGridFoodOrb() {
     const orb = spawnFoodOrb(x, y);
     orb.gridCell = cell;
     foodGridTaken[cell] = 1;
+    normalFoodCount++;
     foodGridCursor = (cell + 1) % FOOD_COUNT;
     return orb;
   }
@@ -1256,10 +1535,15 @@ function spawnGridFoodOrb() {
 
 function updateFood() {
   const now = performance.now();
+  const halfWidth = width / (2 * cameraZoom) + 100;
+  const halfHeight = height / (2 * cameraZoom) + 100;
   for (const orb of foodOrbs) {
     if (now < orb.burstAt + orb.burstDelay) continue;
-    orb.x = wrap(orb.x + orb.vx, WORLD_WIDTH);
-    orb.y = wrap(orb.y + orb.vy, WORLD_HEIGHT);
+    const far = Math.abs(toroidDelta(cameraX, orb.x, WORLD_WIDTH)) > halfWidth || Math.abs(toroidDelta(cameraY, orb.y, WORLD_HEIGHT)) > halfHeight;
+    if (far && animFrame % 4 !== orb.updateOffset) continue;
+    const updateStep = far ? 4 : 1;
+    orb.x = wrap(orb.x + orb.vx * updateStep, WORLD_WIDTH);
+    orb.y = wrap(orb.y + orb.vy * updateStep, WORLD_HEIGHT);
   }
   if (countNormalFood() < FOOD_COUNT && now >= nextFoodSpawnAt) {
     if (countVisibleNormalFood() >= MAX_VISIBLE_FOOD) {
@@ -1278,7 +1562,7 @@ function scheduleNextRareOrb(now = performance.now()) {
 
 function isClearRareOrbSpot(x, y) {
   const clearanceSq = 34 * 34;
-  for (const snake of [player, ...bots]) {
+  for (const snake of snakeRoster) {
     if (!snake.alive) continue;
     if (toroidDistSq(snake.x, snake.y, x, y) < clearanceSq) return false;
     for (const segment of snake.segments) {
@@ -1309,32 +1593,44 @@ function maybeSpawnRareOrb(now = performance.now()) {
 }
 
 function spawnFoodBurst(x, y, color, count = 10) {
-  if (particles.length > MAX_PARTICLES) return;
+  if (particles.length >= maxParticles) return;
   for (let i = 0; i < count; i++) {
+    if (particles.length >= maxParticles) break;
     const angle = Math.random() * Math.PI * 2;
     const speed = 1.2 + Math.random() * 3.2;
-    particles.push({
-      x,
-      y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      size: 2 + Math.random() * 2.5,
-      alpha: 1,
-      color,
-      decay: 0.03 + Math.random() * 0.02
-    });
+    const particle = particlePool.pop() || {};
+    particle.x = x;
+    particle.y = y;
+    particle.vx = Math.cos(angle) * speed;
+    particle.vy = Math.sin(angle) * speed;
+    particle.size = 2 + Math.random() * 2.5;
+    particle.alpha = 1;
+    particle.color = color;
+    particle.decay = 0.03 + Math.random() * 0.02;
+    particle.updateOffset = Math.floor(Math.random() * 3);
+    particles.push(particle);
   }
 }
 
 function updateParticles() {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
-    p.x = wrap(p.x + p.vx, WORLD_WIDTH);
-    p.y = wrap(p.y + p.vy, WORLD_HEIGHT);
-    p.vx *= 0.94;
-    p.vy *= 0.94;
-    p.alpha -= p.decay;
-    if (p.alpha <= 0) particles.splice(i, 1);
+    const far = Math.abs(toroidDelta(cameraX, p.x, WORLD_WIDTH)) > width / (2 * cameraZoom) + 120 ||
+      Math.abs(toroidDelta(cameraY, p.y, WORLD_HEIGHT)) > height / (2 * cameraZoom) + 120;
+    if (far && animFrame % 3 !== p.updateOffset) continue;
+    const updateStep = far ? 3 : 1;
+    p.x = wrap(p.x + p.vx * updateStep, WORLD_WIDTH);
+    p.y = wrap(p.y + p.vy * updateStep, WORLD_HEIGHT);
+    p.vx *= Math.pow(0.94, updateStep);
+    p.vy *= Math.pow(0.94, updateStep);
+    p.alpha -= p.decay * updateStep;
+    if (p.alpha <= 0) {
+      const last = particles.length - 1;
+      particles[i] = particles[last];
+      particles.pop();
+      if (particlePool.length < maxParticles) particlePool.push(p);
+      i++;
+    }
   }
 
 }
@@ -1423,7 +1719,7 @@ function createBot(config, index) {
       lookAheadDist: 68 + Math.random() * 24,
       orbitAngle: Math.random() * Math.PI * 2,
       orbitRadius: 150,
-      reactionMs: 75 + Math.random() * 125,
+      reactionMs: 45 + Math.random() * 22,
       nextDecisionAt: 0,
       cachedDesiredAngle: initialAngle
     }
@@ -1432,9 +1728,16 @@ function createBot(config, index) {
 
 function initBots() {
   bots.length = 0;
+  snakeRoster.length = 1;
+  leaderboardOrder[0] = player;
+  leaderboardOrder.length = 1;
   for (let i = 0; i < BOT_COUNT; i++) {
-    bots.push(createBot(BOT_CONFIGS[i], i));
+    const bot = createBot(BOT_CONFIGS[i], i);
+    bots.push(bot);
+    snakeRoster.push(bot);
+    leaderboardOrder.push(bot);
   }
+  buildSpatialHash();
 }
 
 function respawnBot(bot) {
@@ -1474,7 +1777,7 @@ function respawnBot(bot) {
 function updateBotAI(bot) {
   if (!bot.alive) return;
 
-  const allSnakes = [player, ...bots];
+  const allSnakes = snakeRoster;
   const brain = bot.personality;
   const now = performance.now();
 
@@ -1496,7 +1799,7 @@ function updateBotAI(bot) {
   }
 
   // Retarget on a short reaction delay. The whisker avoidance below still runs every frame.
-  if (now >= brain.nextDecisionAt) {
+  if (animFrame % 4 === bot.aiOffset && now >= brain.nextDecisionAt) {
     let nearestFood = null;
     let nearestFoodDistSq = Infinity;
     let nearestDrop = null;
@@ -1524,10 +1827,10 @@ function updateBotAI(bot) {
       desiredAngle = Math.atan2(toroidDelta(bot.y, target.y, WORLD_HEIGHT), toroidDelta(bot.x, target.x, WORLD_WIDTH));
     }
 
-    const enemies = allSnakes.filter(s => s !== bot && s.alive && s.length < bot.length);
     let closestEnemy = null;
     let closestEnemyDistSq = Infinity;
-    for (const enemy of enemies) {
+    for (const enemy of allSnakes) {
+      if (enemy === bot || !enemy.alive || enemy.length >= bot.length) continue;
       const dSq = toroidDistSq(bot.x, bot.y, enemy.x, enemy.y);
       if (dSq < closestEnemyDistSq) { closestEnemyDistSq = dSq; closestEnemy = enemy; }
     }
@@ -1544,7 +1847,13 @@ function updateBotAI(bot) {
         ? closestEnemy : (player.alive ? player : closestEnemy);
       desiredAngle = predictIntercept(huntTarget);
     } else if (!rareTarget && brain.style === 'encircler') {
-      const nearby = allSnakes.filter(s => s !== bot && s.alive).sort((a, b) => toroidDistSq(bot.x, bot.y, a.x, a.y) - toroidDistSq(bot.x, bot.y, b.x, b.y))[0];
+      let nearby = null;
+      let nearbyDistSq = Infinity;
+      for (const candidate of allSnakes) {
+        if (candidate === bot || !candidate.alive) continue;
+        const dSq = toroidDistSq(bot.x, bot.y, candidate.x, candidate.y);
+        if (dSq < nearbyDistSq) { nearby = candidate; nearbyDistSq = dSq; }
+      }
       if (nearby) {
         brain.orbitAngle += bot.name < nearby.name ? 0.075 : -0.075;
         brain.orbitRadius = Math.max(62, brain.orbitRadius - 0.08);
@@ -1555,10 +1864,19 @@ function updateBotAI(bot) {
     } else if (!rareTarget && brain.style === 'opportunist' && closestEnemy && closestEnemyDistSq < 210 * 210) {
       desiredAngle = predictIntercept(closestEnemy, 45, 28);
     } else if (!rareTarget && brain.style === 'scavenger' && !nearestDrop) {
-      const nearbySnakes = allSnakes.filter(s => s !== bot && s.alive && toroidDistSq(bot.x, bot.y, s.x, s.y) < 210 * 210);
-      if (nearbySnakes.length >= 2) {
-        const fightX = wrap((nearbySnakes[0].x + nearbySnakes[1].x) / 2, WORLD_WIDTH);
-        const fightY = wrap((nearbySnakes[0].y + nearbySnakes[1].y) / 2, WORLD_HEIGHT);
+      let nearbyA = null;
+      let nearbyB = null;
+      let nearADist = 210 * 210;
+      let nearBDist = 210 * 210;
+      for (const candidate of allSnakes) {
+        if (candidate === bot || !candidate.alive) continue;
+        const dSq = toroidDistSq(bot.x, bot.y, candidate.x, candidate.y);
+        if (dSq < nearADist) { nearbyB = nearbyA; nearBDist = nearADist; nearbyA = candidate; nearADist = dSq; }
+        else if (dSq < nearBDist) { nearbyB = candidate; nearBDist = dSq; }
+      }
+      if (nearbyA && nearbyB) {
+        const fightX = wrap((nearbyA.x + nearbyB.x) / 2, WORLD_WIDTH);
+        const fightY = wrap((nearbyA.y + nearbyB.y) / 2, WORLD_HEIGHT);
         desiredAngle = Math.atan2(toroidDelta(bot.y, fightY, WORLD_HEIGHT), toroidDelta(bot.x, fightX, WORLD_WIDTH));
       }
     }
@@ -1573,28 +1891,15 @@ function updateBotAI(bot) {
 
   // Whisker sensors check wrapped distances to bodies ahead on every frame.
   const lookDist = bot.personality.lookAheadDist;
-  const sensorAngles = [0, 0.45, -0.45, 0.9, -0.9, 1.4, -1.4];
   let bestDanger = 0;
   let avoidTurn = 0;
 
-  for (const sa of sensorAngles) {
+  for (const sa of BOT_SENSOR_ANGLES) {
     const checkAngle = bot.angle + sa;
     const probeX = wrap(bot.x + Math.cos(checkAngle) * lookDist, WORLD_WIDTH);
     const probeY = wrap(bot.y + Math.sin(checkAngle) * lookDist, WORLD_HEIGHT);
 
-    let probeDanger = 0;
-    for (const other of allSnakes) {
-      if (!other.alive) continue;
-      const startSeg = (other === bot) ? 6 : 0;
-      for (let i = startSeg; i < other.segments.length; i += 2) {
-        const seg = other.segments[i];
-        const distSq = toroidDistSq(probeX, probeY, seg.x, seg.y);
-        const dangerRadius = HEAD_RADIUS + 10;
-        if (distSq < dangerRadius * dangerRadius) {
-          probeDanger += 1 / (1 + Math.sqrt(distSq));
-        }
-      }
-    }
+    const probeDanger = spatialDangerAt(probeX, probeY, HEAD_RADIUS + 10, bot);
 
     if (probeDanger > 0) {
       avoidTurn += (sa === 0 ? (Math.random() > 0.5 ? 1.5 : -1.5) : -Math.sign(sa) * 1.8);
@@ -1762,7 +2067,7 @@ function handlePlayerDeath() {
 }
 
 function checkAllCollisions() {
-  const allSnakes = [player, ...bots];
+  const allSnakes = snakeRoster;
   const now = performance.now();
   const headHitRadius = HEAD_RADIUS * 1.4;
 
@@ -1788,54 +2093,44 @@ function checkAllCollisions() {
 
   for (const snake of allSnakes) {
     if (!snake.alive || now < snake.protectedUntil) continue;
-
-    for (const other of allSnakes) {
-      if (!other.alive || other === snake || now < other.protectedUntil) continue;
-
-      // The first segment overlaps the head; head-to-head is resolved above.
-      for (let i = 1; i < other.segments.length; i++) {
-        const seg = other.segments[i];
-        const progress = i / other.segments.length;
-        const segRadius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));
-        const hitRadius = (HEAD_RADIUS + segRadius) * 0.7;
-
-        if (toroidDistSq(snake.x, snake.y, seg.x, seg.y) < hitRadius * hitRadius) {
-          if (snake.isPlayer) {
-            handlePlayerDeath();
-          } else {
-            killBot(snake, other.isPlayer ? player : other);
-          }
-          break;
-        }
-      }
-      if (!snake.alive) break;
-    }
+    const other = findSpatialBodyCollision(snake, now);
+    if (!other) continue;
+    if (snake.isPlayer) handlePlayerDeath();
+    else killBot(snake, other.isPlayer ? player : other);
   }
 }
 
 function checkFoodConsumptionAll() {
-  const allSnakes = [player, ...bots];
+  const allSnakes = snakeRoster;
   const eatDistSq = (HEAD_RADIUS + 8) * (HEAD_RADIUS + 8);
+  const now = performance.now();
 
   for (const snake of allSnakes) {
     if (!snake.alive) continue;
-
-    for (let i = foodOrbs.length - 1; i >= 0; i--) {
-      const orb = foodOrbs[i];
-      if (performance.now() < orb.burstAt + orb.burstDelay) continue;
-      if (toroidDistSq(snake.x, snake.y, orb.x, orb.y) < eatDistSq) {
-        spawnFoodBurst(orb.x, orb.y, orb.color, 2);
-        foodOrbs.splice(i, 1);
-        if (!orb.isDeathDrop && orb.gridCell >= 0) foodGridTaken[orb.gridCell] = 0;
-
-        const growth = orb.isDeathDrop ? orb.value : Math.max(1, Math.round(FOOD_VALUE));
-        snake.growQueue += growth;
-        snake.length += growth;
-
-        if (snake.isPlayer) {
-          sfxEat();
-          if (orb.isDeathDrop) floatingTexts.push({ x: snake.x, y: snake.y, text: `+${growth}`, time: performance.now() });
-          if (statLengthEl) statLengthEl.textContent = snake.length;
+    const cellX = Math.floor(wrap(snake.x, WORLD_WIDTH) / SPATIAL_CELL_SIZE);
+    const cellY = Math.floor(wrap(snake.y, WORLD_HEIGHT) / SPATIAL_CELL_SIZE);
+    for (let oy = -1; oy <= 1; oy++) {
+      const row = wrap(cellY + oy, SPATIAL_ROWS);
+      for (let ox = -1; ox <= 1; ox++) {
+        const column = wrap(cellX + ox, SPATIAL_COLUMNS);
+        for (let slot = spatialHeads[row * SPATIAL_COLUMNS + column]; slot !== -1; slot = spatialNext[slot]) {
+          if (spatialKind[slot] !== 2) continue;
+          const orb = spatialSegment[slot];
+          if (orb.consumed || now < orb.burstAt + orb.burstDelay || toroidDistSq(snake.x, snake.y, orb.x, orb.y) >= eatDistSq) continue;
+          orb.consumed = true;
+          spawnFoodBurst(orb.x, orb.y, orb.color, 2);
+          if (!orb.isDeathDrop) {
+            normalFoodCount = Math.max(0, normalFoodCount - 1);
+            if (orb.gridCell >= 0) foodGridTaken[orb.gridCell] = 0;
+          }
+          const growth = orb.isDeathDrop ? orb.value : Math.max(1, Math.round(FOOD_VALUE));
+          snake.growQueue += growth;
+          snake.length += growth;
+          if (snake.isPlayer) {
+            sfxEat();
+            if (orb.isDeathDrop) pushFloatingText(snake.x, snake.y, `+${growth}`);
+            if (statLengthEl) statLengthEl.textContent = snake.length;
+          }
         }
       }
     }
@@ -1856,17 +2151,28 @@ function checkFoodConsumptionAll() {
       if (snake.isPlayer && statLengthEl) statLengthEl.textContent = snake.length;
     }
   }
+
+  let write = 0;
+  for (let read = 0; read < foodOrbs.length; read++) {
+    const orb = foodOrbs[read];
+    if (orb.consumed) recycleFoodOrb(orb);
+    else foodOrbs[write++] = orb;
+  }
+  foodOrbs.length = write;
 }
 
 function updateHUDAndLeaderboard() {
+  const now = performance.now();
   if (!isGameOver) {
-    const elapsedMs = performance.now() - gameStartTime - totalPausedDuration;
+    const elapsedMs = now - gameStartTime - totalPausedDuration;
     survivalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
     if (statTimeEl) statTimeEl.textContent = formatTime(survivalSeconds);
   }
   checkSkinUnlocks();
+  if (now - lastHudRefreshAt < 250) return;
+  lastHudRefreshAt = now;
 
-  const allSnakes = [player, ...bots];
+  const allSnakes = leaderboardOrder;
   allSnakes.sort((a, b) => b.length - a.length);
 
   const playerRank = allSnakes.findIndex(s => s.isPlayer) + 1;
@@ -1885,13 +2191,12 @@ function updateHUDAndLeaderboard() {
   }
 }
 
-function update() {
+function update(stepMs = FIXED_STEP_MS) {
   if (!isGameRunning || isPaused) return;
 
-  const frameNow = performance.now();
-  const frameSeconds = Math.min(0.05, Math.max(0, (frameNow - lastFrameTime) / 1000));
-  lastFrameTime = frameNow;
+  const frameSeconds = Math.min(0.05, stepMs / 1000);
   animFrame++;
+  buildSpatialHash();
   maybeSpawnRareOrb();
 
   if (player.alive) {
@@ -1978,6 +2283,7 @@ function startGame() {
   initAudio();
   menuScreenEl.style.display = 'none';
   if (skinsScreenEl) skinsScreenEl.style.display = 'none';
+  if (settingsScreenEl) settingsScreenEl.style.display = 'none';
   hudEl.style.display = 'flex';
   lbEl.style.display = 'block';
   isGameRunning = true;
@@ -2010,10 +2316,15 @@ function goHome() {
   lbEl.style.display = 'none';
   menuScreenEl.style.display = 'flex';
   if (skinsScreenEl) skinsScreenEl.style.display = 'none';
+  if (settingsScreenEl) settingsScreenEl.style.display = 'none';
   updateMenuRecordsDisplay();
 }
 
 window.handleAndroidBack = function () {
+  if (settingsScreenEl && settingsScreenEl.style.display === 'flex') {
+    closeSettings();
+    return true;
+  }
   if (skinsScreenEl && skinsScreenEl.style.display === 'flex') {
     closeSkins();
     return true;
@@ -2033,6 +2344,8 @@ function togglePause() {
     pauseOverlayEl.style.display = 'flex';
   } else {
     totalPausedDuration += performance.now() - pauseStartTime;
+    lastLoopFrameTime = performance.now();
+    fixedStepAccumulator = 0;
     pauseOverlayEl.style.display = 'none';
     ensureGameLoop();
   }
@@ -2159,8 +2472,8 @@ function initInput() {
 function onResize() {
   width = window.innerWidth;
   height = window.innerHeight;
-  const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
-  deviceScale = Math.min(window.devicePixelRatio || 1, mobile ? 1.5 : 2);
+  isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+  deviceScale = Math.min(window.devicePixelRatio || 1, isMobileDevice ? 1.5 : 2);
   canvas.width = Math.round(width * deviceScale);
   canvas.height = Math.round(height * deviceScale);
   canvas.style.width = `${width}px`;
@@ -2174,6 +2487,8 @@ function initSnake() {
   player.y = WORLD_HEIGHT / 2;
   cameraX = player.x;
   cameraY = player.y;
+  fixedStepAccumulator = 0;
+  lastLoopFrameTime = performance.now();
   player.trailWorldX = player.x;
   player.trailWorldY = player.y;
   player.glowTrailUntil = 0;
@@ -2228,66 +2543,77 @@ function restartGame() {
 // §9  RENDER: BACKGROUND, TRAIL, FOOD & SERPENTS
 // ============================================================
 
+function updateBackgroundCache() {
+  if (animFrame - backgroundCacheFrame < 4 && backgroundCacheQuality === graphicsQuality) return;
+  const offscreen = backgroundLayerContext;
+  const cacheWidth = backgroundLayerCanvas.width;
+  const cacheHeight = backgroundLayerCanvas.height;
+  const gradient = offscreen.createLinearGradient(0, 0, 0, cacheHeight);
+  gradient.addColorStop(0, currentCycle.top);
+  gradient.addColorStop(0.5, currentCycle.mid);
+  gradient.addColorStop(1, currentCycle.bottom);
+  offscreen.fillStyle = gradient;
+  offscreen.fillRect(0, 0, cacheWidth, cacheHeight);
+  const rayStrength = graphicsQuality === 'low' ? 0 : currentCycle.rayStrength * (graphicsQuality === 'medium' ? 0.7 : 1);
+  if (rayStrength > 0.005) {
+    offscreen.save();
+    offscreen.globalCompositeOperation = 'screen';
+    offscreen.globalAlpha = Math.min(0.85, rayStrength * 4.2);
+    for (let i = 0; i < 3; i++) {
+      const x = cacheWidth * (0.16 + i * 0.34) + Math.sin(animFrame * 0.006 + i * 1.9) * 4;
+      const ray = offscreen.createLinearGradient(x, 0, x + 22, cacheHeight);
+      ray.addColorStop(0, currentCycle.rayColor);
+      ray.addColorStop(1, 'rgba(255,255,255,0)');
+      offscreen.fillStyle = ray;
+      offscreen.beginPath();
+      offscreen.moveTo(x - 8, 0);
+      offscreen.lineTo(x + 7, 0);
+      offscreen.lineTo(x + 36, cacheHeight);
+      offscreen.lineTo(x + 9, cacheHeight);
+      offscreen.closePath();
+      offscreen.fill();
+    }
+    offscreen.restore();
+  }
+  backgroundCacheFrame = animFrame;
+  backgroundCacheQuality = graphicsQuality;
+}
+
 function renderBackground() {
   const bounds = cameraViewBounds(20);
   const viewWidth = bounds.right - bounds.left;
   const viewHeight = bounds.bottom - bounds.top;
-  const bg = ctx.createLinearGradient(bounds.left, bounds.top, bounds.left, bounds.bottom);
-  bg.addColorStop(0, currentCycle.top);
-  bg.addColorStop(0.5, currentCycle.mid);
-  bg.addColorStop(1, currentCycle.bottom);
-  ctx.fillStyle = bg;
-  ctx.fillRect(bounds.left, bounds.top, viewWidth, viewHeight);
+  updateBackgroundCache();
+  ctx.drawImage(backgroundLayerCanvas, bounds.left, bounds.top, viewWidth, viewHeight);
 
-  // The 200-unit grid divides the world evenly, so it lines up at every wrap seam.
-  ctx.save();
-  ctx.strokeStyle = 'rgba(160, 220, 235, 0.055)';
-  ctx.lineWidth = 1 / cameraZoom;
-  ctx.beginPath();
-  for (let x = Math.floor(bounds.left / 200) * 200; x <= bounds.right; x += 200) {
-    ctx.moveTo(x, bounds.top);
-    ctx.lineTo(x, bounds.bottom);
-  }
-  for (let y = Math.floor(bounds.top / 200) * 200; y <= bounds.bottom; y += 200) {
-    ctx.moveTo(bounds.left, y);
-    ctx.lineTo(bounds.right, y);
-  }
-  ctx.stroke();
-  ctx.restore();
-
-  if (currentCycle.rayStrength > 0.005) {
-    ctx.save();
-    ctx.globalCompositeOperation = 'screen';
-    ctx.globalAlpha = Math.min(0.85, currentCycle.rayStrength * 4.2);
-    for (let i = 0; i < 3; i++) {
-      const sway = Math.sin(animFrame * 0.006 + i * 1.9) * 18;
-      const x = bounds.left + viewWidth * (0.16 + i * 0.34) + sway;
-      const ray = ctx.createLinearGradient(x, bounds.top, x + 80, bounds.bottom);
-      ray.addColorStop(0, currentCycle.rayColor);
-      ray.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = ray;
-      ctx.beginPath();
-      ctx.moveTo(x - 25, bounds.top);
-      ctx.lineTo(x + 22, bounds.top);
-      ctx.lineTo(x + 125, bounds.bottom);
-      ctx.lineTo(x + 30, bounds.bottom);
-      ctx.closePath();
-      ctx.fill();
-    }
-    ctx.restore();
+  // The cached 200-unit tile divides the world evenly and stays aligned at wrap seams.
+  if (backgroundGridPattern) {
+    ctx.fillStyle = backgroundGridPattern;
+    ctx.globalAlpha = graphicsQuality === 'low' ? 0.35 : 1;
+    ctx.fillRect(bounds.left, bounds.top, viewWidth, viewHeight);
+    ctx.globalAlpha = 1;
   }
 
-  const planktonAlpha = currentCycle.plankton;
+  const planktonAlpha = graphicsQuality === 'low' ? 0 : currentCycle.plankton * (graphicsQuality === 'medium' ? 0.65 : 1);
   if (planktonAlpha > 0.005) {
+    const bounds = cameraViewBounds(4);
     for (const dot of plankton) {
       const twinkle = 0.72 + Math.sin(animFrame * 0.035 + dot.phase) * 0.28;
       ctx.globalAlpha = planktonAlpha * twinkle;
       ctx.fillStyle = '#9cf8df';
-      forEachVisibleWrappedPoint(dot.x, dot.y, dot.size + 1, (x, y) => {
-        ctx.beginPath();
-        ctx.arc(x, y, dot.size, 0, Math.PI * 2);
-        ctx.fill();
-      });
+      const baseX = cameraX + toroidDelta(cameraX, dot.x, WORLD_WIDTH);
+      const baseY = cameraY + toroidDelta(cameraY, dot.y, WORLD_HEIGHT);
+      for (let wx = -1; wx <= 1; wx++) {
+        const x = baseX + wx * WORLD_WIDTH;
+        if (x + dot.size < bounds.left || x - dot.size > bounds.right) continue;
+        for (let wy = -1; wy <= 1; wy++) {
+          const y = baseY + wy * WORLD_HEIGHT;
+          if (y + dot.size < bounds.top || y - dot.size > bounds.bottom) continue;
+          ctx.beginPath();
+          ctx.arc(x, y, dot.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
     }
     ctx.globalAlpha = 1;
   }
@@ -2295,41 +2621,76 @@ function renderBackground() {
 
 function renderFood() {
   const now = performance.now();
+  const bounds = cameraViewBounds(20);
   for (const orb of foodOrbs) {
     const birthProgress = orb.burstAt ? Math.min(1, Math.max(0, (now - orb.burstAt - orb.burstDelay) / 220)) : 1;
     if (birthProgress <= 0) continue;
     const radius = Math.max(1, orb.baseRadius * 0.72 * (orb.burstAt ? birthProgress : 1));
     ctx.globalAlpha = orb.burstAt ? birthProgress : 1;
-    ctx.shadowColor = orb.glow;
-    ctx.shadowBlur = 2 + currentCycle.nightFactor * 12;
     ctx.fillStyle = orb.color;
-    forEachVisibleWrappedPoint(orb.x, orb.y, radius + 4, (x, y) => {
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.fill();
-    });
+    const baseX = cameraX + toroidDelta(cameraX, orb.x, WORLD_WIDTH);
+    const baseY = cameraY + toroidDelta(cameraY, orb.y, WORLD_HEIGHT);
+    for (let wx = -1; wx <= 1; wx++) {
+      const x = baseX + wx * WORLD_WIDTH;
+      if (x + radius < bounds.left || x - radius > bounds.right) continue;
+      for (let wy = -1; wy <= 1; wy++) {
+        const y = baseY + wy * WORLD_HEIGHT;
+        if (y + radius < bounds.top || y - radius > bounds.bottom) continue;
+        if (graphicsQuality !== 'low') drawCachedGlow(orb.glow, x, y, radius * (1 + currentCycle.nightFactor * 0.65), graphicsQuality === 'medium' ? 0.6 : 0.9);
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
   }
   ctx.globalAlpha = 1;
-  ctx.shadowBlur = 0;
 }
 
 function renderFloatingTexts() {
   const now = performance.now();
+  const bounds = cameraViewBounds(24);
   for (let i = floatingTexts.length - 1; i >= 0; i--) {
     const item = floatingTexts[i];
     const age = now - item.time;
-    if (age > 900) { floatingTexts.splice(i, 1); continue; }
+    if (age > 900) {
+      const last = floatingTexts.length - 1;
+      floatingTexts[i] = floatingTexts[last];
+      floatingTexts.pop();
+      if (floatingTextPool.length < 64) floatingTextPool.push(item);
+      i++;
+      continue;
+    }
     const fade = 1 - age / 900;
     ctx.save();
     ctx.globalAlpha = fade;
     ctx.fillStyle = '#fff1b8';
     ctx.font = 'bold 15px system-ui, sans-serif';
     ctx.textAlign = 'center';
-    ctx.shadowColor = 'rgba(15,23,42,.8)';
-    ctx.shadowBlur = 4;
-    forEachVisibleWrappedPoint(item.x, item.y - age * 0.035, 24, (x, y) => ctx.fillText(item.text, x, y));
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = 'rgba(15,23,42,.86)';
+    const baseX = cameraX + toroidDelta(cameraX, item.x, WORLD_WIDTH);
+    const baseY = cameraY + toroidDelta(cameraY, item.y - age * 0.035, WORLD_HEIGHT);
+    for (let wx = -1; wx <= 1; wx++) {
+      const x = baseX + wx * WORLD_WIDTH;
+      if (x + 24 < bounds.left || x - 24 > bounds.right) continue;
+      for (let wy = -1; wy <= 1; wy++) {
+        const y = baseY + wy * WORLD_HEIGHT;
+        if (y + 24 < bounds.top || y - 24 > bounds.bottom) continue;
+        ctx.strokeText(item.text, x, y);
+        ctx.fillText(item.text, x, y);
+      }
+    }
     ctx.restore();
   }
+}
+
+function pushFloatingText(x, y, text, time = performance.now()) {
+  const item = floatingTextPool.pop() || {};
+  item.x = x;
+  item.y = y;
+  item.text = text;
+  item.time = time;
+  floatingTexts.push(item);
 }
 
 function renderRareOrb() {
@@ -2341,17 +2702,23 @@ function renderRareOrb() {
   const now = performance.now();
   const shimmer = 0.82 + Math.sin(now * 0.009) * 0.18;
   const rotation = now * 0.0012;
-  forEachVisibleWrappedPoint(rareOrb.x, rareOrb.y, 20, (x, y) => {
+  const bounds = cameraViewBounds(20);
+  const baseX = cameraX + toroidDelta(cameraX, rareOrb.x, WORLD_WIDTH);
+  const baseY = cameraY + toroidDelta(cameraY, rareOrb.y, WORLD_HEIGHT);
+  for (let wx = -1; wx <= 1; wx++) {
+    const x = baseX + wx * WORLD_WIDTH;
+    if (x + 20 < bounds.left || x - 20 > bounds.right) continue;
+    for (let wy = -1; wy <= 1; wy++) {
+      const y = baseY + wy * WORLD_HEIGHT;
+      if (y + 20 < bounds.top || y - 20 > bounds.bottom) continue;
     ctx.save();
     ctx.translate(x, y);
     ctx.globalAlpha = shimmer;
-    ctx.shadowColor = 'rgba(255, 224, 145, 0.95)';
-    ctx.shadowBlur = 12 + currentCycle.nightFactor * 8;
+    drawCachedGlow('rgba(255, 224, 145, 0.95)', 0, 0, 10 + currentCycle.nightFactor * 4, graphicsQuality === 'low' ? 0.35 : 0.95);
     ctx.fillStyle = '#fff8df';
     ctx.beginPath();
     ctx.arc(0, 0, 6.5, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
     ctx.rotate(rotation);
     ctx.strokeStyle = '#ffe5a4';
     ctx.lineWidth = 2;
@@ -2368,7 +2735,8 @@ function renderRareOrb() {
       ctx.fill();
     }
     ctx.restore();
-  });
+    }
+  }
 
   if (rareIndicatorEl && animFrame % 4 === 0) {
     let dx = toroidDelta(player.x, rareOrb.x, WORLD_WIDTH) * cameraZoom;
@@ -2390,14 +2758,14 @@ function renderRareOrb() {
 function drawGlowTrail(snake) {
   const samples = snake.glowTrailSamples;
   if (!samples || samples.length < 2 || performance.now() >= snake.glowTrailUntil) return;
+  const trailViewRadius = Math.hypot(width, height) / (2 * cameraZoom) + 1700;
+  if (toroidDistSq(cameraX, cameraY, snake.x, snake.y) > trailViewRadius * trailViewRadius) return;
   const now = performance.now();
   const groupSize = 8;
   ctx.save();
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.strokeStyle = '#fff0bd';
-  ctx.shadowColor = 'rgba(255, 219, 135, 0.9)';
-  ctx.shadowBlur = 7;
   for (let start = 0; start < samples.length - 1; start += groupSize) {
     const end = Math.min(samples.length - 1, start + groupSize);
     const age = (now - samples[Math.floor((start + end) / 2)].time) / RARE_ORB_TRAIL_MS;
@@ -2423,17 +2791,26 @@ function drawGlowTrail(snake) {
 }
 
 function renderParticles() {
+  const bounds = cameraViewBounds(12);
   for (const p of particles) {
-    ctx.save();
     ctx.globalAlpha = p.alpha;
     ctx.fillStyle = p.color;
-    forEachVisibleWrappedPoint(p.x, p.y, p.size + 2, (x, y) => {
-      ctx.beginPath();
-      ctx.arc(x, y, p.size, 0, Math.PI * 2);
-      ctx.fill();
-    });
-    ctx.restore();
+    const baseX = cameraX + toroidDelta(cameraX, p.x, WORLD_WIDTH);
+    const baseY = cameraY + toroidDelta(cameraY, p.y, WORLD_HEIGHT);
+    for (let wx = -1; wx <= 1; wx++) {
+      const x = baseX + wx * WORLD_WIDTH;
+      if (x + p.size < bounds.left || x - p.size > bounds.right) continue;
+      for (let wy = -1; wy <= 1; wy++) {
+        const y = baseY + wy * WORLD_HEIGHT;
+        if (y + p.size < bounds.top || y - p.size > bounds.bottom) continue;
+        if (graphicsQuality === 'high') drawCachedGlow(p.color, x, y, p.size * 1.5, p.alpha * 0.35);
+        ctx.beginPath();
+        ctx.arc(x, y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
   }
+  ctx.globalAlpha = 1;
 }
 
 function drawDiamondScale(cx, cy, radius, angle, color) {
@@ -2480,7 +2857,7 @@ function drawSkinPattern(cx, cy, radius, angle, palette, index) {
   if (pattern === 'spots' && index % 3 === 0 && radius > 4) {
     const side = angle + Math.PI / 2;
     ctx.fillStyle = palette.scale;
-    for (const direction of [-1, 1]) {
+    for (let direction = -1; direction <= 1; direction += 2) {
       ctx.beginPath();
       ctx.arc(cx + Math.cos(side) * radius * 0.35 * direction, cy + Math.sin(side) * radius * 0.35 * direction, Math.max(0.8, radius * 0.15), 0, Math.PI * 2);
       ctx.fill();
@@ -2552,41 +2929,55 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   // Body segments
   const protectedNow = performance.now() < snake.protectedUntil;
   const protectionAlpha = 0.42 + Math.sin(performance.now() * 0.035) * 0.34;
-  for (let i = segs.length - 1; i >= 0; i--) {
-    const seg = segs[i];
-    const progress = i / segs.length;
-    let radius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));
-
-    const perpAngle = seg.angle + Math.PI / 2;
-    const drawX = snake.x + toroidDelta(snake.x, seg.x, WORLD_WIDTH) + Math.cos(perpAngle) * seg.lateralOffset;
-    const drawY = snake.y + toroidDelta(snake.y, seg.y, WORLD_HEIGHT) + Math.sin(perpAngle) * seg.lateralOffset;
-
-    const segColor = interpolateColor(pal.bodyStart, pal.bodyEnd, progress);
-
+  const far = toroidDistSq(player.x, player.y, snake.x, snake.y) > (Math.min(width, height) / cameraZoom * 0.42) ** 2;
+  const segmentStride = far ? 3 : 1;
+  const bandCount = far ? 2 : 4;
+  const nightGlow = currentCycle.nightFactor * (graphicsQuality === 'low' ? 0.25 : (graphicsQuality === 'medium' ? 0.62 : 1));
+  if (!far && nightGlow > 0.08) {
+    for (let i = 0; i < segs.length; i += 24) {
+      const seg = segs[i];
+      const perp = seg.angle + Math.PI / 2;
+      const x = snake.x + toroidDelta(snake.x, seg.x, WORLD_WIDTH) + Math.cos(perp) * seg.lateralOffset;
+      const y = snake.y + toroidDelta(snake.y, seg.y, WORLD_HEIGHT) + Math.sin(perp) * seg.lateralOffset;
+      drawCachedGlow(pal.glow, x, y, Math.max(3, HEAD_RADIUS * (1 - i / segs.length * 0.72)), nightGlow * 0.48);
+    }
+  }
+  for (let band = 0; band < bandCount; band++) {
     ctx.beginPath();
-    ctx.arc(drawX, drawY, radius, 0, Math.PI * 2);
-    ctx.fillStyle = segColor;
-    ctx.shadowColor = pal.glow;
-    ctx.shadowBlur = i % 6 === 0 ? currentCycle.nightFactor * 5 : 0;
-    ctx.fill();
-
-    if (protectedNow && i % 2 === 0) {
-      ctx.globalAlpha = protectionAlpha;
+    ctx.fillStyle = interpolateColor(pal.bodyStart, pal.bodyEnd, (band + 0.5) / bandCount);
+    if (protectedNow) {
       ctx.strokeStyle = '#e0f2fe';
       ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.arc(drawX, drawY, radius + 1.2, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = protectionAlpha;
     }
-
-    drawSkinPattern(drawX, drawY, radius, seg.angle, pal, i);
+    for (let i = segs.length - 1; i >= 0; i -= segmentStride) {
+      const progress = i / segs.length;
+      if (Math.min(bandCount - 1, Math.floor(progress * bandCount)) !== band) continue;
+      const seg = segs[i];
+      const radius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));
+      const perp = seg.angle + Math.PI / 2;
+      const x = snake.x + toroidDelta(snake.x, seg.x, WORLD_WIDTH) + Math.cos(perp) * seg.lateralOffset;
+      const y = snake.y + toroidDelta(snake.y, seg.y, WORLD_HEIGHT) + Math.sin(perp) * seg.lateralOffset;
+      ctx.moveTo(x + radius, y);
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+    }
+    ctx.fill();
+    if (protectedNow) { ctx.stroke(); ctx.globalAlpha = 1; }
+  }
+  if (!far) {
+    for (let i = 0; i < segs.length; i += 4) {
+      const seg = segs[i];
+      const progress = i / segs.length;
+      const radius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));
+      const perp = seg.angle + Math.PI / 2;
+      const x = snake.x + toroidDelta(snake.x, seg.x, WORLD_WIDTH) + Math.cos(perp) * seg.lateralOffset;
+      const y = snake.y + toroidDelta(snake.y, seg.y, WORLD_HEIGHT) + Math.sin(perp) * seg.lateralOffset;
+      drawSkinPattern(x, y, radius, seg.angle, pal, i);
+    }
   }
 
-  ctx.shadowColor = pal.glow;
-  ctx.shadowBlur = 3 + currentCycle.nightFactor * 18;
-
   // Head
+  drawCachedGlow(pal.glow, snake.x, snake.y, HEAD_RADIUS * (1.5 + nightGlow), nightGlow * 0.75);
   ctx.save();
   ctx.translate(snake.x, snake.y);
   ctx.rotate(snake.angle);
@@ -2605,8 +2996,6 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     ctx.globalAlpha = 1;
   }
 
-  ctx.shadowBlur = 0;
-
   ctx.beginPath();
   ctx.ellipse(5, 0, HEAD_RADIUS * 0.45, HEAD_RADIUS * 0.35, 0, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
@@ -2618,7 +3007,8 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   const eyeRadius = 3.6;
   const pupilRadius = 1.6;
 
-  [-eyeY, eyeY].forEach((ey) => {
+  for (let eyeSide = -1; eyeSide <= 1; eyeSide += 2) {
+    const ey = eyeY * eyeSide;
     ctx.beginPath();
     ctx.arc(eyeX, ey, eyeRadius, 0, Math.PI * 2);
     ctx.fillStyle = '#ffffff';
@@ -2638,7 +3028,7 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     ctx.arc(eyeX + 0.5, ey - 1, 0.8, 0, Math.PI * 2);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
-  });
+  }
 
   ctx.restore();
 
@@ -2656,10 +3046,12 @@ function drawSnakeToroidal(snake) {
   const baseY = cameraY + toroidDelta(cameraY, snake.y, WORLD_HEIGHT);
   const baseOffsetX = baseX - snake.x;
   const baseOffsetY = baseY - snake.y;
-  for (const shiftX of [-WORLD_WIDTH, 0, WORLD_WIDTH]) {
+  for (let wrapX = -1; wrapX <= 1; wrapX++) {
+    const shiftX = wrapX * WORLD_WIDTH;
     const headX = baseX + shiftX;
     if (headX + tailReach < bounds.left || headX - tailReach > bounds.right) continue;
-    for (const shiftY of [-WORLD_HEIGHT, 0, WORLD_HEIGHT]) {
+    for (let wrapY = -1; wrapY <= 1; wrapY++) {
+      const shiftY = wrapY * WORLD_HEIGHT;
       const headY = baseY + shiftY;
       if (headY + tailReach < bounds.top || headY - tailReach > bounds.bottom) continue;
       drawRealisticSnakeAt(snake, baseOffsetX + shiftX, baseOffsetY + shiftY);
@@ -2724,18 +3116,10 @@ function renderMinimap() {
   ctx.lineTo(cx, cy + mapRadius);
   ctx.stroke();
 
-  const drawMapDot = (x, y, color, dotRadius) => {
-    const dx = toroidDelta(player.x, x, WORLD_WIDTH) / WORLD_WIDTH * (mapRadius * 2);
-    const dy = toroidDelta(player.y, y, WORLD_HEIGHT) / WORLD_HEIGHT * (mapRadius * 2);
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(cx + dx, cy + dy, dotRadius, 0, Math.PI * 2);
-    ctx.fill();
-  };
-  for (const bot of bots) if (bot.alive) drawMapDot(bot.x, bot.y, bot.palette.head, 2.5);
-  if (rareOrb) drawMapDot(rareOrb.x, rareOrb.y, '#ffe6a5', 3);
+  for (const bot of bots) if (bot.alive) drawMinimapDot(bot.x, bot.y, bot.palette.head, 2.5, cx, cy, mapRadius);
+  if (rareOrb) drawMinimapDot(rareOrb.x, rareOrb.y, '#ffe6a5', 3, cx, cy, mapRadius);
   const boss = window.activeBoss;
-  if (boss && boss.active) drawMapDot(boss.x, boss.y, '#fb7185', 4);
+  if (boss && boss.active) drawMinimapDot(boss.x, boss.y, '#fb7185', 4, cx, cy, mapRadius);
   ctx.fillStyle = '#c7f9df';
   ctx.beginPath();
   ctx.arc(cx, cy, 4, 0, Math.PI * 2);
@@ -2748,6 +3132,15 @@ function renderMinimap() {
   ctx.restore();
 }
 
+function drawMinimapDot(x, y, color, dotRadius, cx, cy, mapRadius) {
+  const dx = toroidDelta(player.x, x, WORLD_WIDTH) / WORLD_WIDTH * (mapRadius * 2);
+  const dy = toroidDelta(player.y, y, WORLD_HEIGHT) / WORLD_HEIGHT * (mapRadius * 2);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(cx + dx, cy + dy, dotRadius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 // ============================================================
 // §10  LOOP & STARTUP
 // ============================================================
@@ -2756,7 +3149,17 @@ function gameLoop() {
     loopActive = false;
     return;
   }
-  update();
+  const now = performance.now();
+  const elapsed = Math.min(100, Math.max(0, now - lastLoopFrameTime));
+  lastLoopFrameTime = now;
+  updateFrameMetrics(now, elapsed);
+  fixedStepAccumulator = Math.min(fixedStepAccumulator + elapsed, FIXED_STEP_MS * 5);
+  let updateSteps = 0;
+  while (fixedStepAccumulator >= FIXED_STEP_MS && updateSteps < 5) {
+    update(FIXED_STEP_MS);
+    fixedStepAccumulator -= FIXED_STEP_MS;
+    updateSteps++;
+  }
   render();
   requestAnimationFrame(gameLoop);
 }
@@ -2764,6 +3167,7 @@ function gameLoop() {
 function ensureGameLoop() {
   if (loopActive) return;
   loopActive = true;
+  lastLoopFrameTime = performance.now();
   requestAnimationFrame(gameLoop);
 }
 
@@ -2798,11 +3202,16 @@ window.addEventListener('DOMContentLoaded', () => {
   skinsScreenEl = document.getElementById('skins-screen');
   skinListEl = document.getElementById('skin-list');
   skinUnlockToastEl = document.getElementById('skin-unlock-toast');
+  settingsScreenEl = document.getElementById('settings-screen');
+  fpsCounterEl = document.getElementById('fps-counter');
+  fpsToggleEl = document.getElementById('fps-toggle');
 
   isMuted = localStorage.getItem('neonSerpents_muted') === '1';
   if (muteBtnEl) muteBtnEl.textContent = isMuted ? '🔇' : '🔊';
 
   onResize();
+  initializeGraphicsSettings();
+  initRenderCaches();
   initPlankton();
   initFood();
   initInput();

@@ -11,6 +11,8 @@ A lightweight snake survival game for Android and the browser. Steer through a w
 - Rare glow orbs that grant a short cosmetic trail and three extra segments, plus scattered food rewards when a snake is defeated.
 - Six collectible player skins with survival-time and length unlocks. Skin progress and selection are saved locally; bot colors stay independent.
 - Wrapped arena movement, touch drag steering, keyboard and mouse controls, pause, and a home button.
+- Adjustable Auto, High, Medium, and Low graphics settings with an optional FPS counter. Auto lowers detail when frame timing stays slow.
+- Mobile-focused rendering with a fixed 60 Hz update step, cached glow/background layers, visible-area culling, and a spatial index for nearby collisions, food, and bot sensors.
 
 ## Run in a browser
 
@@ -50,6 +52,8 @@ Run on a connected device from Android Studio. `npm run android:debug` creates a
 - **Keyboard:** mouse, A/D or arrow keys to steer; P or Space to pause; Enter to restart after a game ends.
 
 Choose Easy, Normal, or Hard from the home screen. The game works offline after installation.
+
+Open **Settings** from the home screen to select graphics quality or enable the FPS counter. Auto quality starts at a device-appropriate level and reduces detail when performance stays below its target.
 
 ## Project layout
 
