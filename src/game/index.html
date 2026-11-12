@@ -1630,7 +1630,6 @@ function updateParticles() {
       particles[i] = particles[last];
       particles.pop();
       if (particlePool.length < maxParticles) particlePool.push(p);
-      i++;
     }
   }
 
@@ -2658,7 +2657,6 @@ function renderFloatingTexts() {
       floatingTexts[i] = floatingTexts[last];
       floatingTexts.pop();
       if (floatingTextPool.length < 64) floatingTextPool.push(item);
-      i++;
       continue;
     }
     const fade = 1 - age / 900;
