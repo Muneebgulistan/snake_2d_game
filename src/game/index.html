@@ -201,6 +201,7 @@
     transition: all 0.2s ease;
     font-family: inherit;
   }
+  .diff-btn small { display: block; margin-top: 2px; font-size: 10px; line-height: 1.1; opacity: 0.82; }
   .diff-btn:hover {
     border-color: #00f5ff;
     color: #f8fafc;
@@ -514,9 +515,9 @@
   <div class="diff-selector">
     <span class="diff-label">Select Difficulty</span>
     <div class="diff-btns">
-      <button class="diff-btn" data-diff="easy" onclick="setDifficulty('easy')">Easy</button>
-      <button class="diff-btn active" data-diff="normal" onclick="setDifficulty('normal')">Normal</button>
-      <button class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">Hard</button>
+      <button class="diff-btn" data-diff="easy" onclick="setDifficulty('easy')">Easy<small>30 bots</small></button>
+      <button class="diff-btn active" data-diff="normal" onclick="setDifficulty('normal')">Normal<small>40 bots</small></button>
+      <button class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">Hard<small>50 bots</small></button>
     </div>
   </div>
 
@@ -618,7 +619,8 @@ const foodGridTaken = new Uint8Array(FOOD_COUNT);
 let foodGridCursor = 0;
 let nextFoodSpawnAt = 0;
 let normalFoodCount = 0;
-const BOT_COUNT = 6;
+const BOT_COUNT_BY_DIFFICULTY = Object.freeze({ easy: 30, normal: 40, hard: 50 });
+const MAX_DEATH_DROP_ORBS = 300;
 const RESPAWN_DELAY_FRAMES = 180;
 const PARTICLE_LIMITS = { low: 150, medium: 260, high: 400 };
 let maxParticles = PARTICLE_LIMITS.medium;
@@ -1688,7 +1690,7 @@ function createBot(config, index) {
   }
 
   return {
-    name: config.name,
+    name: index < BOT_CONFIGS.length ? config.name : `${config.name}-${Math.floor(index / BOT_CONFIGS.length) + 1}`,
     aiOffset: index % 4,
     isPlayer: false,
     x: pos.x,
@@ -1731,8 +1733,9 @@ function initBots() {
   snakeRoster.length = 1;
   leaderboardOrder[0] = player;
   leaderboardOrder.length = 1;
-  for (let i = 0; i < BOT_COUNT; i++) {
-    const bot = createBot(BOT_CONFIGS[i], i);
+  const botCount = BOT_COUNT_BY_DIFFICULTY[currentDifficulty] || BOT_COUNT_BY_DIFFICULTY.normal;
+  for (let i = 0; i < botCount; i++) {
+    const bot = createBot(BOT_CONFIGS[i % BOT_CONFIGS.length], i);
     bots.push(bot);
     snakeRoster.push(bot);
     leaderboardOrder.push(bot);
@@ -2003,7 +2006,10 @@ function advanceSnake(snake) {
 function dissolveSnakeIntoFood(snake) {
   const orbValue = snake.length > 50 ? 4 : 2;
   let totalReward = 0;
-  for (let i = 0; i < snake.segments.length; i += 2) {
+  let existingDeathDrops = 0;
+  for (const orb of foodOrbs) if (orb.isDeathDrop) existingDeathDrops++;
+  let dropsRemaining = Math.max(0, MAX_DEATH_DROP_ORBS - existingDeathDrops);
+  for (let i = 0; i < snake.segments.length && dropsRemaining > 0; i += 2, dropsRemaining--) {
     const seg = snake.segments[i];
     const foodScheme = {
       core: snake.palette.head,
