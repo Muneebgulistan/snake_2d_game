@@ -740,7 +740,7 @@ function initializeGraphicsSettings() {
   qualityPreference = ['auto', 'high', 'medium', 'low'].includes(savedQuality) ? savedQuality : 'auto';
   const savedFps = safeStorageGet('serpentRun_fpsCounter');
   fpsCounterEnabled = savedFps === null ? Boolean(GAME_CONFIG.FPS_COUNTER_DEFAULT) : savedFps === '1';
-  applyGraphicsQuality(qualityPreference === 'auto' ? (isMobileDevice ? 'medium' : 'high') : qualityPreference);
+  applyGraphicsQuality(qualityPreference === 'auto' ? (isMobileDevice ? 'low' : 'high') : qualityPreference);
   updateSettingsUI();
 }
 
@@ -756,7 +756,7 @@ function applyGraphicsQuality(level) {
 function setGraphicsQuality(level) {
   qualityPreference = level;
   if (level === 'auto') {
-    applyGraphicsQuality(isMobileDevice ? 'medium' : 'high');
+    applyGraphicsQuality(isMobileDevice ? 'low' : 'high');
   } else {
     safeStorageSet('serpentRun_graphicsQuality', level);
     applyGraphicsQuality(level);
@@ -787,7 +787,8 @@ function updateFrameMetrics(frameNow, frameMs) {
   averageFrameMs += (frameMs - averageFrameMs) * 0.08;
   if (averageFrameMs > 25) {
     if (!lowFpsSince) lowFpsSince = frameNow;
-    if (qualityPreference === 'auto' && graphicsQuality !== 'low' && frameNow - lowFpsSince >= 3000) {
+    const slowFrameWindow = isMobileDevice ? 900 : 3000;
+    if (qualityPreference === 'auto' && graphicsQuality !== 'low' && frameNow - lowFpsSince >= slowFrameWindow) {
       const currentIndex = QUALITY_ORDER.indexOf(graphicsQuality);
       applyGraphicsQuality(QUALITY_ORDER[Math.min(QUALITY_ORDER.length - 1, currentIndex + 1)]);
       lowFpsSince = frameNow;
@@ -2473,7 +2474,7 @@ function onResize() {
   width = window.innerWidth;
   height = window.innerHeight;
   isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
-  deviceScale = Math.min(window.devicePixelRatio || 1, isMobileDevice ? 1.5 : 2);
+  deviceScale = Math.min(window.devicePixelRatio || 1, isMobileDevice ? 1.25 : 2);
   canvas.width = Math.round(width * deviceScale);
   canvas.height = Math.round(height * deviceScale);
   canvas.style.width = `${width}px`;
@@ -2930,8 +2931,8 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   const protectedNow = performance.now() < snake.protectedUntil;
   const protectionAlpha = 0.42 + Math.sin(performance.now() * 0.035) * 0.34;
   const far = toroidDistSq(player.x, player.y, snake.x, snake.y) > (Math.min(width, height) / cameraZoom * 0.42) ** 2;
-  const segmentStride = far ? 3 : 1;
-  const bandCount = far ? 2 : 4;
+  const segmentStride = graphicsQuality === 'low' ? (far ? 6 : 3) : (far ? 3 : 1);
+  const bandCount = graphicsQuality === 'low' ? (far ? 1 : 2) : (far ? 2 : 4);
   const nightGlow = currentCycle.nightFactor * (graphicsQuality === 'low' ? 0.25 : (graphicsQuality === 'medium' ? 0.62 : 1));
   if (!far && nightGlow > 0.08) {
     for (let i = 0; i < segs.length; i += 24) {
@@ -2965,7 +2966,8 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     if (protectedNow) { ctx.stroke(); ctx.globalAlpha = 1; }
   }
   if (!far) {
-    for (let i = 0; i < segs.length; i += 4) {
+    const detailStride = graphicsQuality === 'low' ? 8 : 4;
+    for (let i = 0; i < segs.length; i += detailStride) {
       const seg = segs[i];
       const progress = i / segs.length;
       const radius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));

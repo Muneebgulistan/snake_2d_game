@@ -53,7 +53,7 @@ Run on a connected device from Android Studio. `npm run android:debug` creates a
 
 Choose Easy, Normal, or Hard from the home screen. The game works offline after installation.
 
-Open **Settings** from the home screen to select graphics quality or enable the FPS counter. Auto quality starts at a device-appropriate level and reduces detail when performance stays below its target.
+Open **Settings** from the home screen to select graphics quality or enable the FPS counter. Auto quality starts Android at Low for smoother gameplay, starts desktop at High, and reduces detail when performance stays below its target.
 
 ## Project layout
 
