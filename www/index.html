@@ -1787,7 +1787,7 @@ function buildSpatialHash() {
     }
   }
   for (const orb of foodOrbs) {
-    insertSpatialItem(orb.x, orb.y, null, orb, -1, 2, HEAD_RADIUS + 8);
+    insertSpatialItem(orb.x, orb.y, null, orb, -1, 2, HEAD_RADIUS + 11);
   }
 }
 
@@ -3436,7 +3436,7 @@ function spawnFoodOrb(customX, customY, customColor) {
   orb.isDeathDrop = scheme.isDeathDrop === true || (scheme.value ?? 1) > 1;
   orb.isDangerFood = scheme.isDangerFood === true;
   orb.gridCell = -1;
-  orb.baseRadius = 4.5 + Math.random() * 2;
+  orb.baseRadius = (4.5 + Math.random() * 2) * 1.4;
   orb.color = scheme.core;
   orb.glow = scheme.glow;
   orb.pulseSpeed = 0.04 + Math.random() * 0.04;
@@ -4426,7 +4426,7 @@ function checkAllCollisions() {
 
 function checkFoodConsumptionAll() {
   const allSnakes = snakeRoster;
-  const eatDistSq = (HEAD_RADIUS + 8) * (HEAD_RADIUS + 8);
+  const eatDistSq = (HEAD_RADIUS + 11) * (HEAD_RADIUS + 11);
   const now = performance.now();
 
   for (const snake of allSnakes) {
