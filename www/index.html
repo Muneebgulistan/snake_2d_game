@@ -292,18 +292,292 @@
   }
 
   /* ---------- Shared full-screen panels ---------- */
-  #menu-screen, #skins-screen, #settings-screen, #pause-overlay, #overlay {
+  #menu-screen, #skins-screen, #settings-screen, #missions-screen, #rewards-screen, #achievements-screen, #leaderboard-screen, #removeads-screen, #pause-overlay, #overlay, #revive-modal, #confirm-modal {
     position: absolute;
     inset: 0;
     flex-direction: column;
     align-items: center;
     text-align: center;
   }
-  #menu-screen, #skins-screen, #settings-screen {
+  #menu-screen, #skins-screen, #settings-screen, #missions-screen, #rewards-screen, #achievements-screen, #leaderboard-screen, #removeads-screen {
     background:
       radial-gradient(900px 500px at 15% -10%, rgba(34, 211, 238, 0.14), transparent 60%),
       radial-gradient(800px 520px at 95% 110%, rgba(52, 211, 153, 0.14), transparent 60%),
       linear-gradient(180deg, var(--bg-1), var(--bg-0));
+  }
+  .subscreen {
+    z-index: 70;
+    display: none;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: max(18px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+    touch-action: pan-y;
+  }
+  .subscreen-header {
+    width: min(100%, 660px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  .subscreen-header h2 { font-size: clamp(22px, 5vw, 28px); font-weight: 900; letter-spacing: 0.02em; text-align: left; }
+  .back-pill {
+    min-height: 40px; padding: 8px 16px; border-radius: 12px;
+    border: 1px solid var(--line-strong); background: rgba(30, 41, 59, 0.7);
+    color: var(--text); font-size: 13px; font-weight: 800; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .back-pill:hover { border-color: var(--accent-2); background: rgba(34, 211, 238, 0.12); }
+
+  /* ---------- Top Player Bar (Menu & Subscreens) ---------- */
+  .player-topbar {
+    width: min(100%, 480px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 16px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    margin-bottom: 10px;
+  }
+  .lvl-badge-wrap { display: flex; align-items: center; gap: 10px; text-align: left; flex: 1; min-width: 0; }
+  .lvl-circle {
+    width: 38px; height: 38px; border-radius: 12px;
+    background: linear-gradient(135deg, #34d399, #0ea5e9);
+    color: #022c22; font-weight: 900; font-size: 15px;
+    display: grid; place-items: center; flex: none;
+    box-shadow: 0 4px 14px rgba(52, 211, 153, 0.3);
+  }
+  .xp-bar-col { flex: 1; min-width: 0; }
+  .xp-label-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; color: var(--text-dim); margin-bottom: 4px; }
+  .xp-track { width: 100%; height: 7px; border-radius: 999px; background: rgba(2, 6, 23, 0.65); overflow: hidden; border: 1px solid var(--line); }
+  .xp-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #34d399, #22d3ee); border-radius: 999px; transition: width 0.3s ease; }
+  .coin-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px;
+    background: rgba(251, 191, 36, 0.14); border: 1px solid rgba(251, 191, 36, 0.45);
+    color: #fde68a; font-weight: 900; font-size: 14px; font-variant-numeric: tabular-nums;
+    cursor: pointer; flex: none;
+  }
+  .coin-icon {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #fef08a, #f59e0b);
+    color: #451a03; font-size: 11px; font-weight: 900;
+    display: inline-grid; place-items: center;
+  }
+
+  /* ---------- Menu Snake Preview Card ---------- */
+  .hero-preview-card {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: rgba(2, 6, 23, 0.55);
+    border: 1px solid var(--line);
+  }
+  #menu-snake-canvas {
+    width: 150px;
+    height: 54px;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.6);
+    flex: none;
+  }
+  .hero-skin-info { text-align: left; flex: 1; min-width: 0; }
+  .hero-skin-info .skin-tag { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent-2); }
+  .hero-skin-info .skin-title { font-size: 15px; font-weight: 900; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hero-skin-info .skin-change-btn {
+    margin-top: 4px; padding: 4px 10px; border-radius: 8px;
+    border: 1px solid var(--line-strong); background: rgba(30, 41, 59, 0.75);
+    color: var(--text-dim); font-size: 11px; font-weight: 700; cursor: pointer;
+  }
+  .hero-skin-info .skin-change-btn:hover { color: var(--text); border-color: var(--accent); }
+
+  /* ---------- Menu Nav Grid ---------- */
+  .menu-nav-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .nav-card-btn {
+    position: relative;
+    min-height: 56px;
+    padding: 8px 6px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: rgba(30, 41, 59, 0.6);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+  .nav-card-btn:hover { border-color: var(--accent-2); background: rgba(34, 211, 238, 0.12); transform: translateY(-1px); }
+  .nav-card-btn:active { transform: scale(0.96); }
+  .nav-card-btn svg { width: 20px; height: 20px; stroke: var(--accent-2); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .nav-badge {
+    position: absolute; top: 5px; right: 6px;
+    min-width: 16px; height: 16px; padding: 0 4px;
+    border-radius: 999px; background: var(--danger); color: #fff;
+    font-size: 10px; font-weight: 900; display: none; place-items: center;
+  }
+  .nav-badge.show { display: grid; }
+
+  /* ---------- Rarity Badges & Filters ---------- */
+  .rarity-badge {
+    font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 2px 7px; border-radius: 6px;
+  }
+  .rarity-common { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; }
+  .rarity-rare { background: rgba(56, 189, 248, 0.18); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.35); }
+  .rarity-epic { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.4); }
+  .rarity-legendary { background: rgba(251, 191, 36, 0.2); color: #fde68a; border: 1px solid rgba(251, 191, 36, 0.5); }
+
+  .filter-bar {
+    width: min(100%, 660px);
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .filter-pill {
+    padding: 6px 13px; border-radius: 999px; border: 1px solid var(--line);
+    background: rgba(15, 23, 42, 0.65); color: var(--text-dim);
+    font-size: 12px; font-weight: 800; cursor: pointer;
+  }
+  .filter-pill.active { background: rgba(52, 211, 153, 0.18); border-color: var(--accent); color: #ecfdf5; }
+
+  .skin-actions-row { display: flex; gap: 6px; margin-top: 4px; }
+  .skin-act-btn {
+    flex: 1; min-height: 34px; padding: 5px 8px; border-radius: 9px;
+    border: 1px solid var(--line-strong); background: rgba(30, 41, 59, 0.85);
+    color: var(--text); font-size: 11px; font-weight: 800; cursor: pointer;
+  }
+  .skin-act-btn.buy { background: rgba(251, 191, 36, 0.18); border-color: rgba(251, 191, 36, 0.55); color: #fde68a; }
+  .skin-act-btn.trial { background: rgba(34, 211, 238, 0.15); border-color: rgba(34, 211, 238, 0.45); color: #a5f3fc; }
+  .skin-act-btn.equip { background: rgba(52, 211, 153, 0.2); border-color: var(--accent); color: #a7f3d0; }
+
+  /* ---------- Missions, Achievements & Rewards Lists ---------- */
+  .card-list {
+    width: min(100%, 660px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .mission-card {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    padding: 14px 16px; border-radius: 16px;
+    background: var(--panel); border: 1px solid var(--line);
+    text-align: left;
+  }
+  .mission-info { flex: 1; min-width: 0; }
+  .mission-title { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 2px; }
+  .mission-desc { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
+  .mission-prog-wrap { display: flex; align-items: center; gap: 10px; }
+  .mission-bar { flex: 1; height: 7px; border-radius: 999px; background: rgba(2, 6, 23, 0.7); overflow: hidden; }
+  .mission-bar-fill { height: 100%; background: linear-gradient(90deg, #34d399, #22d3ee); border-radius: 999px; }
+  .mission-count { font-size: 11px; font-weight: 800; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+  .mission-reward-col { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
+  .reward-tag { font-size: 11px; font-weight: 800; color: var(--gold); background: rgba(251, 191, 36, 0.12); padding: 3px 8px; border-radius: 8px; }
+  .claim-btn {
+    min-height: 36px; padding: 6px 14px; border-radius: 10px; border: none;
+    background: linear-gradient(135deg, #34d399, #22d3ee); color: #022c22;
+    font-size: 12px; font-weight: 900; cursor: pointer;
+  }
+  .claim-btn:disabled { background: rgba(30, 41, 59, 0.7); color: var(--text-faint); border: 1px solid var(--line); cursor: default; }
+
+  /* ---------- Daily 7-Day Grid ---------- */
+  .daily-grid {
+    width: min(100%, 660px);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .day-card {
+    padding: 12px 10px; border-radius: 14px;
+    background: var(--panel); border: 1px solid var(--line);
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    position: relative;
+  }
+  .day-card.day-7 { grid-column: span 2; background: linear-gradient(135deg, rgba(251, 191, 36, 0.16), rgba(16, 185, 129, 0.16)); border-color: rgba(251, 191, 36, 0.5); }
+  .day-card.claimed { opacity: 0.55; border-color: rgba(52, 211, 153, 0.4); }
+  .day-card.active-day { border-color: var(--gold); box-shadow: 0 0 22px rgba(251, 191, 36, 0.22); }
+  .day-num { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-faint); }
+  .day-val { font-size: 14px; font-weight: 900; color: var(--text); }
+  .day-sub { font-size: 11px; color: var(--gold); font-weight: 700; }
+
+  /* ---------- Banner Ad Slot (Non-gameplay screens only) ---------- */
+  .ad-banner-slot {
+    width: min(100%, 468px);
+    min-height: 52px;
+    margin-top: auto;
+    padding: 6px 12px;
+    border-radius: 10px;
+    background: rgba(2, 6, 23, 0.75);
+    border: 1px dashed rgba(148, 163, 184, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .ad-badge-pill {
+    padding: 2px 6px; border-radius: 4px; background: rgba(251, 191, 36, 0.2);
+    color: #fde68a; font-size: 9px; font-weight: 900; text-transform: uppercase;
+  }
+
+  /* ---------- Modals (Revive & Confirmation & Interstitial Test) ---------- */
+  .modal-backdrop {
+    z-index: 95;
+    display: none;
+    justify-content: center;
+    background: rgba(2, 6, 23, 0.84);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 20px;
+  }
+  .modal-card {
+    width: min(100%, 380px);
+    padding: 22px;
+    border-radius: 22px;
+    background: var(--panel-solid);
+    border: 1px solid var(--line-strong);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+  }
+  .modal-card h3 { font-size: 24px; font-weight: 900; }
+  .modal-card p { font-size: 14px; color: var(--text-dim); line-height: 1.45; }
+  .modal-actions { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+  .ad-watch-btn {
+    width: 100%; min-height: 50px; padding: 10px 18px; border-radius: 14px; border: none;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1c1917;
+    font-size: 15px; font-weight: 900; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3);
+  }
+  .ad-watch-btn:disabled { opacity: 0.5; cursor: default; }
+
+  /* ---------- Left-handed HUD / Ability Dock support ---------- */
+  body.left-handed #ability-dock {
+    left: auto;
+    right: max(14px, env(safe-area-inset-right));
+    transform: none;
   }
 
   .panel {
@@ -637,22 +911,38 @@
 
 <!-- Menu Start Screen -->
 <div id="menu-screen">
-  <svg class="logo-mark" viewBox="0 0 96 96" aria-hidden="true">
-    <defs>
-      <linearGradient id="logoG" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#6ee7b7"/><stop offset="1" stop-color="#22d3ee"/>
-      </linearGradient>
-    </defs>
-    <path d="M18 68 C 18 40, 44 52, 48 34 C 52 16, 78 22, 78 40" fill="none" stroke="url(#logoG)" stroke-width="13" stroke-linecap="round"/>
-    <circle cx="78" cy="40" r="11" fill="url(#logoG)"/>
-    <circle cx="81" cy="36" r="3.2" fill="#022c22"/>
-    <circle cx="82" cy="35" r="1" fill="#fff"/>
-    <path d="M88 42 l8 3 m-8 -3 l7 -4" stroke="#fb7185" stroke-width="2" stroke-linecap="round"/>
-  </svg>
+  <!-- Player Top Progression Bar -->
+  <div class="player-topbar">
+    <div class="lvl-badge-wrap">
+      <div class="lvl-circle" id="menu-lvl-num">1</div>
+      <div class="xp-bar-col">
+        <div class="xp-label-row">
+          <span id="menu-lvl-title">Starter Serpent</span>
+          <span id="menu-xp-text">0 / 150 XP</span>
+        </div>
+        <div class="xp-track"><div class="xp-fill" id="menu-xp-fill"></div></div>
+      </div>
+    </div>
+    <button type="button" class="coin-pill" onclick="openScreen('skins')" title="Coin Balance">
+      <span class="coin-icon">$</span>
+      <span id="menu-coins-val">0</span>
+    </button>
+  </div>
+
   <h1>SERPENT RUN</h1>
   <div class="menu-sub">Eat. Grow. Outsmart the swarm.</div>
 
   <div class="panel menu-panel">
+    <!-- Live Animated Snake Skin Preview -->
+    <div class="hero-preview-card">
+      <canvas id="menu-snake-canvas" width="300" height="108"></canvas>
+      <div class="hero-skin-info">
+        <div class="skin-tag" id="hero-skin-rarity">COMMON SKIN</div>
+        <div class="skin-title" id="hero-skin-name">Classic Green</div>
+        <button type="button" class="skin-change-btn" onclick="openScreen('skins')">Customize Skin →</button>
+      </div>
+    </div>
+
     <div>
       <span class="section-label">Difficulty</span>
       <div class="diff-btns">
@@ -663,39 +953,191 @@
     </div>
 
     <div class="menu-records">
-      <span class="rec-title">🏆 Best &middot; <span id="diff-name-label">Normal</span></span>
+      <span class="rec-title">Best &middot; <span id="diff-name-label">Normal</span></span>
       <span class="rec-vals">
         <span>Time<b id="menu-best-time">00:00</b></span>
         <span>Length<b id="menu-best-len">22</b></span>
       </span>
     </div>
 
-    <button class="play-btn" onclick="startGame()">Play</button>
-    <div class="menu-actions">
-      <button class="menu-secondary" onclick="openSkins()">🎨 Skins</button>
-      <button class="menu-secondary" onclick="openSettings()">⚙️ Settings</button>
+    <button class="play-btn" onclick="startGame()">PLAY ARENA</button>
+
+    <!-- Commercial Mobile Hub Navigation -->
+    <div class="menu-nav-grid">
+      <button type="button" class="nav-card-btn" onclick="openScreen('skins')">
+        <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 12 2.1 10.5"/></svg>
+        <span>SKINS</span>
+      </button>
+      <button type="button" class="nav-card-btn" onclick="openScreen('missions')">
+        <span class="nav-badge" id="badge-missions">!</span>
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>MISSIONS</span>
+      </button>
+      <button type="button" class="nav-card-btn" onclick="openScreen('rewards')">
+        <span class="nav-badge" id="badge-rewards">!</span>
+        <svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>
+        <span>REWARDS</span>
+      </button>
+      <button type="button" class="nav-card-btn" onclick="openScreen('achievements')">
+        <span class="nav-badge" id="badge-achievements">!</span>
+        <svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        <span>ACHIEVEMENTS</span>
+      </button>
+      <button type="button" class="nav-card-btn" onclick="openScreen('leaderboard')">
+        <svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+        <span>RECORDS</span>
+      </button>
+      <button type="button" class="nav-card-btn" onclick="openScreen('settings')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>SETTINGS</span>
+      </button>
+    </div>
+
+    <button type="button" class="menu-secondary" id="menu-removeads-btn" onclick="openScreen('removeads')" style="font-size:13px; min-height:40px; border-color:rgba(251,191,36,0.4); color:#fde68a;">
+      ✦ Remove Forced Ads &amp; Ad-Free Info
+    </button>
+  </div>
+
+  <a class="privacy-link" href="privacy-policy.html">Privacy Policy &amp; Ad Disclosures</a>
+</div>
+
+<!-- 1. SKIN SHOP SCREEN -->
+<div id="skins-screen" class="subscreen" aria-label="Snake skins">
+  <div class="subscreen-header">
+    <h2>Skin Collection</h2>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="coin-pill"><span class="coin-icon">$</span><span id="shop-coins-val">0</span></div>
+      <button class="back-pill" type="button" onclick="closeSubscreen()">← Menu</button>
     </div>
   </div>
-
-  <div class="controls-hint">
-    <div class="hint-card"><span class="hint-icon">🖱️</span><div><b>Mouse</b>Move to steer</div></div>
-    <div class="hint-card"><span class="hint-icon">⌨️</span><div><b>Keys</b>A / D, 1-2-3, P</div></div>
-    <div class="hint-card"><span class="hint-icon">👆</span><div><b>Touch</b>Drag to steer</div></div>
+  <div class="skins-subtitle">All skins are purely cosmetic and preserve identical hitboxes.</div>
+  <div class="filter-bar" id="skin-filter-bar">
+    <button type="button" class="filter-pill active" data-filter="all" onclick="setSkinFilter('all')">All (16)</button>
+    <button type="button" class="filter-pill" data-filter="unlocked" onclick="setSkinFilter('unlocked')">Owned</button>
+    <button type="button" class="filter-pill" data-filter="common" onclick="setSkinFilter('common')">Common</button>
+    <button type="button" class="filter-pill" data-filter="rare" onclick="setSkinFilter('rare')">Rare</button>
+    <button type="button" class="filter-pill" data-filter="epic" onclick="setSkinFilter('epic')">Epic</button>
+    <button type="button" class="filter-pill" data-filter="legendary" onclick="setSkinFilter('legendary')">Legendary</button>
   </div>
-  <div class="menu-hint">Collect orbs, trap smaller snakes, and avoid running into other bodies.</div>
-  <a class="privacy-link" href="privacy-policy.html">Privacy Policy</a>
+  <div id="skin-list"></div>
+  <div class="ad-banner-slot" id="banner-slot-skins">
+    <div><span class="ad-badge-pill">AdMob Banner</span> <span class="banner-status-text">Google Test Banner Ready</span></div>
+    <button type="button" class="skin-act-btn buy" style="flex:none;width:auto;padding:4px 10px;" onclick="watchRewardedBonusCoins()">Watch Ad (+75 Coins)</button>
+  </div>
 </div>
 
-<div id="skins-screen" aria-label="Snake skins">
-  <h2>Snake skins</h2>
-  <div class="skins-subtitle">Choose a look. Every skin plays the same.</div>
-  <div id="skin-list"></div>
-  <button class="menu-secondary" type="button" onclick="closeSkins()">← Back</button>
+<!-- 2. DAILY MISSIONS SCREEN -->
+<div id="missions-screen" class="subscreen" aria-label="Daily Missions">
+  <div class="subscreen-header">
+    <div>
+      <h2>Daily Missions</h2>
+      <div class="skins-subtitle" id="missions-reset-timer">Resets at local midnight</div>
+    </div>
+    <button class="back-pill" type="button" onclick="closeSubscreen()">← Menu</button>
+  </div>
+  <div class="card-list" id="missions-list"></div>
+  <div class="ad-banner-slot" id="banner-slot-missions">
+    <div><span class="ad-badge-pill">AdMob Banner</span> <span class="banner-status-text">Google Test Banner Ready</span></div>
+    <span style="font-size:10px;color:var(--text-faint)">ca-app-pub-3940256099942544/6300978111</span>
+  </div>
 </div>
-<div id="settings-screen" aria-label="Settings">
-  <h2>Settings</h2>
-  <div class="panel settings-panel">
-    <div class="settings-row"><span>Graphics quality</span>
+
+<!-- 3. DAILY REWARDS & BONUS SCREEN -->
+<div id="rewards-screen" class="subscreen" aria-label="Daily Rewards">
+  <div class="subscreen-header">
+    <div>
+      <h2>Daily Login Rewards</h2>
+      <div class="skins-subtitle" id="daily-streak-subtitle">Log in daily to unlock bigger rewards</div>
+    </div>
+    <button class="back-pill" type="button" onclick="closeSubscreen()">← Menu</button>
+  </div>
+  <div class="daily-grid" id="daily-rewards-grid"></div>
+  <div class="panel" style="width:min(100%,660px);display:flex;align-items:center;justify-content:space-between;gap:14px;text-align:left;">
+    <div>
+      <div style="font-size:15px;font-weight:900;color:var(--gold);">Optional Bonus Chest</div>
+      <div style="font-size:12px;color:var(--text-dim);">Watch a short rewarded video to earn +75 Coins &amp; +40 XP anytime.</div>
+    </div>
+    <button type="button" class="ad-watch-btn" style="width:auto;flex:none;" onclick="watchRewardedBonusCoins()">▶ Watch Ad (+75 Coins)</button>
+  </div>
+  <div class="ad-banner-slot" id="banner-slot-rewards">
+    <div><span class="ad-badge-pill">AdMob Banner</span> <span class="banner-status-text">Google Test Banner Ready</span></div>
+    <span style="font-size:10px;color:var(--text-faint)">Never shown during gameplay</span>
+  </div>
+</div>
+
+<!-- 4. ACHIEVEMENTS SCREEN -->
+<div id="achievements-screen" class="subscreen" aria-label="Achievements">
+  <div class="subscreen-header">
+    <div>
+      <h2>Achievements</h2>
+      <div class="skins-subtitle" id="achievements-summary-text">0 / 12 Unlocked</div>
+    </div>
+    <button class="back-pill" type="button" onclick="closeSubscreen()">← Menu</button>
+  </div>
+  <div class="card-list" id="achievements-list"></div>
+</div>
+
+<!-- 5. RECORDS & LIFETIME STATS SCREEN -->
+<div id="leaderboard-screen" class="subscreen" aria-label="Records and Statistics">
+  <div class="subscreen-header">
+    <div>
+      <h2>Career Records &amp; Stats</h2>
+      <div class="skins-subtitle">Saved locally on your device</div>
+    </div>
+    <button class="back-pill" type="button" onclick="closeSubscreen()">← Menu</button>
+  </div>
+  <div class="card-list" id="career-stats-grid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;"></div>
+</div>
+
+<!-- 6. REMOVE ADS SCREEN -->
+<div id="removeads-screen" class="subscreen" aria-label="Remove Ads">
+  <div class="subscreen-header">
+    <h2>Ad-Free Experience</h2>
+    <button class="back-pill" type="button" onclick="closeSubscreen()">← Menu</button>
+  </div>
+  <div class="panel" style="width:min(100%,500px);text-align:left;display:flex;flex-direction:column;gap:14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span class="rarity-badge rarity-legendary">GOOGLE PLAY BILLING READY</span>
+      <span id="removeads-status-badge" style="font-size:12px;font-weight:800;color:var(--text-dim);">Standard Mode</span>
+    </div>
+    <h3 style="font-size:22px;font-weight:900;">Remove Forced Ads</h3>
+    <p style="font-size:13px;color:var(--text-dim);line-height:1.5;">
+      Upgrading to <b>Remove Forced Ads</b> permanently disables automatic non-rewarded advertisements:
+    </p>
+    <ul style="font-size:13px;color:var(--text);line-height:1.7;padding-left:18px;">
+      <li><b>Removed:</b> All Interstitial ads between completed matches</li>
+      <li><b>Removed:</b> All Banner ads in the Skin Shop, Missions, and Rewards menus</li>
+      <li><b>Preserved (Optional):</b> Rewarded video buttons (Revive Snake, 2x Match Coins, Bonus Chest, and Skin Trial) remain available whenever you voluntarily choose to watch an ad for a bonus.</li>
+    </ul>
+    <div style="padding:12px;border-radius:12px;background:rgba(2,6,23,0.6);border:1px solid var(--line);font-size:12px;color:var(--text-dim);line-height:1.45;" id="billing-architecture-note">
+      <b>Billing Status:</b> Google Play Billing (`com.muneeb.neonserpents.remove_ads`) is architected via `BillingManager`. Connect your Google Play Console in-app product ID in production builds to enable live checkout.
+    </div>
+    <button type="button" class="play-btn" id="purchase-removeads-btn" onclick="attemptRemoveAdsPurchase()" style="font-size:15px;min-height:48px;">
+      Check Google Play Billing Availability
+    </button>
+  </div>
+</div>
+
+<!-- 7. SETTINGS SCREEN -->
+<div id="settings-screen" class="subscreen" aria-label="Settings">
+  <div class="subscreen-header">
+    <h2>Settings</h2>
+    <button class="back-pill" type="button" onclick="closeSubscreen()">← Menu</button>
+  </div>
+  <div class="panel settings-panel" style="width:min(100%,520px);">
+    <div class="settings-row inline">
+      <span>Sound Effects</span>
+      <button id="sfx-toggle-btn" class="settings-option" onclick="toggleMute()">On</button>
+    </div>
+    <div class="settings-row inline">
+      <span>Ambient Underwater Drone</span>
+      <button id="music-toggle-btn" class="settings-option" onclick="toggleMusic()">On</button>
+    </div>
+    <div class="settings-row">
+      <span>Sound Volume (<b id="vol-label">80%</b>)</span>
+      <input id="volume-slider" type="range" min="0" max="100" value="80" oninput="setMasterVolume(this.value)" style="width:100%;accent-color:var(--accent);">
+    </div>
+    <div class="settings-row"><span>Graphics Quality</span>
       <div class="opt-group">
         <button class="settings-option" data-quality="auto" onclick="setGraphicsQuality('auto')">Auto</button>
         <button class="settings-option" data-quality="high" onclick="setGraphicsQuality('high')">High</button>
@@ -703,43 +1145,134 @@
         <button class="settings-option" data-quality="low" onclick="setGraphicsQuality('low')">Low</button>
       </div>
     </div>
-    <div class="settings-row inline"><span>Show FPS</span><button id="fps-toggle" class="settings-option" onclick="toggleFpsCounter()">Off</button></div>
+    <div class="settings-row inline"><span>Show FPS Counter</span><button id="fps-toggle" class="settings-option" onclick="toggleFpsCounter()">Off</button></div>
+    <div class="settings-row inline"><span>Vibration / Haptics</span><button id="vib-toggle" class="settings-option" onclick="toggleVibration()">On</button></div>
+    <div class="settings-row"><span>Touch Control Style</span>
+      <div class="opt-group" style="grid-template-columns:repeat(2,1fr);">
+        <button class="settings-option" data-ctrl="joystick" onclick="setControlStyle('joystick')">Virtual Joystick</button>
+        <button class="settings-option" data-ctrl="swipe" onclick="setControlStyle('swipe')">Direct Drag / Swipe</button>
+      </div>
+    </div>
+    <div class="settings-row">
+      <span>Joystick Sensitivity (<b id="sens-label">100%</b>)</span>
+      <input id="sens-slider" type="range" min="50" max="160" value="100" oninput="setJoystickSensitivity(this.value)" style="width:100%;accent-color:var(--accent-2);">
+    </div>
+    <div class="settings-row"><span>Joystick Size</span>
+      <div class="opt-group" style="grid-template-columns:repeat(3,1fr);">
+        <button class="settings-option" data-jsize="small" onclick="setJoystickSize('small')">Small</button>
+        <button class="settings-option" data-jsize="medium" onclick="setJoystickSize('medium')">Medium</button>
+        <button class="settings-option" data-jsize="large" onclick="setJoystickSize('large')">Large</button>
+      </div>
+    </div>
+    <div class="settings-row inline"><span>Left-Handed Ability Dock</span><button id="lefthand-toggle" class="settings-option" onclick="toggleLeftHanded()">Off</button></div>
+    <div class="settings-row inline">
+      <span>Privacy &amp; Data</span>
+      <a class="settings-option" href="privacy-policy.html" style="text-decoration:none;display:inline-grid;place-items:center;">Privacy Policy</a>
+    </div>
+    <div class="settings-row inline">
+      <span>Reset Save Data</span>
+      <button class="settings-option" style="border-color:rgba(251,113,133,0.45);color:#fda4af;" onclick="promptResetProgress()">Reset Progress</button>
+    </div>
+    <div style="font-size:11px;color:var(--text-faint);text-align:center;padding-top:4px;">
+      Serpent Run v2.0.0 &bull; Save Schema v2 &bull; AdMob Mode: <b id="settings-ad-env">development</b>
+    </div>
   </div>
-  <button class="menu-secondary" type="button" onclick="closeSettings()">← Back</button>
 </div>
+
 <div id="skin-unlock-toast" role="status" aria-live="polite"></div>
 <div id="fps-counter" aria-live="off">60 FPS</div>
 
 <!-- Pause Overlay -->
 <div id="pause-overlay">
-  <h2>PAUSED</h2>
-  <div class="restart-hint">Press P or Space, or tap to resume</div>
+  <div class="modal-card">
+    <h2>PAUSED</h2>
+    <p>Take a breath. The arena awaits.</p>
+    <div class="modal-actions">
+      <button type="button" class="play-btn" style="min-height:48px;font-size:16px;" onclick="togglePause()">Resume Game</button>
+      <button type="button" class="menu-secondary" onclick="goHome()">Return to Main Menu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Revive Prompt Modal (Once per match maximum) -->
+<div id="revive-modal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <span class="rarity-badge rarity-legendary">SECOND CHANCE</span>
+    <h3>REVIVE YOUR SNAKE?</h3>
+    <p>Watch a short advertisement to continue with <b id="revive-len-preview">22</b> length and 3 seconds of spawn shield.</p>
+    <div class="modal-actions">
+      <button type="button" class="ad-watch-btn" id="revive-watch-btn" onclick="confirmWatchReviveAd()">▶ Watch Ad to Revive</button>
+      <button type="button" class="menu-secondary" onclick="declineRevive()">Decline &amp; Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- Generic Confirmation / Ad Simulation Modal -->
+<div id="confirm-modal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <h3 id="confirm-modal-title">Confirm</h3>
+    <p id="confirm-modal-body">Are you sure?</p>
+    <div class="modal-actions" id="confirm-modal-actions"></div>
+  </div>
 </div>
 
 <!-- Game Over Overlay -->
 <div id="overlay">
   <h2>SERPENT DISSOLVED</h2>
-  <div class="over-sub">You were trapped. Shake it off and go again.</div>
+  <div class="over-sub" id="over-sub-msg">You were trapped. Shake it off and go again.</div>
   <div id="new-best-badge">⭐ New personal best</div>
-  <div class="score-card">
-    <div class="score-row">
-      <span class="label">Survival time</span>
-      <span id="final-time" class="val">00:00</span>
+  <div class="score-card" style="width:min(100%,420px);grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
+    <div class="score-row" style="grid-column:span 2;">
+      <span class="label">Final Score</span>
+      <span id="final-score" class="val" style="color:var(--accent);">0</span>
+    </div>
+    <div class="score-row" style="grid-column:span 2;">
+      <span class="label">Arena Rank</span>
+      <span id="final-rank" class="val">#1</span>
     </div>
     <div class="score-row">
-      <span class="label">Final length</span>
-      <span id="final-length" class="val">22</span>
+      <span class="label">Time</span>
+      <span id="final-time" class="val" style="font-size:18px;">00:00</span>
     </div>
     <div class="score-row">
-      <span class="label">Best time (<span id="card-diff-label">Normal</span>)</span>
-      <span id="best-time" class="best">00:00</span>
+      <span class="label">Length</span>
+      <span id="final-length" class="val" style="font-size:18px;">22</span>
     </div>
     <div class="score-row">
-      <span class="label">Best length</span>
-      <span id="best-length" class="best">22</span>
+      <span class="label">Kills</span>
+      <span id="final-kills" class="val" style="font-size:18px;color:var(--danger);">0</span>
+    </div>
+    <div class="score-row">
+      <span class="label">Food</span>
+      <span id="final-food" class="val" style="font-size:18px;">0</span>
+    </div>
+    <div class="score-row" style="grid-column:span 2;">
+      <span class="label">Coins Earned</span>
+      <span id="final-coins" class="best" style="font-size:20px;">+0</span>
+    </div>
+    <div class="score-row" style="grid-column:span 2;">
+      <span class="label">XP Earned</span>
+      <span id="final-xp" class="val" style="font-size:20px;color:var(--accent-2);">+0 XP</span>
+    </div>
+    <div class="score-row" style="grid-column:span 2;">
+      <span class="label">Best Time (<span id="card-diff-label">Normal</span>)</span>
+      <span id="best-time" class="best" style="font-size:16px;">00:00</span>
+    </div>
+    <div class="score-row" style="grid-column:span 2;">
+      <span class="label">Best Length</span>
+      <span id="best-length" class="best" style="font-size:16px;">22</span>
     </div>
   </div>
-  <div class="restart-hint">Press Enter or tap to play again</div>
+
+  <div style="width:min(100%,420px);display:flex;flex-direction:column;gap:8px;">
+    <button type="button" class="ad-watch-btn" id="double-coins-btn" onclick="watchDoubleCoinsAd()">
+      ▶ DOUBLE YOUR REWARDS (2x Coins)
+    </button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button type="button" class="play-btn" style="min-height:48px;font-size:16px;" onclick="restartGame()">Play Again</button>
+      <button type="button" class="menu-secondary" style="min-height:48px;" onclick="goHome()">Main Menu</button>
+    </div>
+  </div>
 </div>
 
 <script src="config.js"></script>
@@ -845,22 +1378,22 @@ const PALETTE_PLAYER = {
 };
 
 const SKINS = [
-  { id: 'classic', name: 'Classic Green', palette: { ...PALETTE_PLAYER, pattern: 'scales', headShape: 'round' }, unlock: { type: 'default' } },
-  { id: 'cobra', name: 'King Cobra', palette: { head: '#c28136', bodyStart: '#8b5a2b', bodyEnd: '#2e1c0c', scale: '#e0c080', glow: 'rgba(212, 143, 56, 0.75)', eyeIris: '#d97706', eyePupil: '#1c1917', tongue: '#1c1917', pattern: 'chevron', headShape: 'cobra', hoodWidth: 1.85 }, unlock: { type: 'default' } },
-  { id: 'python', name: 'Reticulated Python', palette: { head: '#786043', bodyStart: '#54422e', bodyEnd: '#1e1610', scale: '#c4a47c', glow: 'rgba(168, 134, 98, 0.65)', eyeIris: '#b45309', eyePupil: '#0c0a09', tongue: '#1c1917', pattern: 'reticulated', headShape: 'python' }, unlock: { type: 'default' } },
-  { id: 'viper', name: 'Emerald Tree Boa', palette: { head: '#10b981', bodyStart: '#059669', bodyEnd: '#064e3b', scale: '#ffffff', glow: 'rgba(52, 211, 153, 0.75)', eyeIris: '#fde047', eyePupil: '#022c22', tongue: '#f43f5e', pattern: 'lightning', headShape: 'viper' }, unlock: { type: 'time', seconds: 30 } },
-  { id: 'coral', name: 'Coral Snake', palette: { head: '#111827', bodyStart: '#dc2626', bodyEnd: '#111827', scale: '#facc15', glow: 'rgba(239, 68, 68, 0.7)', eyeIris: '#1f2937', eyePupil: '#000000', tongue: '#000000', pattern: 'coral_tricolor', headShape: 'round' }, unlock: { type: 'time', seconds: 60 } },
-  { id: 'rattlesnake', name: 'Diamondback', palette: { head: '#926a42', bodyStart: '#684522', bodyEnd: '#291809', scale: '#fef08a', glow: 'rgba(180, 130, 70, 0.6)', eyeIris: '#78350f', eyePupil: '#0c0a09', tongue: '#1c1917', pattern: 'diamonds', headShape: 'viper' }, unlock: { type: 'length', length: 35 } },
-  { id: 'blackmamba', name: 'Black Mamba', palette: { head: '#334155', bodyStart: '#1e293b', bodyEnd: '#0f172a', scale: '#64748b', glow: 'rgba(100, 116, 139, 0.8)', eyeIris: '#0f172a', eyePupil: '#020617', tongue: '#020617', pattern: 'smooth', headShape: 'coffin' }, unlock: { type: 'length', length: 50 } },
-  { id: 'anaconda', name: 'Green Anaconda', palette: { head: '#3f4f2c', bodyStart: '#2d3a1e', bodyEnd: '#131b0c', scale: '#1c1917', glow: 'rgba(63, 79, 44, 0.7)', eyeIris: '#ca8a04', eyePupil: '#0c0a09', tongue: '#450a0a', pattern: 'ocelli', headShape: 'python' }, unlock: { type: 'time', seconds: 120 } },
-  { id: 'seasnake', name: 'Banded Sea Krait', palette: { head: '#38bdf8', bodyStart: '#0284c7', bodyEnd: '#0f172a', scale: '#38bdf8', glow: 'rgba(56, 189, 248, 0.8)', eyeIris: '#0369a1', eyePupil: '#082f49', tongue: '#38bdf8', pattern: 'krait_rings', headShape: 'paddle' }, unlock: { type: 'time', seconds: 180 } },
-  { id: 'albino', name: 'Albino Python', palette: { head: '#fef08a', bodyStart: '#fed7aa', bodyEnd: '#ffffff', scale: '#ffffff', glow: 'rgba(254, 240, 138, 0.85)', eyeIris: '#ef4444', eyePupil: '#991b1b', tongue: '#f43f5e', pattern: 'clouded', headShape: 'python' }, unlock: { type: 'length', length: 70 } },
-  { id: 'cyber', name: 'Cyber Neon', palette: { head: '#06b6d4', bodyStart: '#3b82f6', bodyEnd: '#8b5cf6', scale: '#a5f3fc', glow: 'rgba(6, 182, 212, 0.95)', eyeIris: '#ec4899', eyePupil: '#082f49', tongue: '#ec4899', pattern: 'neon_grid', headShape: 'arrow' }, unlock: { type: 'time', seconds: 240 } },
-  { id: 'ocean', name: 'Ocean Blue', palette: { head: '#7dd3fc', bodyStart: '#38bdf8', bodyEnd: '#1d4ed8', scale: 'rgba(224,242,254,.45)', glow: 'rgba(56,189,248,.75)', eyeIris: '#0369a1', eyePupil: '#082f49', tongue: '#fb7185', pattern: 'bands', headShape: 'round' }, unlock: { type: 'time', seconds: 90 } },
-  { id: 'magma', name: 'Magma Viper', palette: { head: '#fdba74', bodyStart: '#f97316', bodyEnd: '#7c2d12', scale: 'rgba(254,215,170,.55)', glow: 'rgba(249,115,22,.82)', eyeIris: '#9a3412', eyePupil: '#431407', tongue: '#fef3c7', pattern: 'embers', headShape: 'viper' }, unlock: { type: 'time', seconds: 300 } },
-  { id: 'aurora', name: 'Aurora Spirit', palette: { head: '#e9d5ff', bodyStart: '#a78bfa', bodyEnd: '#0f766e', scale: 'rgba(240,253,250,.58)', glow: 'rgba(167,139,250,.82)', eyeIris: '#6d28d9', eyePupil: '#2e1065', tongue: '#f0abfc', pattern: 'ribbons', headShape: 'round' }, unlock: { type: 'length', length: 85 } },
-  { id: 'ghost', name: 'Ghost Spectre', palette: { head: '#f8fafc', bodyStart: '#cbd5e1', bodyEnd: '#64748b', scale: 'rgba(255,255,255,.48)', glow: 'rgba(226,232,240,.8)', eyeIris: '#64748b', eyePupil: '#1e293b', tongue: '#c4b5fd', pattern: 'spots', headShape: 'round' }, unlock: { type: 'length', length: 100 } },
-  { id: 'golden', name: 'Golden Dragon', palette: { head: '#fef08a', bodyStart: '#facc15', bodyEnd: '#92400e', scale: 'rgba(255,251,191,.7)', glow: 'rgba(250,204,21,.9)', eyeIris: '#a16207', eyePupil: '#422006', tongue: '#fb7185', pattern: 'dragon', headShape: 'dragon' }, unlock: { type: 'time', seconds: 400 } }
+  { id: 'classic', name: 'Classic Green', rarity: 'common', price: 0, palette: { ...PALETTE_PLAYER, pattern: 'scales', headShape: 'round' }, unlock: { type: 'default' } },
+  { id: 'cobra', name: 'King Cobra', rarity: 'rare', price: 0, palette: { head: '#c28136', bodyStart: '#8b5a2b', bodyEnd: '#2e1c0c', scale: '#e0c080', glow: 'rgba(212, 143, 56, 0.75)', eyeIris: '#d97706', eyePupil: '#1c1917', tongue: '#1c1917', pattern: 'chevron', headShape: 'cobra', hoodWidth: 1.85 }, unlock: { type: 'default' } },
+  { id: 'python', name: 'Reticulated Python', rarity: 'common', price: 0, palette: { head: '#786043', bodyStart: '#54422e', bodyEnd: '#1e1610', scale: '#c4a47c', glow: 'rgba(168, 134, 98, 0.65)', eyeIris: '#b45309', eyePupil: '#0c0a09', tongue: '#1c1917', pattern: 'reticulated', headShape: 'python' }, unlock: { type: 'default' } },
+  { id: 'viper', name: 'Emerald Tree Boa', rarity: 'common', price: 150, palette: { head: '#10b981', bodyStart: '#059669', bodyEnd: '#064e3b', scale: '#ffffff', glow: 'rgba(52, 211, 153, 0.75)', eyeIris: '#fde047', eyePupil: '#022c22', tongue: '#f43f5e', pattern: 'lightning', headShape: 'viper' }, unlock: { type: 'time', seconds: 30 } },
+  { id: 'coral', name: 'Coral Snake', rarity: 'common', price: 220, palette: { head: '#111827', bodyStart: '#dc2626', bodyEnd: '#111827', scale: '#facc15', glow: 'rgba(239, 68, 68, 0.7)', eyeIris: '#1f2937', eyePupil: '#000000', tongue: '#000000', pattern: 'coral_tricolor', headShape: 'round' }, unlock: { type: 'time', seconds: 60 } },
+  { id: 'rattlesnake', name: 'Diamondback', rarity: 'rare', price: 300, palette: { head: '#926a42', bodyStart: '#684522', bodyEnd: '#291809', scale: '#fef08a', glow: 'rgba(180, 130, 70, 0.6)', eyeIris: '#78350f', eyePupil: '#0c0a09', tongue: '#1c1917', pattern: 'diamonds', headShape: 'viper' }, unlock: { type: 'length', length: 35 } },
+  { id: 'blackmamba', name: 'Black Mamba', rarity: 'rare', price: 420, palette: { head: '#334155', bodyStart: '#1e293b', bodyEnd: '#0f172a', scale: '#64748b', glow: 'rgba(100, 116, 139, 0.8)', eyeIris: '#0f172a', eyePupil: '#020617', tongue: '#020617', pattern: 'smooth', headShape: 'coffin' }, unlock: { type: 'length', length: 50 } },
+  { id: 'anaconda', name: 'Green Anaconda', rarity: 'rare', price: 500, palette: { head: '#3f4f2c', bodyStart: '#2d3a1e', bodyEnd: '#131b0c', scale: '#1c1917', glow: 'rgba(63, 79, 44, 0.7)', eyeIris: '#ca8a04', eyePupil: '#0c0a09', tongue: '#450a0a', pattern: 'ocelli', headShape: 'python' }, unlock: { type: 'time', seconds: 120 } },
+  { id: 'seasnake', name: 'Banded Sea Krait', rarity: 'epic', price: 650, palette: { head: '#38bdf8', bodyStart: '#0284c7', bodyEnd: '#0f172a', scale: '#38bdf8', glow: 'rgba(56, 189, 248, 0.8)', eyeIris: '#0369a1', eyePupil: '#082f49', tongue: '#38bdf8', pattern: 'krait_rings', headShape: 'paddle' }, unlock: { type: 'time', seconds: 180 } },
+  { id: 'albino', name: 'Albino Python', rarity: 'epic', price: 750, palette: { head: '#fef08a', bodyStart: '#fed7aa', bodyEnd: '#ffffff', scale: '#ffffff', glow: 'rgba(254, 240, 138, 0.85)', eyeIris: '#ef4444', eyePupil: '#991b1b', tongue: '#f43f5e', pattern: 'clouded', headShape: 'python' }, unlock: { type: 'length', length: 70 } },
+  { id: 'cyber', name: 'Cyber Neon', rarity: 'epic', price: 900, palette: { head: '#06b6d4', bodyStart: '#3b82f6', bodyEnd: '#8b5cf6', scale: '#a5f3fc', glow: 'rgba(6, 182, 212, 0.95)', eyeIris: '#ec4899', eyePupil: '#082f49', tongue: '#ec4899', pattern: 'neon_grid', headShape: 'arrow' }, unlock: { type: 'time', seconds: 240 } },
+  { id: 'ocean', name: 'Ocean Blue', rarity: 'common', price: 250, palette: { head: '#7dd3fc', bodyStart: '#38bdf8', bodyEnd: '#1d4ed8', scale: 'rgba(224,242,254,.45)', glow: 'rgba(56,189,248,.75)', eyeIris: '#0369a1', eyePupil: '#082f49', tongue: '#fb7185', pattern: 'bands', headShape: 'round' }, unlock: { type: 'time', seconds: 90 } },
+  { id: 'magma', name: 'Magma Viper', rarity: 'epic', price: 1100, palette: { head: '#fdba74', bodyStart: '#f97316', bodyEnd: '#7c2d12', scale: 'rgba(254,215,170,.55)', glow: 'rgba(249,115,22,.82)', eyeIris: '#9a3412', eyePupil: '#431407', tongue: '#fef3c7', pattern: 'embers', headShape: 'viper' }, unlock: { type: 'time', seconds: 300 } },
+  { id: 'aurora', name: 'Aurora Spirit', rarity: 'legendary', price: 1400, palette: { head: '#e9d5ff', bodyStart: '#a78bfa', bodyEnd: '#0f766e', scale: 'rgba(240,253,250,.58)', glow: 'rgba(167,139,250,.82)', eyeIris: '#6d28d9', eyePupil: '#2e1065', tongue: '#f0abfc', pattern: 'ribbons', headShape: 'round' }, unlock: { type: 'length', length: 85 } },
+  { id: 'ghost', name: 'Ghost Spectre', rarity: 'legendary', price: 1650, palette: { head: '#f8fafc', bodyStart: '#cbd5e1', bodyEnd: '#64748b', scale: 'rgba(255,255,255,.48)', glow: 'rgba(226,232,240,.8)', eyeIris: '#64748b', eyePupil: '#1e293b', tongue: '#c4b5fd', pattern: 'spots', headShape: 'round' }, unlock: { type: 'length', length: 100 } },
+  { id: 'golden', name: 'Golden Dragon', rarity: 'legendary', price: 2000, palette: { head: '#fef08a', bodyStart: '#facc15', bodyEnd: '#92400e', scale: 'rgba(255,251,191,.7)', glow: 'rgba(250,204,21,.9)', eyeIris: '#a16207', eyePupil: '#422006', tongue: '#fb7185', pattern: 'dragon', headShape: 'dragon' }, unlock: { type: 'time', seconds: 400 } }
 ];
 const SKIN_UNLOCKS_KEY = 'serpentRun_unlockedSkins';
 const SELECTED_SKIN_KEY = 'serpentRun_selectedSkin';
@@ -923,6 +1456,46 @@ function updateSettingsUI() {
     fpsToggleEl.textContent = fpsCounterEnabled ? 'On' : 'Off';
     fpsToggleEl.classList.toggle('active', fpsCounterEnabled);
   }
+  const sfxBtn = document.getElementById('sfx-toggle-btn');
+  if (sfxBtn) {
+    sfxBtn.textContent = !isMuted ? 'On' : 'Off';
+    sfxBtn.classList.toggle('active', !isMuted);
+  }
+  const musicBtn = document.getElementById('music-toggle-btn');
+  if (musicBtn) {
+    musicBtn.textContent = !isMusicMuted ? 'On' : 'Off';
+    musicBtn.classList.toggle('active', !isMusicMuted);
+  }
+  const volSlider = document.getElementById('volume-slider');
+  const volLabel = document.getElementById('vol-label');
+  if (volSlider) volSlider.value = Math.round(masterVolume * 100);
+  if (volLabel) volLabel.textContent = `${Math.round(masterVolume * 100)}%`;
+
+  if (typeof profileData !== 'undefined' && profileData && profileData.settings) {
+    const s = profileData.settings;
+    const vibBtn = document.getElementById('vib-toggle');
+    if (vibBtn) {
+      vibBtn.textContent = s.vibration ? 'On' : 'Off';
+      vibBtn.classList.toggle('active', Boolean(s.vibration));
+    }
+    for (const btn of settingsScreenEl.querySelectorAll('[data-ctrl]')) {
+      btn.classList.toggle('active', btn.dataset.ctrl === (s.controlStyle || 'joystick'));
+    }
+    const sensSlider = document.getElementById('sens-slider');
+    const sensLabel = document.getElementById('sens-label');
+    if (sensSlider) sensSlider.value = s.joystickSensitivity || 100;
+    if (sensLabel) sensLabel.textContent = `${s.joystickSensitivity || 100}%`;
+    for (const btn of settingsScreenEl.querySelectorAll('[data-jsize]')) {
+      btn.classList.toggle('active', btn.dataset.jsize === (s.joystickSize || 'medium'));
+    }
+    const lhBtn = document.getElementById('lefthand-toggle');
+    if (lhBtn) {
+      lhBtn.textContent = s.leftHanded ? 'On' : 'Off';
+      lhBtn.classList.toggle('active', Boolean(s.leftHanded));
+    }
+  }
+  const envEl = document.getElementById('settings-ad-env');
+  if (envEl && GAME_CONFIG.ADMOB) envEl.textContent = GAME_CONFIG.ADMOB.environment;
 }
 
 function initializeGraphicsSettings() {
@@ -1368,21 +1941,536 @@ function sfxRareOrbEat() {
 }
 
 function sfxBotDeath() {
-  playTone(280, 70, 0.28, 'triangle', 0.12);
+  playTone(280, 70, 0.28, 'triangle', 0.12 * masterVolume);
 }
 
 function sfxPlayerDeath() {
-  playTone(180, 40, 0.75, 'sawtooth', 0.16);
+  playTone(180, 40, 0.75, 'sawtooth', 0.16 * masterVolume);
+}
+
+function sfxReward() {
+  playTone(587.33, 880, 0.14, 'sine', 0.12 * masterVolume);
+  setTimeout(() => playTone(880, 1174.66, 0.18, 'triangle', 0.1 * masterVolume), 90);
+}
+
+let isMusicMuted = false;
+let masterVolume = 0.8;
+
+function applyAmbientAudioGain() {
+  if (ambientGain && audioCtx) {
+    const active = !isMuted && !isMusicMuted;
+    ambientGain.gain.setValueAtTime(active ? 0.035 * masterVolume : 0, audioCtx.currentTime);
+  }
 }
 
 function toggleMute() {
   isMuted = !isMuted;
   localStorage.setItem('neonSerpents_muted', isMuted ? '1' : '0');
   if (muteBtnEl) muteBtnEl.textContent = isMuted ? '🔇' : '🔊';
-  if (ambientGain && audioCtx) {
-    ambientGain.gain.setValueAtTime(isMuted ? 0 : 0.035, audioCtx.currentTime);
+  applyAmbientAudioGain();
+  if (typeof saveProfileData === 'function') saveProfileData();
+  updateSettingsUI();
+}
+
+function toggleMusic() {
+  isMusicMuted = !isMusicMuted;
+  applyAmbientAudioGain();
+  if (typeof saveProfileData === 'function') saveProfileData();
+  updateSettingsUI();
+}
+
+function setMasterVolume(val) {
+  masterVolume = Math.max(0, Math.min(1, Number(val) / 100));
+  const label = document.getElementById('vol-label');
+  if (label) label.textContent = `${Math.round(masterVolume * 100)}%`;
+  applyAmbientAudioGain();
+  if (typeof saveProfileData === 'function') saveProfileData();
+}
+
+function triggerHaptic(ms = 18) {
+  try {
+    if (profileData && profileData.settings && !profileData.settings.vibration) return;
+    if (navigator.vibrate) navigator.vibrate(ms);
+  } catch (_) {}
+}
+
+// ============================================================
+// §3.5  SAVE SYSTEM v2, PROGRESSION, MISSIONS, REWARDS & ADMOB
+// ============================================================
+const SAVE_STORAGE_KEY = 'serpentRun_save_v2';
+const SAVE_SCHEMA_VERSION = 2;
+
+const LEVEL_TITLES = [
+  'Starter Serpent', 'Reef Hatchling', 'Tidal Glider', 'Kelp Stalker', 'Current Rider',
+  'Abyssal Striker', 'Venom Vanguard', 'Coil Tactician', 'Apex Predator', 'Leviathan',
+  'Mythic Wyrm', 'Sovereign King'
+];
+
+const DAILY_REWARDS_CYCLE = [
+  { day: 1, type: 'coins', amount: 100, title: '100 Coins', sub: 'Starter Bonus' },
+  { day: 2, type: 'coins', amount: 150, title: '150 Coins', sub: 'Coin Pouch' },
+  { day: 3, type: 'coins', amount: 250, title: '250 Coins', sub: 'Treasure Chest' },
+  { day: 4, type: 'xp', amount: 300, title: '+300 XP', sub: 'Level Boost' },
+  { day: 5, type: 'coins', amount: 400, title: '400 Coins', sub: 'Royal Vault' },
+  { day: 6, type: 'skin_or_coins', skinId: 'anaconda', fallbackCoins: 550, title: 'Anaconda Skin', sub: 'Rare Skin or 550c' },
+  { day: 7, type: 'skin_or_coins', skinId: 'cyber', fallbackCoins: 1000, title: 'Cyber Neon Skin', sub: 'Epic Skin or 1000c' }
+];
+
+const MISSION_POOL = [
+  { id: 'eat_50', title: 'Hungry Serpent', desc: 'Collect 50 food value in matches today', type: 'food', target: 50, rewardCoins: 120, rewardXp: 80 },
+  { id: 'survive_180', title: 'Deep Survivor', desc: 'Survive 180 total seconds in the arena', type: 'survive', target: 180, rewardCoins: 150, rewardXp: 100 },
+  { id: 'kill_5', title: 'Coil Trapper', desc: 'Eliminate 5 rival snakes today', type: 'kills', target: 5, rewardCoins: 160, rewardXp: 110 },
+  { id: 'len_100', title: 'Colossus', desc: 'Reach a snake length of 100 in a single run', type: 'max_length', target: 100, rewardCoins: 180, rewardXp: 120 },
+  { id: 'powerup_3', title: 'Power Collector', desc: 'Pick up 3 random map power-ups', type: 'powerups', target: 3, rewardCoins: 130, rewardXp: 90 },
+  { id: 'dash_10', title: 'High Voltage', desc: 'Activate the Dash ability 10 times', type: 'dash', target: 10, rewardCoins: 125, rewardXp: 85 },
+  { id: 'nodie_60', title: 'Untouchable', desc: 'Survive at least 60 seconds in one match', type: 'single_survive', target: 60, rewardCoins: 140, rewardXp: 95 },
+  { id: 'coins_100', title: 'Treasure Hunter', desc: 'Earn 100 coins from matches or rewards', type: 'coins_earned', target: 100, rewardCoins: 150, rewardXp: 100 }
+];
+
+const ACHIEVEMENTS_LIST = [
+  { id: 'first_match', title: 'First Dive', desc: 'Complete your first match in Serpent Run', stat: 'totalMatches', target: 1, rewardCoins: 80, rewardXp: 50 },
+  { id: 'first_kill', title: 'First Blood', desc: 'Trap and defeat your first rival snake', stat: 'totalKills', target: 1, rewardCoins: 100, rewardXp: 60 },
+  { id: 'survivor_3m', title: 'Arena Survivor', desc: 'Survive for 3 minutes (180s) in a single match', stat: 'bestSurvivalTime', target: 180, rewardCoins: 200, rewardXp: 120 },
+  { id: 'food_250', title: 'Food Collector', desc: 'Consume 250 total food value across matches', stat: 'totalFoodEaten', target: 250, rewardCoins: 160, rewardXp: 100 },
+  { id: 'giant_120', title: 'Giant Serpent', desc: 'Grow your snake to length 120', stat: 'highestLength', target: 120, rewardCoins: 250, rewardXp: 150 },
+  { id: 'king_slayer', title: 'King Slayer', desc: 'Eliminate the crowned #1 King Snake', stat: 'kingKills', target: 1, rewardCoins: 220, rewardXp: 140 },
+  { id: 'speed_demon', title: 'Speed Demon', desc: 'Use Dash or collect Speed Boosts 25 times', stat: 'totalDashes', target: 25, rewardCoins: 180, rewardXp: 110 },
+  { id: 'master_survivor', title: 'Master Survivor', desc: 'Survive 5 minutes (300s) in a single match', stat: 'bestSurvivalTime', target: 300, rewardCoins: 400, rewardXp: 250 },
+  { id: 'matches_25', title: 'Arena Veteran', desc: 'Play 25 matches', stat: 'totalMatches', target: 25, rewardCoins: 300, rewardXp: 200 },
+  { id: 'matches_100', title: 'Centurion', desc: 'Play 100 matches', stat: 'totalMatches', target: 100, rewardCoins: 750, rewardXp: 500 },
+  { id: 'food_1000', title: 'Insatiable', desc: 'Consume 1,000 total food value', stat: 'totalFoodEaten', target: 1000, rewardCoins: 500, rewardXp: 350 },
+  { id: 'kills_100', title: 'Apex Eliminator', desc: 'Defeat 100 enemy snakes', stat: 'totalKills', target: 100, rewardCoins: 800, rewardXp: 600 }
+];
+
+function getLocalDateKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function getXpRequiredForLevel(lvl) {
+  return Math.round(150 * Math.pow(1.22, Math.max(0, lvl - 1)));
+}
+
+function createDefaultProfile() {
+  return {
+    version: SAVE_SCHEMA_VERSION,
+    coins: 200,
+    xp: 0,
+    level: 1,
+    removeForcedAds: false,
+    settings: {
+      sound: !isMuted,
+      music: true,
+      volume: 80,
+      vibration: true,
+      controlStyle: 'joystick',
+      joystickSensitivity: 100,
+      joystickSize: 'medium',
+      leftHanded: false
+    },
+    stats: {
+      bestScore: 0,
+      bestSurvivalTime: getOverallBestTime(),
+      highestLength: getOverallBestLength(),
+      totalFoodEaten: 0,
+      totalKills: 0,
+      kingKills: 0,
+      totalMatches: 0,
+      totalDashes: 0,
+      totalPowerups: 0,
+      totalCoinsEarned: 200
+    },
+    dailyReward: {
+      streakDay: 1,
+      lastClaimDate: '',
+      totalClaims: 0
+    },
+    dailyMissions: {
+      dateKey: '',
+      items: []
+    },
+    achievementsClaimed: {},
+    ads: {
+      matchesSinceInterstitial: 0,
+      lastInterstitialAt: 0
+    }
+  };
+}
+
+let profileData = createDefaultProfile();
+let currentSkinFilter = 'all';
+let trialSkinId = null;
+let matchFoodEaten = 0;
+let matchPowerupsCollected = 0;
+let matchDashesUsed = 0;
+let matchCoinsEarned = 0;
+let matchXpEarned = 0;
+let matchScore = 0;
+let matchReviveUsed = false;
+let matchDoubleClaimed = false;
+
+function loadProfileData() {
+  try {
+    const raw = safeStorageGet(SAVE_STORAGE_KEY);
+    const def = createDefaultProfile();
+    if (!raw) {
+      profileData = def;
+      ensureDailyMissionsForToday();
+      saveProfileData();
+      return;
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') throw new Error('Invalid save object');
+    profileData = {
+      ...def,
+      ...parsed,
+      version: SAVE_SCHEMA_VERSION,
+      coins: Math.max(0, Number(parsed.coins) || 0),
+      xp: Math.max(0, Number(parsed.xp) || 0),
+      level: Math.max(1, Number(parsed.level) || 1),
+      settings: { ...def.settings, ...(parsed.settings || {}) },
+      stats: { ...def.stats, ...(parsed.stats || {}) },
+      dailyReward: { ...def.dailyReward, ...(parsed.dailyReward || {}) },
+      dailyMissions: { ...def.dailyMissions, ...(parsed.dailyMissions || {}) },
+      achievementsClaimed: { ...(parsed.achievementsClaimed || {}) },
+      ads: { ...def.ads, ...(parsed.ads || {}) }
+    };
+  } catch (_) {
+    profileData = createDefaultProfile();
+  }
+  // Sync legacy best records if higher
+  profileData.stats.bestSurvivalTime = Math.max(profileData.stats.bestSurvivalTime || 0, getOverallBestTime());
+  profileData.stats.highestLength = Math.max(profileData.stats.highestLength || INITIAL_SEGMENTS, getOverallBestLength());
+  // Apply audio & control settings
+  isMuted = !profileData.settings.sound;
+  isMusicMuted = !profileData.settings.music;
+  masterVolume = Math.max(0, Math.min(1, (profileData.settings.volume ?? 80) / 100));
+  applyControlSettingsToDOM();
+  ensureDailyMissionsForToday();
+  saveProfileData();
+}
+
+function saveProfileData() {
+  if (!profileData) return;
+  profileData.settings.sound = !isMuted;
+  profileData.settings.music = !isMusicMuted;
+  profileData.settings.volume = Math.round(masterVolume * 100);
+  safeStorageSet(SAVE_STORAGE_KEY, JSON.stringify(profileData));
+}
+
+function addCoins(amount, trackMission = true) {
+  const clean = Math.max(0, Math.round(Number(amount) || 0));
+  if (clean <= 0) return;
+  profileData.coins = Math.max(0, profileData.coins + clean);
+  profileData.stats.totalCoinsEarned = (profileData.stats.totalCoinsEarned || 0) + clean;
+  if (trackMission) recordMissionProgress('coins_earned', clean);
+  saveProfileData();
+  refreshMenuHeaderUI();
+}
+
+function addXp(amount) {
+  const clean = Math.max(0, Math.round(Number(amount) || 0));
+  if (clean <= 0) return;
+  profileData.xp += clean;
+  let leveledUp = false;
+  while (profileData.xp >= getXpRequiredForLevel(profileData.level)) {
+    profileData.xp -= getXpRequiredForLevel(profileData.level);
+    profileData.level++;
+    leveledUp = true;
+    const levelBonusCoins = 50 + profileData.level * 15;
+    profileData.coins += levelBonusCoins;
+    // Milestone skin unlocks at levels 5, 10, 15, 20
+    if (profileData.level === 5 && !unlockedSkinIds.has('viper')) unlockedSkinIds.add('viper');
+    if (profileData.level === 10 && !unlockedSkinIds.has('rattlesnake')) unlockedSkinIds.add('rattlesnake');
+    if (profileData.level === 15 && !unlockedSkinIds.has('seasnake')) unlockedSkinIds.add('seasnake');
+    if (profileData.level === 20 && !unlockedSkinIds.has('aurora')) unlockedSkinIds.add('aurora');
+    persistUnlockedSkins();
+    showGlobalToast(`Level Up! Level ${profileData.level} (+${levelBonusCoins} Coins)`);
+  }
+  if (leveledUp) sfxReward();
+  saveProfileData();
+  refreshMenuHeaderUI();
+}
+
+function showGlobalToast(message) {
+  if (!skinUnlockToastEl) return;
+  skinUnlockToastEl.textContent = message;
+  skinUnlockToastEl.style.display = 'block';
+  clearTimeout(skinUnlockToastTimer);
+  skinUnlockToastTimer = setTimeout(() => { skinUnlockToastEl.style.display = 'none'; }, 3400);
+}
+
+function ensureDailyMissionsForToday() {
+  const today = getLocalDateKey();
+  if (profileData.dailyMissions.dateKey === today && Array.isArray(profileData.dailyMissions.items) && profileData.dailyMissions.items.length === 4) {
+    return;
+  }
+  // Deterministically rotate 4 daily missions by date hash
+  let hash = 0;
+  for (let i = 0; i < today.length; i++) hash = (hash * 31 + today.charCodeAt(i)) >>> 0;
+  const chosen = [];
+  const poolCopy = [...MISSION_POOL];
+  for (let i = 0; i < 4 && poolCopy.length > 0; i++) {
+    const idx = (hash + i * 7) % poolCopy.length;
+    const m = poolCopy.splice(idx, 1)[0];
+    chosen.push({ id: m.id, progress: 0, claimed: false });
+  }
+  profileData.dailyMissions = { dateKey: today, items: chosen };
+  saveProfileData();
+}
+
+function recordMissionProgress(type, value, isAbsoluteMax = false) {
+  ensureDailyMissionsForToday();
+  let updated = false;
+  for (const item of profileData.dailyMissions.items) {
+    if (item.claimed) continue;
+    const def = MISSION_POOL.find(m => m.id === item.id);
+    if (!def || def.type !== type) continue;
+    const prev = item.progress || 0;
+    item.progress = isAbsoluteMax ? Math.max(prev, value) : Math.min(def.target, prev + value);
+    if (item.progress !== prev) updated = true;
+  }
+  if (updated) {
+    saveProfileData();
+    refreshNavBadges();
   }
 }
+
+function claimMissionReward(missionId) {
+  const item = profileData.dailyMissions.items.find(m => m.id === missionId);
+  const def = MISSION_POOL.find(m => m.id === missionId);
+  if (!item || !def || item.claimed || item.progress < def.target) return;
+  item.claimed = true;
+  sfxReward();
+  triggerHaptic(25);
+  addCoins(def.rewardCoins, false);
+  addXp(def.rewardXp);
+  saveProfileData();
+  renderMissionsScreen();
+  refreshNavBadges();
+  showGlobalToast(`Mission Claimed: +${def.rewardCoins} Coins & +${def.rewardXp} XP`);
+}
+
+function canClaimDailyRewardToday() {
+  return profileData.dailyReward.lastClaimDate !== getLocalDateKey();
+}
+
+function claimDailyLoginReward() {
+  if (!canClaimDailyRewardToday()) return;
+  const dayIdx = ((profileData.dailyReward.streakDay - 1) % 7);
+  const reward = DAILY_REWARDS_CYCLE[dayIdx];
+  profileData.dailyReward.lastClaimDate = getLocalDateKey();
+  profileData.dailyReward.streakDay = (dayIdx + 1) % 7 + 1;
+  profileData.dailyReward.totalClaims = (profileData.dailyReward.totalClaims || 0) + 1;
+
+  sfxReward();
+  triggerHaptic(30);
+  if (reward.type === 'coins') {
+    addCoins(reward.amount);
+    showGlobalToast(`Day ${reward.day} Claimed: +${reward.amount} Coins!`);
+  } else if (reward.type === 'xp') {
+    addXp(reward.amount);
+    showGlobalToast(`Day ${reward.day} Claimed: +${reward.amount} XP!`);
+  } else if (reward.type === 'skin_or_coins') {
+    if (!unlockedSkinIds.has(reward.skinId)) {
+      unlockedSkinIds.add(reward.skinId);
+      persistUnlockedSkins();
+      showGlobalToast(`Day ${reward.day} Claimed: ${reward.title} Unlocked!`);
+    } else {
+      addCoins(reward.fallbackCoins);
+      showGlobalToast(`Day ${reward.day} Claimed: +${reward.fallbackCoins} Coins!`);
+    }
+  }
+  saveProfileData();
+  renderDailyRewardsScreen();
+  refreshNavBadges();
+}
+
+function claimAchievement(achId) {
+  const def = ACHIEVEMENTS_LIST.find(a => a.id === achId);
+  if (!def || profileData.achievementsClaimed[achId]) return;
+  const curVal = profileData.stats[def.stat] || 0;
+  if (curVal < def.target) return;
+  profileData.achievementsClaimed[achId] = true;
+  sfxReward();
+  triggerHaptic(25);
+  addCoins(def.rewardCoins, false);
+  addXp(def.rewardXp);
+  saveProfileData();
+  renderAchievementsScreen();
+  refreshNavBadges();
+  showGlobalToast(`Achievement Unlocked: +${def.rewardCoins} Coins!`);
+}
+
+// ============================================================
+// §3.6  MODULAR GOOGLE ADMOB & BILLING MANAGER
+// ============================================================
+const AdManager = {
+  initialized: false,
+  adInProgress: false,
+  getConfig() {
+    return GAME_CONFIG.ADMOB || {
+      environment: 'development',
+      interstitialEveryMatches: 3,
+      interstitialCooldownMs: 90000,
+      rewardedBonusCoins: 75,
+      testIds: {
+        appId: 'ca-app-pub-3940256099942544~3347511713',
+        banner: 'ca-app-pub-3940256099942544/6300978111',
+        interstitial: 'ca-app-pub-3940256099942544/1033173712',
+        rewarded: 'ca-app-pub-3940256099942544/5224354917'
+      }
+    };
+  },
+  getActiveUnitId(kind) {
+    const cfg = this.getConfig();
+    const isProd = cfg.environment === 'production';
+    const table = isProd ? cfg.productionIds : cfg.testIds;
+    return (table && table[kind]) || cfg.testIds[kind];
+  },
+  getNativePlugin() {
+    return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) || window.AdMob || null;
+  },
+  async init() {
+    if (this.initialized) return;
+    this.initialized = true;
+    const plugin = this.getNativePlugin();
+    if (plugin && typeof plugin.initialize === 'function') {
+      try {
+        await plugin.initialize({ initializeForTesting: this.getConfig().environment !== 'production' });
+      } catch (_) {}
+    }
+    this.refreshBannerVisibility();
+  },
+  refreshBannerVisibility() {
+    const removed = Boolean(profileData && profileData.removeForcedAds);
+    document.querySelectorAll('.ad-banner-slot').forEach(slot => {
+      slot.style.display = removed ? 'none' : 'flex';
+    });
+  },
+  async showRewardedAd({ placement, onReward, onDismiss }) {
+    // Safety rule: never interrupt active unpaused gameplay
+    if (isGameRunning && !isPaused && !isGameOver) return;
+    if (this.adInProgress) return;
+    if (!navigator.onLine) {
+      showConfirmModal('No Internet Connection', 'Rewarded advertisements require an active internet connection. Please check your connection and try again.', [
+        { label: 'OK', primary: true, onClick: closeConfirmModal }
+      ]);
+      if (onDismiss) onDismiss(false);
+      return;
+    }
+
+    this.adInProgress = true;
+    const unitId = this.getActiveUnitId('rewarded');
+    const plugin = this.getNativePlugin();
+
+    // 1. If native Capacitor AdMob plugin is installed on Android device
+    if (plugin && typeof plugin.prepareRewardVideoAd === 'function') {
+      try {
+        await plugin.prepareRewardVideoAd({ adId: unitId, isTesting: this.getConfig().environment !== 'production' });
+        const result = await plugin.showRewardVideoAd();
+        this.adInProgress = false;
+        if (result) {
+          if (onReward) onReward();
+        } else if (onDismiss) {
+          onDismiss(false);
+        }
+        return;
+      } catch (err) {
+        this.adInProgress = false;
+        showConfirmModal('Ad Unavailable', 'Could not load a rewarded video at this time. Please try again shortly.', [
+          { label: 'Close', primary: true, onClick: closeConfirmModal }
+        ]);
+        if (onDismiss) onDismiss(false);
+        return;
+      }
+    }
+
+    // 2. Development / Browser Official Test Ad Simulator (Verifies full reward callback lifecycle)
+    if (this.getConfig().environment === 'production') {
+      this.adInProgress = false;
+      showConfirmModal('Ad SDK Not Bound', 'Install @capacitor-community/admob in the Android build to display live production ads.', [
+        { label: 'Close', primary: true, onClick: closeConfirmModal }
+      ]);
+      if (onDismiss) onDismiss(false);
+      return;
+    }
+
+    let secondsLeft = 3;
+    const modal = document.getElementById('confirm-modal');
+    const titleEl = document.getElementById('confirm-modal-title');
+    const bodyEl = document.getElementById('confirm-modal-body');
+    const actionsEl = document.getElementById('confirm-modal-actions');
+    if (!modal || !titleEl || !bodyEl || !actionsEl) {
+      this.adInProgress = false;
+      return;
+    }
+
+    titleEl.textContent = `AdMob Test Rewarded Video`;
+    bodyEl.innerHTML = `Placement: <b>${placement}</b><br><small style="color:var(--text-faint)">Test Unit: ${unitId}</small><br><br>Reward unlocks in <b id="ad-sim-timer">${secondsLeft}s</b>...`;
+    actionsEl.innerHTML = '';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'menu-secondary';
+    cancelBtn.textContent = 'Close Early (No Reward)';
+    actionsEl.appendChild(cancelBtn);
+    modal.style.display = 'flex';
+
+    const interval = setInterval(() => {
+      secondsLeft--;
+      const timerEl = document.getElementById('ad-sim-timer');
+      if (timerEl) timerEl.textContent = `${Math.max(0, secondsLeft)}s`;
+      if (secondsLeft <= 0) {
+        clearInterval(interval);
+        bodyEl.innerHTML = `Placement: <b>${placement}</b><br><span style="color:var(--accent);font-weight:800;">✓ Reward Verified!</span>`;
+        actionsEl.innerHTML = '';
+        const claimBtn = document.createElement('button');
+        claimBtn.type = 'button';
+        claimBtn.className = 'ad-watch-btn';
+        claimBtn.textContent = 'Claim Reward & Close';
+        claimBtn.onclick = () => {
+          modal.style.display = 'none';
+          this.adInProgress = false;
+          if (onReward) onReward();
+        };
+        actionsEl.appendChild(claimBtn);
+      }
+    }, 1000);
+
+    cancelBtn.onclick = () => {
+      clearInterval(interval);
+      modal.style.display = 'none';
+      this.adInProgress = false;
+      if (onDismiss) onDismiss(false);
+    };
+  },
+  async maybeShowInterstitialAfterMatch() {
+    if (!profileData || profileData.removeForcedAds) return;
+    if (isGameRunning && !isPaused && !isGameOver) return;
+    const cfg = this.getConfig();
+    profileData.ads.matchesSinceInterstitial = (profileData.ads.matchesSinceInterstitial || 0) + 1;
+    const now = Date.now();
+    const cooldownOk = (now - (profileData.ads.lastInterstitialAt || 0)) >= (cfg.interstitialCooldownMs || 90000);
+    const freqOk = profileData.ads.matchesSinceInterstitial >= (cfg.interstitialEveryMatches || 3);
+    saveProfileData();
+
+    if (!freqOk || !cooldownOk || !navigator.onLine) return;
+
+    profileData.ads.matchesSinceInterstitial = 0;
+    profileData.ads.lastInterstitialAt = now;
+    saveProfileData();
+
+    const plugin = this.getNativePlugin();
+    const unitId = this.getActiveUnitId('interstitial');
+    if (plugin && typeof plugin.prepareInterstitial === 'function') {
+      try {
+        await plugin.prepareInterstitial({ adId: unitId, isTesting: cfg.environment !== 'production' });
+        await plugin.showInterstitial();
+      } catch (_) {}
+    }
+  }
+};
 
 // ============================================================
 // §4  TOROIDAL WRAP & PERSISTENCE
@@ -1557,45 +2645,517 @@ function persistUnlockedSkins() {
   safeStorageSet(SKIN_UNLOCKS_KEY, JSON.stringify([...unlockedSkinIds]));
 }
 
+function setSkinFilter(filter) {
+  currentSkinFilter = filter;
+  document.querySelectorAll('#skin-filter-bar .filter-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === filter);
+  });
+  renderSkinMenu();
+}
+
 function renderSkinMenu() {
   if (!skinListEl) return;
+  const shopCoinsEl = document.getElementById('shop-coins-val');
+  if (shopCoinsEl && profileData) shopCoinsEl.textContent = profileData.coins.toLocaleString();
   const bestTime = Math.max(getOverallBestTime(), isGameRunning ? survivalSeconds : 0);
   const bestLength = Math.max(getOverallBestLength(), isGameRunning ? player.length : INITIAL_SEGMENTS);
-  skinListEl.innerHTML = SKINS.map(skin => {
+
+  const filtered = SKINS.filter(skin => {
+    if (currentSkinFilter === 'all') return true;
+    if (currentSkinFilter === 'unlocked') return unlockedSkinIds.has(skin.id) || trialSkinId === skin.id;
+    return (skin.rarity || 'common') === currentSkinFilter;
+  });
+
+  skinListEl.innerHTML = filtered.map(skin => {
     const unlocked = unlockedSkinIds.has(skin.id);
+    const isTrial = !unlocked && trialSkinId === skin.id;
     const selected = selectedSkinId === skin.id;
+    const rarity = skin.rarity || 'common';
+    const price = skin.price || 250;
     const hint = skin.unlock.type === 'time'
-      ? `Survive ${formatTime(skin.unlock.seconds)} (best: ${formatTime(bestTime)})`
+      ? `Survive ${formatTime(skin.unlock.seconds)} (best: ${formatTime(bestTime)}) or buy for ${price} Coins`
       : skin.unlock.type === 'length'
-        ? `Reach length ${skin.unlock.length} (best: ${bestLength})`
-        : 'Available from the start';
-    const state = selected ? 'Selected' : unlocked ? 'Unlocked' : 'Locked';
-    const disabled = unlocked ? '' : 'disabled';
-    return `<button class="skin-card ${selected ? 'selected' : ''} ${unlocked ? '' : 'locked'}" type="button" ${disabled} onclick="selectSkin('${skin.id}')" style="--skin-light:${skin.palette.head};--skin-dark:${skin.palette.bodyEnd}" aria-label="${skin.name}, ${state}. ${hint}">
-      <span class="skin-name-row"><span>${skin.name}</span><span class="skin-state">${state}</span></span>
-      <span class="skin-preview" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        ? `Reach length ${skin.unlock.length} (best: ${bestLength}) or buy for ${price} Coins`
+        : 'Starter skin';
+    const state = selected ? 'Equipped' : unlocked ? 'Owned' : isTrial ? '1-Match Trial' : `${price} Coins`;
+
+    let actionsHtml = '';
+    if (unlocked || isTrial) {
+      actionsHtml = `<div class="skin-actions-row">
+        <button type="button" class="skin-act-btn equip" onclick="selectSkin('${skin.id}')">${selected ? '✓ Equipped' : 'Equip Skin'}</button>
+      </div>`;
+    } else {
+      actionsHtml = `<div class="skin-actions-row">
+        <button type="button" class="skin-act-btn buy" onclick="promptBuySkin('${skin.id}')">Buy (${price}c)</button>
+        <button type="button" class="skin-act-btn trial" onclick="trySkinWithAd('${skin.id}')">▶ Try Free (Ad)</button>
+      </div>`;
+    }
+
+    return `<div class="skin-card ${selected ? 'selected' : ''} ${(unlocked || isTrial) ? '' : 'locked'}" style="--skin-light:${skin.palette.head};--skin-dark:${skin.palette.bodyEnd};filter:none;opacity:1;">
+      <div class="skin-name-row">
+        <span>${skin.name}</span>
+        <span class="rarity-badge rarity-${rarity}">${rarity}</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <span class="skin-preview" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="skin-state">${state}</span>
+      </div>
       <span class="skin-progress">${hint}</span>
-    </button>`;
+      ${actionsHtml}
+    </div>`;
   }).join('');
 }
 
-function openSkins() {
-  menuScreenEl.style.display = 'none';
-  if (skinsScreenEl) skinsScreenEl.style.display = 'flex';
-  renderSkinMenu();
+function promptBuySkin(skinId) {
+  const skin = SKINS.find(s => s.id === skinId);
+  if (!skin || unlockedSkinIds.has(skinId)) return;
+  const price = skin.price || 250;
+  if (profileData.coins < price) {
+    showConfirmModal('Not Enough Coins', `You need ${price} Coins to unlock ${skin.name} (you have ${profileData.coins} Coins). Play matches, complete missions, or watch an optional bonus ad to earn more!`, [
+      { label: 'Watch Ad (+75 Coins)', primary: true, onClick: () => { closeConfirmModal(); watchRewardedBonusCoins(); } },
+      { label: 'Cancel', primary: false, onClick: closeConfirmModal }
+    ]);
+    return;
+  }
+  showConfirmModal('Unlock Skin?', `Purchase ${skin.name} (${(skin.rarity || 'common').toUpperCase()}) for ${price} Coins?`, [
+    {
+      label: `Confirm (${price} Coins)`,
+      primary: true,
+      onClick: () => {
+        closeConfirmModal();
+        if (profileData.coins < price || unlockedSkinIds.has(skinId)) return;
+        profileData.coins = Math.max(0, profileData.coins - price);
+        unlockedSkinIds.add(skinId);
+        persistUnlockedSkins();
+        saveProfileData();
+        selectSkin(skinId);
+        sfxReward();
+        triggerHaptic(30);
+        showGlobalToast(`${skin.name} Purchased & Equipped!`);
+      }
+    },
+    { label: 'Cancel', primary: false, onClick: closeConfirmModal }
+  ]);
 }
 
-function closeSkins() {
-  if (skinsScreenEl) skinsScreenEl.style.display = 'none';
-  if (menuScreenEl) menuScreenEl.style.display = 'flex';
+function trySkinWithAd(skinId) {
+  const skin = SKINS.find(s => s.id === skinId);
+  if (!skin || unlockedSkinIds.has(skinId)) return;
+  AdManager.showRewardedAd({
+    placement: `1-Match Skin Trial: ${skin.name}`,
+    onReward: () => {
+      trialSkinId = skinId;
+      selectedSkinId = skinId;
+      player.palette = getSkin().palette;
+      sfxReward();
+      renderSkinMenu();
+      refreshMenuHeaderUI();
+      showGlobalToast(`Trial Active: ${skin.name} equipped for your next match!`);
+    }
+  });
 }
+
+let activeSubscreenId = null;
+
+function openScreen(name) {
+  if (menuScreenEl) menuScreenEl.style.display = 'none';
+  document.querySelectorAll('.subscreen').forEach(el => { el.style.display = 'none'; });
+  activeSubscreenId = `${name}-screen`;
+  const target = document.getElementById(activeSubscreenId);
+  if (target) target.style.display = 'flex';
+  AdManager.refreshBannerVisibility();
+  if (name === 'skins') renderSkinMenu();
+  else if (name === 'missions') renderMissionsScreen();
+  else if (name === 'rewards') renderDailyRewardsScreen();
+  else if (name === 'achievements') renderAchievementsScreen();
+  else if (name === 'leaderboard') renderCareerStatsScreen();
+  else if (name === 'removeads') renderRemoveAdsScreen();
+  else if (name === 'settings') updateSettingsUI();
+}
+
+function closeSubscreen() {
+  document.querySelectorAll('.subscreen').forEach(el => { el.style.display = 'none'; });
+  activeSubscreenId = null;
+  if (menuScreenEl) menuScreenEl.style.display = 'flex';
+  refreshMenuHeaderUI();
+}
+
+function openSkins() { openScreen('skins'); }
+function closeSkins() { closeSubscreen(); }
 
 function selectSkin(skinId) {
-  if (!unlockedSkinIds.has(skinId)) return;
+  if (!unlockedSkinIds.has(skinId) && trialSkinId !== skinId) return;
   selectedSkinId = skinId;
-  safeStorageSet(SELECTED_SKIN_KEY, selectedSkinId);
+  if (unlockedSkinIds.has(skinId)) safeStorageSet(SELECTED_SKIN_KEY, selectedSkinId);
   player.palette = getSkin().palette;
   renderSkinMenu();
+  refreshMenuHeaderUI();
+}
+
+function renderMissionsScreen() {
+  ensureDailyMissionsForToday();
+  const listEl = document.getElementById('missions-list');
+  if (!listEl) return;
+  listEl.innerHTML = profileData.dailyMissions.items.map(item => {
+    const def = MISSION_POOL.find(m => m.id === item.id);
+    if (!def) return '';
+    const prog = Math.min(def.target, item.progress || 0);
+    const pct = Math.min(100, Math.round((prog / def.target) * 100));
+    const done = prog >= def.target;
+    const btnLabel = item.claimed ? '✓ Claimed' : done ? 'Claim Reward' : 'In Progress';
+    return `<div class="mission-card">
+      <div class="mission-info">
+        <div class="mission-title">${def.title}</div>
+        <div class="mission-desc">${def.desc}</div>
+        <div class="mission-prog-wrap">
+          <div class="mission-bar"><div class="mission-bar-fill" style="width:${pct}%"></div></div>
+          <span class="mission-count">${prog} / ${def.target}</span>
+        </div>
+      </div>
+      <div class="mission-reward-col">
+        <span class="reward-tag">+${def.rewardCoins}c &bull; +${def.rewardXp} XP</span>
+        <button type="button" class="claim-btn" ${(!done || item.claimed) ? 'disabled' : ''} onclick="claimMissionReward('${def.id}')">${btnLabel}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderDailyRewardsScreen() {
+  const gridEl = document.getElementById('daily-rewards-grid');
+  const subEl = document.getElementById('daily-streak-subtitle');
+  if (!gridEl) return;
+  const canClaim = canClaimDailyRewardToday();
+  const currentDay = ((profileData.dailyReward.streakDay - 1) % 7) + 1;
+  if (subEl) {
+    subEl.textContent = canClaim
+      ? `Day ${currentDay} reward is ready to claim!`
+      : `Today's reward claimed! Come back tomorrow for Day ${currentDay}.`;
+  }
+  gridEl.innerHTML = DAILY_REWARDS_CYCLE.map(r => {
+    const isCurrent = r.day === currentDay;
+    const isPast = r.day < currentDay || (!canClaim && r.day === currentDay);
+    const cardClass = `day-card ${r.day === 7 ? 'day-7' : ''} ${isPast ? 'claimed' : ''} ${(isCurrent && canClaim) ? 'active-day' : ''}`;
+    let actionHtml = '';
+    if (isCurrent && canClaim) {
+      actionHtml = `<button type="button" class="claim-btn" style="width:100%;margin-top:4px;" onclick="claimDailyLoginReward()">Claim Day ${r.day}</button>`;
+    } else if (isPast) {
+      actionHtml = `<span style="font-size:11px;font-weight:800;color:var(--accent);">✓ Claimed</span>`;
+    } else {
+      actionHtml = `<span style="font-size:11px;color:var(--text-faint);">Locked</span>`;
+    }
+    return `<div class="${cardClass}">
+      <span class="day-num">Day ${r.day}</span>
+      <span class="day-val">${r.title}</span>
+      <span class="day-sub">${r.sub}</span>
+      ${actionHtml}
+    </div>`;
+  }).join('');
+}
+
+function renderAchievementsScreen() {
+  const listEl = document.getElementById('achievements-list');
+  const sumEl = document.getElementById('achievements-summary-text');
+  if (!listEl) return;
+  let unlockedCount = 0;
+  listEl.innerHTML = ACHIEVEMENTS_LIST.map(a => {
+    const cur = Math.min(a.target, profileData.stats[a.stat] || 0);
+    const done = cur >= a.target;
+    const claimed = Boolean(profileData.achievementsClaimed[a.id]);
+    if (done) unlockedCount++;
+    const pct = Math.min(100, Math.round((cur / a.target) * 100));
+    const btnLabel = claimed ? '✓ Claimed' : done ? 'Claim' : `${pct}%`;
+    return `<div class="mission-card">
+      <div class="mission-info">
+        <div class="mission-title">${a.title}</div>
+        <div class="mission-desc">${a.desc}</div>
+        <div class="mission-prog-wrap">
+          <div class="mission-bar"><div class="mission-bar-fill" style="width:${pct}%"></div></div>
+          <span class="mission-count">${cur} / ${a.target}</span>
+        </div>
+      </div>
+      <div class="mission-reward-col">
+        <span class="reward-tag">+${a.rewardCoins}c &bull; +${a.rewardXp} XP</span>
+        <button type="button" class="claim-btn" ${(!done || claimed) ? 'disabled' : ''} onclick="claimAchievement('${a.id}')">${btnLabel}</button>
+      </div>
+    </div>`;
+  }).join('');
+  if (sumEl) sumEl.textContent = `${unlockedCount} / ${ACHIEVEMENTS_LIST.length} Completed`;
+}
+
+function renderCareerStatsScreen() {
+  const gridEl = document.getElementById('career-stats-grid');
+  if (!gridEl) return;
+  const s = profileData.stats;
+  const items = [
+    { label: 'Player Level', val: `Level ${profileData.level}` },
+    { label: 'Best Match Score', val: (s.bestScore || 0).toLocaleString() },
+    { label: 'Best Survival Time', val: formatTime(s.bestSurvivalTime || 0) },
+    { label: 'Highest Snake Length', val: (s.highestLength || INITIAL_SEGMENTS).toLocaleString() },
+    { label: 'Total Matches Played', val: (s.totalMatches || 0).toLocaleString() },
+    { label: 'Total Enemy Kills', val: (s.totalKills || 0).toLocaleString() },
+    { label: 'King Snakes Slain', val: (s.kingKills || 0).toLocaleString() },
+    { label: 'Total Food Eaten', val: (s.totalFoodEaten || 0).toLocaleString() },
+    { label: 'Skins Unlocked', val: `${unlockedSkinIds.size} / ${SKINS.length}` },
+    { label: 'Lifetime Coins Earned', val: (s.totalCoinsEarned || 0).toLocaleString() },
+    { label: 'Best Time (Easy)', val: formatTime(getBestTime('easy')) },
+    { label: 'Best Time (Hard)', val: formatTime(getBestTime('hard')) }
+  ];
+  gridEl.innerHTML = items.map(it => `
+    <div class="score-row">
+      <span class="label">${it.label}</span>
+      <span class="val" style="font-size:20px;">${it.val}</span>
+    </div>
+  `).join('');
+}
+
+function renderRemoveAdsScreen() {
+  const badge = document.getElementById('removeads-status-badge');
+  const btn = document.getElementById('purchase-removeads-btn');
+  if (!badge || !btn) return;
+  if (profileData.removeForcedAds) {
+    badge.textContent = '✓ Ad-Free Active';
+    badge.style.color = 'var(--accent)';
+    btn.textContent = 'Forced Ads Removed';
+    btn.disabled = true;
+  } else {
+    badge.textContent = 'Standard Mode (With Ads)';
+    badge.style.color = 'var(--text-dim)';
+    btn.textContent = 'Check Google Play Billing Availability';
+    btn.disabled = false;
+  }
+}
+
+function attemptRemoveAdsPurchase() {
+  const billingPlugin = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativePurchases) || window.CdvPurchase || null;
+  if (!billingPlugin) {
+    showConfirmModal(
+      'Google Play Billing Setup Required',
+      'In-App Purchases require a signed Google Play build with Google Play Billing configured for product ID "com.muneeb.neonserpents.remove_ads". No fake purchase has been charged.',
+      [{ label: 'Understood', primary: true, onClick: closeConfirmModal }]
+    );
+    return;
+  }
+}
+
+function watchRewardedBonusCoins() {
+  const bonus = (AdManager.getConfig().rewardedBonusCoins || 75);
+  AdManager.showRewardedAd({
+    placement: `Bonus Chest (+${bonus} Coins & +40 XP)`,
+    onReward: () => {
+      sfxReward();
+      addCoins(bonus);
+      addXp(40);
+      renderSkinMenu();
+      renderDailyRewardsScreen();
+      showGlobalToast(`Reward Granted: +${bonus} Coins & +40 XP!`);
+    }
+  });
+}
+
+function showConfirmModal(title, bodyText, buttons) {
+  const modal = document.getElementById('confirm-modal');
+  const titleEl = document.getElementById('confirm-modal-title');
+  const bodyEl = document.getElementById('confirm-modal-body');
+  const actionsEl = document.getElementById('confirm-modal-actions');
+  if (!modal || !titleEl || !bodyEl || !actionsEl) return;
+  titleEl.textContent = title;
+  bodyEl.textContent = bodyText;
+  actionsEl.innerHTML = '';
+  for (const b of buttons) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = b.primary ? 'play-btn' : 'menu-secondary';
+    btn.style.minHeight = '44px';
+    btn.style.fontSize = '14px';
+    btn.textContent = b.label;
+    btn.onclick = b.onClick;
+    actionsEl.appendChild(btn);
+  }
+  modal.style.display = 'flex';
+}
+
+function closeConfirmModal() {
+  const modal = document.getElementById('confirm-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function promptResetProgress() {
+  showConfirmModal(
+    'Reset All Progress?',
+    'This will permanently erase your level, coins, unlocked skins, mission progress, achievements, and high scores on this device.',
+    [
+      {
+        label: 'Yes, Erase Everything',
+        primary: false,
+        onClick: () => {
+          closeConfirmModal();
+          try { localStorage.clear(); } catch (_) {}
+          unlockedSkinIds.clear();
+          unlockedSkinIds.add('classic');
+          unlockedSkinIds.add('cobra');
+          unlockedSkinIds.add('python');
+          selectedSkinId = 'classic';
+          trialSkinId = null;
+          profileData = createDefaultProfile();
+          ensureDailyMissionsForToday();
+          saveProfileData();
+          persistUnlockedSkins();
+          refreshMenuHeaderUI();
+          updateMenuRecordsDisplay();
+          updateSettingsUI();
+          showGlobalToast('All progress has been reset.');
+        }
+      },
+      { label: 'Cancel', primary: true, onClick: closeConfirmModal }
+    ]
+  );
+}
+
+function refreshNavBadges() {
+  ensureDailyMissionsForToday();
+  const missionReady = profileData.dailyMissions.items.some(it => {
+    const def = MISSION_POOL.find(m => m.id === it.id);
+    return def && !it.claimed && (it.progress || 0) >= def.target;
+  });
+  const rewardReady = canClaimDailyRewardToday();
+  const achReady = ACHIEVEMENTS_LIST.some(a => !profileData.achievementsClaimed[a.id] && (profileData.stats[a.stat] || 0) >= a.target);
+
+  const mBadge = document.getElementById('badge-missions');
+  const rBadge = document.getElementById('badge-rewards');
+  const aBadge = document.getElementById('badge-achievements');
+  if (mBadge) mBadge.classList.toggle('show', missionReady);
+  if (rBadge) rBadge.classList.toggle('show', rewardReady);
+  if (aBadge) aBadge.classList.toggle('show', achReady);
+}
+
+function refreshMenuHeaderUI() {
+  if (!profileData) return;
+  const lvlNum = document.getElementById('menu-lvl-num');
+  const lvlTitle = document.getElementById('menu-lvl-title');
+  const xpText = document.getElementById('menu-xp-text');
+  const xpFill = document.getElementById('menu-xp-fill');
+  const coinsVal = document.getElementById('menu-coins-val');
+  const shopCoinsVal = document.getElementById('shop-coins-val');
+  const heroSkinName = document.getElementById('hero-skin-name');
+  const heroSkinRarity = document.getElementById('hero-skin-rarity');
+
+  const reqXp = getXpRequiredForLevel(profileData.level);
+  const titleIdx = Math.min(LEVEL_TITLES.length - 1, Math.floor((profileData.level - 1) / 2));
+  if (lvlNum) lvlNum.textContent = profileData.level;
+  if (lvlTitle) lvlTitle.textContent = LEVEL_TITLES[titleIdx];
+  if (xpText) xpText.textContent = `${profileData.xp} / ${reqXp} XP`;
+  if (xpFill) xpFill.style.width = `${Math.min(100, Math.round((profileData.xp / reqXp) * 100))}%`;
+  if (coinsVal) coinsVal.textContent = profileData.coins.toLocaleString();
+  if (shopCoinsVal) shopCoinsVal.textContent = profileData.coins.toLocaleString();
+
+  const curSkin = getSkin();
+  if (heroSkinName) heroSkinName.textContent = curSkin.name + (trialSkinId === curSkin.id && !unlockedSkinIds.has(curSkin.id) ? ' (Trial)' : '');
+  if (heroSkinRarity) heroSkinRarity.textContent = `${(curSkin.rarity || 'common').toUpperCase()} SKIN`;
+
+  refreshNavBadges();
+  drawMenuSnakePreview();
+}
+
+let menuPreviewAnimId = 0;
+let menuPreviewPhase = 0;
+
+function drawMenuSnakePreview() {
+  const pCanvas = document.getElementById('menu-snake-canvas');
+  if (!pCanvas) return;
+  const pCtx = pCanvas.getContext('2d');
+  const w = pCanvas.width;
+  const h = pCanvas.height;
+  pCtx.clearRect(0, 0, w, h);
+
+  const skin = getSkin();
+  const pal = skin.palette;
+  menuPreviewPhase += 0.09;
+
+  const segCount = 16;
+  const startX = 36;
+  const endX = w - 46;
+  for (let i = segCount - 1; i >= 0; i--) {
+    const t = i / segCount;
+    const x = endX - t * (endX - startX);
+    const y = h / 2 + Math.sin(menuPreviewPhase - i * 0.45) * 14;
+    const r = Math.max(5, 13 * (1 - t * 0.55));
+    pCtx.beginPath();
+    pCtx.fillStyle = interpolateColor(pal.bodyStart, pal.bodyEnd, t);
+    pCtx.arc(x, y, r, 0, Math.PI * 2);
+    pCtx.fill();
+  }
+  const headY = h / 2 + Math.sin(menuPreviewPhase) * 14;
+  pCtx.beginPath();
+  pCtx.fillStyle = pal.head;
+  pCtx.ellipse(endX + 2, headY, 15, 12, 0, 0, Math.PI * 2);
+  pCtx.fill();
+  for (let s = -1; s <= 1; s += 2) {
+    pCtx.beginPath();
+    pCtx.fillStyle = '#fff';
+    pCtx.arc(endX + 5, headY + s * 6, 3.8, 0, Math.PI * 2);
+    pCtx.fill();
+    pCtx.beginPath();
+    pCtx.fillStyle = pal.eyePupil || '#000';
+    pCtx.arc(endX + 6.2, headY + s * 6, 1.8, 0, Math.PI * 2);
+    pCtx.fill();
+  }
+}
+
+function startMenuPreviewTicker() {
+  if (menuPreviewAnimId) return;
+  const tick = () => {
+    if (!isGameRunning && menuScreenEl && menuScreenEl.style.display !== 'none') {
+      drawMenuSnakePreview();
+    }
+    menuPreviewAnimId = requestAnimationFrame(tick);
+  };
+  menuPreviewAnimId = requestAnimationFrame(tick);
+}
+
+// ---- Extended Mobile Controls & Settings ----
+function applyControlSettingsToDOM() {
+  if (!profileData || !profileData.settings) return;
+  const s = profileData.settings;
+  document.body.classList.toggle('left-handed', Boolean(s.leftHanded));
+  if (joystickEl) {
+    const sizePx = s.joystickSize === 'small' ? 90 : s.joystickSize === 'large' ? 138 : 112;
+    joystickEl.style.width = `${sizePx}px`;
+    joystickEl.style.height = `${sizePx}px`;
+  }
+}
+
+function toggleVibration() {
+  profileData.settings.vibration = !profileData.settings.vibration;
+  if (profileData.settings.vibration) triggerHaptic(22);
+  saveProfileData();
+  updateSettingsUI();
+}
+
+function setControlStyle(style) {
+  profileData.settings.controlStyle = style === 'swipe' ? 'swipe' : 'joystick';
+  saveProfileData();
+  updateSettingsUI();
+}
+
+function setJoystickSensitivity(val) {
+  profileData.settings.joystickSensitivity = Math.max(50, Math.min(160, Number(val) || 100));
+  const lbl = document.getElementById('sens-label');
+  if (lbl) lbl.textContent = `${profileData.settings.joystickSensitivity}%`;
+  saveProfileData();
+}
+
+function setJoystickSize(size) {
+  profileData.settings.joystickSize = ['small', 'medium', 'large'].includes(size) ? size : 'medium';
+  applyControlSettingsToDOM();
+  saveProfileData();
+  updateSettingsUI();
+}
+
+function toggleLeftHanded() {
+  profileData.settings.leftHanded = !profileData.settings.leftHanded;
+  applyControlSettingsToDOM();
+  saveProfileData();
+  updateSettingsUI();
 }
 
 function showSkinUnlockToast(skin) {
@@ -1815,7 +3375,14 @@ function checkPowerupCollection(now = performance.now()) {
       spawnFoodBurst(pu.x, pu.y, pu.color, 8);
       if (snake.isPlayer) {
         sfxRareOrbEat();
+        triggerHaptic(20);
         showPowerupIndicator(pu.icon + ' ' + pu.label);
+        matchPowerupsCollected++;
+        if (profileData) {
+          profileData.stats.totalPowerups = (profileData.stats.totalPowerups || 0) + 1;
+          if (pu.id === 'speed') profileData.stats.totalDashes = (profileData.stats.totalDashes || 0) + 1;
+          recordMissionProgress('powerups', 1);
+        }
       }
       powerups.splice(i, 1);
       break;
@@ -2371,11 +3938,17 @@ function dissolveSnakeIntoFood(snake, rewardMultiplier = 1) {
   return totalReward;
 }
 
-function showKillMessage(bot, reward) {
+function showKillMessage(bot, reward, wasKing = false) {
   playerKillCount++;
+  triggerHaptic(30);
   if (statKillsEl) statKillsEl.textContent = playerKillCount;
+  if (profileData) {
+    profileData.stats.totalKills = (profileData.stats.totalKills || 0) + 1;
+    if (wasKing) profileData.stats.kingKills = (profileData.stats.kingKills || 0) + 1;
+    recordMissionProgress('kills', 1);
+  }
   if (killMessageEl) {
-    killMessageEl.textContent = `You trapped ${bot.name} (+${reward})`;
+    killMessageEl.textContent = `You trapped ${wasKing ? '👑 ' : ''}${bot.name} (+${reward})`;
     killMessageEl.style.opacity = '1';
     clearTimeout(killMessageTimer);
     killMessageTimer = setTimeout(() => { if (killMessageEl) killMessageEl.style.opacity = '0'; }, 2200);
@@ -2388,7 +3961,7 @@ function killBot(bot, killer = null) {
   bot.alive = false;
   bot.respawnTimer = RESPAWN_DELAY_FRAMES;
   const reward = dissolveSnakeIntoFood(bot, bounty ? 2 : 1);
-  if (killer === player) showKillMessage(bot, reward);
+  if (killer === player) showKillMessage(bot, reward, bounty);
   sfxBotDeath();
 }
 
@@ -2410,7 +3983,13 @@ function activateAbility(name) {
   if (!ability) return;
   player.abilityReadyAt[name] = now + ability.cooldown;
   player[`${name}Until`] = now + ability.duration;
+  triggerHaptic(18);
   if (name === 'dash') {
+    matchDashesUsed++;
+    if (profileData) {
+      profileData.stats.totalDashes = (profileData.stats.totalDashes || 0) + 1;
+      recordMissionProgress('dash', 1);
+    }
     for (const enemy of snakeRoster) {
       if (enemy === player || !enemy.alive) continue;
       const dx = toroidDelta(player.x, enemy.x, WORLD_WIDTH);
@@ -2442,17 +4021,102 @@ function updateAbilityButtons(now = performance.now()) {
 
 function handlePlayerDeath() {
   if (!player.alive || isGameOver) return;
-  const bounty = isKingSnake(player);
   player.alive = false;
   isGameOver = true;
   shakeIntensity = 18;
-
-  dissolveSnakeIntoFood(player, bounty ? 2 : 1);
+  triggerHaptic(55);
   sfxPlayerDeath();
+
+  // Offer 1 optional AdMob Revive per match before dissolving and ending the run
+  if (!matchReviveUsed && player.length >= INITIAL_SEGMENTS) {
+    const reviveModal = document.getElementById('revive-modal');
+    const lenPreview = document.getElementById('revive-len-preview');
+    if (lenPreview) lenPreview.textContent = player.length;
+    if (reviveModal) {
+      reviveModal.style.display = 'flex';
+      return;
+    }
+  }
+
+  finalizeGameOver();
+}
+
+function confirmWatchReviveAd() {
+  const reviveModal = document.getElementById('revive-modal');
+  if (reviveModal) reviveModal.style.display = 'none';
+  AdManager.showRewardedAd({
+    placement: 'Revive Snake (Continue Match)',
+    onReward: () => {
+      matchReviveUsed = true;
+      const safePos = findSafeSpawnCoords();
+      player.x = safePos.x;
+      player.y = safePos.y;
+      player.trailWorldX = safePos.x;
+      player.trailWorldY = safePos.y;
+      cameraX = safePos.x;
+      cameraY = safePos.y;
+      for (let i = 0; i < player.segments.length; i++) {
+        player.segments[i].x = safePos.x;
+        player.segments[i].y = wrap(safePos.y + i * SEGMENT_SPACING, WORLD_HEIGHT);
+      }
+      player.alive = true;
+      isGameOver = false;
+      player.protectedUntil = performance.now() + 3200;
+      lastLoopFrameTime = performance.now();
+      fixedStepAccumulator = 0;
+      sfxReward();
+      showGlobalToast('Snake Revived! 3s Spawn Shield Active');
+      ensureGameLoop();
+    },
+    onDismiss: () => {
+      finalizeGameOver();
+    }
+  });
+}
+
+function declineRevive() {
+  const reviveModal = document.getElementById('revive-modal');
+  if (reviveModal) reviveModal.style.display = 'none';
+  finalizeGameOver();
+}
+
+function finalizeGameOver() {
+  const bounty = isKingSnake(player);
+  dissolveSnakeIntoFood(player, bounty ? 2 : 1);
 
   const prevBestTime = getBestTime(currentDifficulty);
   const prevBestLength = getBestLength(currentDifficulty);
   saveBestRecords(currentDifficulty, survivalSeconds, player.length);
+
+  // Calculate final score, coins, and XP
+  const allSnakes = leaderboardOrder.slice().sort((a, b) => b.length - a.length);
+  const finalRank = Math.max(1, allSnakes.findIndex(s => s.isPlayer) + 1);
+  const diffMul = currentDifficulty === 'hard' ? 1.35 : currentDifficulty === 'easy' ? 0.85 : 1.0;
+
+  matchScore = Math.round((player.length * 15 + survivalSeconds * 6 + playerKillCount * 120 + matchFoodEaten * 4) * diffMul);
+  matchCoinsEarned = Math.max(5, Math.round(8 + survivalSeconds * 0.35 + playerKillCount * 14 + Math.max(0, player.length - INITIAL_SEGMENTS) * 0.5));
+  matchXpEarned = Math.max(12, Math.round(20 + survivalSeconds * 0.7 + playerKillCount * 25 + matchFoodEaten * 0.8));
+  matchDoubleClaimed = false;
+
+  if (profileData) {
+    profileData.stats.totalMatches = (profileData.stats.totalMatches || 0) + 1;
+    profileData.stats.bestScore = Math.max(profileData.stats.bestScore || 0, matchScore);
+    profileData.stats.bestSurvivalTime = Math.max(profileData.stats.bestSurvivalTime || 0, survivalSeconds);
+    profileData.stats.highestLength = Math.max(profileData.stats.highestLength || INITIAL_SEGMENTS, player.length);
+    recordMissionProgress('survive', survivalSeconds, false);
+    recordMissionProgress('single_survive', survivalSeconds, true);
+    recordMissionProgress('max_length', player.length, true);
+    addCoins(matchCoinsEarned);
+    addXp(matchXpEarned);
+  }
+
+  // Expire 1-match skin trial if used
+  if (trialSkinId && !unlockedSkinIds.has(trialSkinId)) {
+    trialSkinId = null;
+    selectedSkinId = safeStorageGet(SELECTED_SKIN_KEY) || 'classic';
+    if (!unlockedSkinIds.has(selectedSkinId)) selectedSkinId = 'classic';
+  }
+
   const newBestBadge = document.getElementById('new-best-badge');
   if (newBestBadge) {
     const isNewBest = (survivalSeconds > prevBestTime && survivalSeconds > 0) || player.length > prevBestLength;
@@ -2460,6 +4124,25 @@ function handlePlayerDeath() {
   }
   const bestT = getBestTime(currentDifficulty);
   const bestL = getBestLength(currentDifficulty);
+
+  const elScore = document.getElementById('final-score');
+  const elRank = document.getElementById('final-rank');
+  const elKills = document.getElementById('final-kills');
+  const elFood = document.getElementById('final-food');
+  const elCoins = document.getElementById('final-coins');
+  const elXp = document.getElementById('final-xp');
+  const dblBtn = document.getElementById('double-coins-btn');
+
+  if (elScore) elScore.textContent = matchScore.toLocaleString();
+  if (elRank) elRank.textContent = `#${finalRank}`;
+  if (elKills) elKills.textContent = playerKillCount;
+  if (elFood) elFood.textContent = matchFoodEaten;
+  if (elCoins) elCoins.textContent = `+${matchCoinsEarned}`;
+  if (elXp) elXp.textContent = `+${matchXpEarned} XP`;
+  if (dblBtn) {
+    dblBtn.disabled = false;
+    dblBtn.textContent = `▶ DOUBLE YOUR REWARDS (+${matchCoinsEarned} Extra Coins)`;
+  }
 
   finalTimeEl.textContent = formatTime(survivalSeconds);
   bestTimeEl.textContent = formatTime(bestT);
@@ -2469,6 +4152,27 @@ function handlePlayerDeath() {
     cardDiffLabel.textContent = currentDifficulty.charAt(0).toUpperCase() + currentDifficulty.slice(1);
   }
   overlayEl.style.display = 'flex';
+  AdManager.maybeShowInterstitialAfterMatch();
+}
+
+function watchDoubleCoinsAd() {
+  if (matchDoubleClaimed || matchCoinsEarned <= 0) return;
+  AdManager.showRewardedAd({
+    placement: `Double Match Coins (+${matchCoinsEarned} Coins)`,
+    onReward: () => {
+      matchDoubleClaimed = true;
+      addCoins(matchCoinsEarned);
+      sfxReward();
+      const elCoins = document.getElementById('final-coins');
+      const dblBtn = document.getElementById('double-coins-btn');
+      if (elCoins) elCoins.textContent = `+${matchCoinsEarned * 2} (2x!)`;
+      if (dblBtn) {
+        dblBtn.disabled = true;
+        dblBtn.textContent = '✓ 2x Coins Claimed!';
+      }
+      showGlobalToast(`Doubled! +${matchCoinsEarned} Bonus Coins Added`);
+    }
+  });
 }
 
 function checkAllCollisions() {
@@ -2533,6 +4237,11 @@ function checkFoodConsumptionAll() {
           snake.length += growth;
           if (snake.isPlayer) {
             sfxEat();
+            matchFoodEaten += growth;
+            if (profileData) {
+              profileData.stats.totalFoodEaten = (profileData.stats.totalFoodEaten || 0) + growth;
+              recordMissionProgress('food', growth);
+            }
             if (orb.isDeathDrop) pushFloatingText(snake.x, snake.y, `+${growth}`);
             if (statLengthEl) statLengthEl.textContent = snake.length;
           }
@@ -2553,7 +4262,15 @@ function checkFoodConsumptionAll() {
       snake.lastTrailSampleAt = 0;
       spawnFoodBurst(eatenOrb.x, eatenOrb.y, '#fff1b8', 4);
       sfxRareOrbEat();
-      if (snake.isPlayer && statLengthEl) statLengthEl.textContent = snake.length;
+      if (snake.isPlayer) {
+        triggerHaptic(22);
+        matchFoodEaten += 3;
+        if (profileData) {
+          profileData.stats.totalFoodEaten = (profileData.stats.totalFoodEaten || 0) + 3;
+          recordMissionProgress('food', 3);
+        }
+        if (statLengthEl) statLengthEl.textContent = snake.length;
+      }
     }
   }
 
@@ -2616,9 +4333,11 @@ function update(stepMs = FIXED_STEP_MS) {
   if (player.alive) {
     if (joystick.active) {
       if (joystick.hasDirection) {
+        const sensMul = (profileData && profileData.settings ? (profileData.settings.joystickSensitivity || 100) : 100) / 100;
+        const isSwipe = profileData && profileData.settings && profileData.settings.controlStyle === 'swipe';
         player.targetAngle = Math.atan2(joystick.dy, joystick.dx);
         const diff = angleDifference(player.angle, player.targetAngle);
-        const maxTurn = TOUCH_MAX_TURN_RATE * frameSeconds;
+        const maxTurn = (isSwipe ? TOUCH_MAX_TURN_RATE * 1.45 : TOUCH_MAX_TURN_RATE) * sensMul * frameSeconds;
         player.angle += Math.sign(diff) * Math.min(Math.abs(diff), maxTurn);
       } else {
         player.targetAngle = player.angle;
@@ -2696,8 +4415,8 @@ function applyDifficultySpeeds() {
 function startGame() {
   initAudio();
   menuScreenEl.style.display = 'none';
-  if (skinsScreenEl) skinsScreenEl.style.display = 'none';
-  if (settingsScreenEl) settingsScreenEl.style.display = 'none';
+  document.querySelectorAll('.subscreen').forEach(el => { el.style.display = 'none'; });
+  activeSubscreenId = null;
   hudEl.style.display = 'flex';
   lbEl.style.display = 'block';
   isGameRunning = true;
@@ -2721,6 +4440,8 @@ function goHome() {
   powerups.length = 0;
   if (powerupIndicatorEl) powerupIndicatorEl.style.display = 'none';
   if (rareIndicatorEl) rareIndicatorEl.style.display = 'none';
+  const reviveModal = document.getElementById('revive-modal');
+  if (reviveModal) reviveModal.style.display = 'none';
   keys.left = false;
   keys.right = false;
   mouse.active = false;
@@ -2732,22 +4453,33 @@ function goHome() {
   overlayEl.style.display = 'none';
   hudEl.style.display = 'none';
   lbEl.style.display = 'none';
+  document.querySelectorAll('.subscreen').forEach(el => { el.style.display = 'none'; });
+  activeSubscreenId = null;
   menuScreenEl.style.display = 'flex';
-  if (skinsScreenEl) skinsScreenEl.style.display = 'none';
-  if (settingsScreenEl) settingsScreenEl.style.display = 'none';
   updateMenuRecordsDisplay();
+  refreshMenuHeaderUI();
 }
 
 window.handleAndroidBack = function () {
-  if (settingsScreenEl && settingsScreenEl.style.display === 'flex') {
-    closeSettings();
+  const confirmModal = document.getElementById('confirm-modal');
+  if (confirmModal && confirmModal.style.display === 'flex') {
+    if (!AdManager.adInProgress) closeConfirmModal();
     return true;
   }
-  if (skinsScreenEl && skinsScreenEl.style.display === 'flex') {
-    closeSkins();
+  const reviveModal = document.getElementById('revive-modal');
+  if (reviveModal && reviveModal.style.display === 'flex') {
+    declineRevive();
     return true;
   }
-  if (isGameRunning || isPaused || isGameOver) {
+  if (activeSubscreenId) {
+    closeSubscreen();
+    return true;
+  }
+  if (isGameRunning && !isPaused && !isGameOver) {
+    togglePause();
+    return true;
+  }
+  if (isPaused || isGameOver) {
     goHome();
     return true;
   }
@@ -2838,7 +4570,8 @@ function initInput() {
     joystick.dy = 0;
     joystick.hasDirection = false;
     player.targetAngle = player.angle;
-    if (joystickEl) {
+    const isSwipe = profileData && profileData.settings && profileData.settings.controlStyle === 'swipe';
+    if (joystickEl && !isSwipe) {
       joystickEl.style.left = `${e.clientX}px`;
       joystickEl.style.top = `${e.clientY}px`;
       joystickEl.style.display = 'block';
@@ -2857,12 +4590,17 @@ function initInput() {
     if (joystick.hasDirection) {
       joystick.dx = dx;
       joystick.dy = dy;
+      if (profileData && profileData.settings && profileData.settings.controlStyle === 'swipe' && distance > 42) {
+        joystick.originX = e.clientX - (dx / distance) * 24;
+        joystick.originY = e.clientY - (dy / distance) * 24;
+      }
     } else {
       joystick.dx = 0;
       joystick.dy = 0;
       player.targetAngle = player.angle;
     }
-    const thumbDistance = Math.min(36, distance);
+    const maxRadius = profileData && profileData.settings && profileData.settings.joystickSize === 'large' ? 46 : (profileData && profileData.settings && profileData.settings.joystickSize === 'small' ? 28 : 36);
+    const thumbDistance = Math.min(maxRadius, distance);
     const thumbX = distance ? dx / distance * thumbDistance : 0;
     const thumbY = distance ? dy / distance * thumbDistance : 0;
     if (joystickThumbEl) joystickThumbEl.style.transform = `translate(${thumbX}px, ${thumbY}px)`;
@@ -2881,14 +4619,6 @@ function initInput() {
   canvas.addEventListener('pointerup', stopTouchSteering);
   canvas.addEventListener('pointercancel', stopTouchSteering);
   canvas.addEventListener('lostpointercapture', stopTouchSteering);
-
-  overlayEl.addEventListener('click', () => {
-    if (isGameOver) restartGame();
-  });
-
-  pauseOverlayEl.addEventListener('click', () => {
-    if (isPaused) togglePause();
-  });
 }
 
 function onResize() {
@@ -2920,6 +4650,8 @@ function initSnake() {
   powerups.length = 0;
   if (powerupIndicatorEl) powerupIndicatorEl.style.display = 'none';
   if (rareIndicatorEl) rareIndicatorEl.style.display = 'none';
+  const reviveModal = document.getElementById('revive-modal');
+  if (reviveModal) reviveModal.style.display = 'none';
   player.angle = -Math.PI / 2;
   player.targetAngle = -Math.PI / 2;
   player.length = INITIAL_SEGMENTS;
@@ -2934,6 +4666,14 @@ function initSnake() {
   player.dashUntil = 0;
   player.abilityReadyAt = { ghost: 0, magnet: 0, dash: 0 };
   playerKillCount = 0;
+  matchFoodEaten = 0;
+  matchPowerupsCollected = 0;
+  matchDashesUsed = 0;
+  matchCoinsEarned = 0;
+  matchXpEarned = 0;
+  matchScore = 0;
+  matchReviveUsed = false;
+  matchDoubleClaimed = false;
   floatingTexts.length = 0;
   if (statKillsEl) statKillsEl.textContent = '0';
   
@@ -3930,6 +5670,7 @@ window.addEventListener('DOMContentLoaded', () => {
   powerupIndicatorEl = document.getElementById('powerup-indicator');
 
   isMuted = localStorage.getItem('neonSerpents_muted') === '1';
+  loadProfileData();
   if (muteBtnEl) muteBtnEl.textContent = isMuted ? '🔇' : '🔊';
 
   onResize();
@@ -3941,6 +5682,9 @@ window.addEventListener('DOMContentLoaded', () => {
   initBots();
   updateMenuRecordsDisplay();
   renderSkinMenu();
+  refreshMenuHeaderUI();
+  startMenuPreviewTicker();
+  AdManager.init();
 });
 </script>
 </body>

@@ -4,4 +4,6 @@
     <string name="title_activity_main">Serpent Run</string>
     <string name="package_name">com.muneeb.neonserpents</string>
     <string name="custom_url_scheme">com.muneeb.neonserpents</string>
+    <!-- Official Google AdMob Test App ID (Replace with your production AdMob App ID before Play Store release) -->
+    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>
 </resources>

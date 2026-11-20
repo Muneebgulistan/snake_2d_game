@@ -1,4 +1,4 @@
-# Google Play listing draft
+# Google Play listing & release checklist — Serpent Run
 
 ## App name
 
@@ -6,33 +6,34 @@ Serpent Run
 
 ## Short description
 
-Collect food, grow longer, and survive in a fast, easy-to-play snake game.
+Steer, grow, unlock 16 custom snake skins, and outsmart 50 AI serpents!
 
 ## Full description
 
-Play Serpent Run, a clean and responsive snake survival game. Guide your snake through a wraparound arena, collect food to grow, and avoid the other snakes for as long as you can.
+Dive into **Serpent Run**, a fast-paced 2D arcade snake survival game built for smooth mobile play. Steer through a massive wraparound underwater arena, collect food and power-ups, trigger tactical abilities, and trap rival AI serpents to claim the crown!
 
-**Features**
+**Key Features**
 
-- Smooth, real-time steering with touch controls
-- AI controlled rival snakes
-- Three speed settings: Easy, Normal, and Hard
-- A live arena leaderboard
-- Pause and home controls, sound settings, and best-run records saved on your device
-- Play offline; no account required
+- **50 AI Rivals with 4 Tactical Personalities:** Outmaneuver Hunter, Encircler, Opportunist, and Scavenger snakes across Easy, Normal, and Hard difficulties.
+- **3 Active Abilities & Map Power-Ups:** Phase through danger with **Ghost**, pull in nearby orbs with **Magnet**, or blast rivals back with **Dash**, plus collect random Speed & Magnet map drops.
+- **16 Custom-Anatomy Snake Skins:** Collect Common, Rare, Epic, and Legendary skins—including King Cobra (flared hood), Reticulated Python (labial heat pits), Emerald Tree Boa, Coral Snake, Diamondback, Black Mamba, Sea Krait, Cyber Neon, and Golden Dragon. All skins are 100% cosmetic with identical hitboxes.
+- **Full Progression & Coin Economy:** Earn XP, level up, complete rotating Daily Missions, claim 7-Day Login Rewards, and unlock 12 Career Achievements.
+- **Dynamic Arena Events:** Battle for the high-reward center Danger Zone, hunt Rare Glow Orbs, and dethrone the crowned #1 King Snake for double loot.
+- **Customizable Mobile Controls:** Choose between Virtual Joystick or Direct Drag/Swipe steering, adjust sensitivity and joystick size, enable Left-Handed mode, and toggle haptic vibration.
+- **Play Offline Anytime:** Core gameplay and local save progression work completely offline with no account required.
 
-Touch and drag to steer. Use pause to take a break or home to return to the menu.
+## Declarations to complete in Google Play Console
 
-## Declarations to complete in Play Console
+- **Ads Declaration:** Select **"Yes, my app contains ads"** when publishing with Google AdMob enabled. Ads only appear outside active gameplay (optional rewarded videos for Revive / 2x Coins / Bonus Chest / Skin Trial, frequency-capped interstitials between matches, and menu banners).
+- **Data Safety Form:**
+  - *Local Game Data:* Stored solely in on-device `localStorage` (not transmitted off device).
+  - *Google Mobile Ads (AdMob) SDK:* When `@capacitor-community/admob` is enabled in production, declare collection/sharing of **Device or other IDs** (Advertising ID), **Approximate Location** (from IP address), **App interactions**, and **Diagnostics** for Advertising/Marketing, Analytics, and Fraud Prevention per Google's official [AdMob Data Safety guide](https://developers.google.com/admob/android/privacy/play-data-disclosure).
+- **App Access:** All core features are accessible without sign-in.
+- **Privacy Policy:** Publish `src/game/privacy-policy.html` at a public HTTPS URL and enter that URL in Play Console → App Content → Privacy Policy.
+- **In-App Purchases (Optional Remove Ads):** Create managed product ID `com.muneeb.neonserpents.remove_ads` in Play Console when enabling live Google Play Billing.
 
-- Ads: the current build contains no ads.
-- Data safety: game records and sound preference are stored locally and are not sent off the device; verify this remains accurate for the final package and its dependencies.
-- App access: no sign-in is required.
-- Privacy policy: publish `src/game/privacy-policy.html` at a public HTTPS address and enter that address in the listing.
-- Content rating and target audience: complete the Play Console questionnaires for the intended audience and final build.
+## Store artwork checklist
 
-## Store artwork still needed
-
-- The 512 × 512 store icon is `assets/play-store-icon.png`.
-- Capture genuine gameplay screenshots from the Android app on supported phone and tablet layouts.
-- Create the feature graphic in Play Console's required dimensions.
+- 512 × 512 high-res icon: `assets/play-store-icon.png` (and 1024 × 1024 source in `assets/play-store-icon-1024.png`).
+- Capture 4–8 genuine 16:9 or 9:16 screenshots showing the Main Menu, Skin Collection, Active Arena Gameplay (King Crown + Abilities), and Game Over summary.
+- Upload a 1024 × 500 Feature Graphic in Play Console.
