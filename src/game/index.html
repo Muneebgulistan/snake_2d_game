@@ -8,29 +8,32 @@
 <title>Serpent Run</title>
 <style>
   /* ============================================================
-     SERPENT RUN — UI v2 design system
+     SERPENT RUN — NEON ABYSS DESIGN SYSTEM (v3.0)
      ============================================================ */
   :root {
     color-scheme: dark;
-    --bg-0: #05080f;
-    --bg-1: #0a1020;
-    --panel: rgba(13, 20, 36, 0.78);
-    --panel-solid: #0f172a;
-    --panel-2: rgba(30, 41, 59, 0.6);
-    --line: rgba(148, 163, 184, 0.16);
-    --line-strong: rgba(148, 163, 184, 0.3);
-    --text: #f1f5f9;
-    --text-dim: #94a3b8;
-    --text-faint: #64748b;
-    --accent: #34d399;
-    --accent-2: #22d3ee;
-    --accent-ink: #022c22;
-    --gold: #fbbf24;
-    --danger: #fb7185;
+    --bg-0: #080D18;
+    --bg-1: #0C1422;
+    --panel: rgba(17, 27, 45, 0.90);
+    --panel-solid: #111B2D;
+    --panel-2: #18243A;
+    --line: #26364F;
+    --line-strong: #364B6E;
+    --text: #F5F7FF;
+    --text-dim: #A7B4C9;
+    --text-faint: #71819A;
+    --accent: #00F5A0;
+    --accent-2: #00D9FF;
+    --rare-blue: #3B82F6;
+    --purple: #A855F7;
+    --pink: #FF477E;
+    --accent-ink: #041E15;
+    --gold: #FFB020;
+    --danger: #F43F5E;
     --radius: 14px;
     --radius-sm: 10px;
     --font: 'Inter', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
-    --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    --shadow: 0 12px 32px rgba(4, 8, 16, 0.55);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -435,43 +438,156 @@
   }
   .nav-badge.show { display: grid; }
 
-  /* ---------- Rarity Badges & Filters ---------- */
+  /* ---------- Rarity Badges & Filters (Neon Abyss 6 Skin Tiers + 5 Achievement Tiers) ---------- */
   .rarity-badge {
     font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em;
-    padding: 2px 7px; border-radius: 6px;
+    padding: 2px 7px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;
   }
-  .rarity-common { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; }
-  .rarity-rare { background: rgba(56, 189, 248, 0.18); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.35); }
-  .rarity-epic { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.4); }
-  .rarity-legendary { background: rgba(251, 191, 36, 0.2); color: #fde68a; border: 1px solid rgba(251, 191, 36, 0.5); }
+  .rarity-common { background: rgba(0, 245, 160, 0.14); color: #00F5A0; border: 1px solid rgba(0, 245, 160, 0.35); }
+  .rarity-uncommon { background: rgba(0, 217, 255, 0.14); color: #00D9FF; border: 1px solid rgba(0, 217, 255, 0.38); }
+  .rarity-rare { background: rgba(59, 130, 246, 0.18); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.45); }
+  .rarity-epic { background: rgba(168, 85, 247, 0.18); color: #C084FC; border: 1px solid rgba(168, 85, 247, 0.48); box-shadow: 0 0 10px rgba(168, 85, 247, 0.15); }
+  .rarity-legendary { background: rgba(255, 176, 32, 0.18); color: #FFB020; border: 1px solid rgba(255, 176, 32, 0.55); box-shadow: 0 0 12px rgba(255, 176, 32, 0.18); }
+  .rarity-mythic { background: rgba(255, 71, 126, 0.20); color: #FF477E; border: 1px solid rgba(255, 71, 126, 0.60); box-shadow: 0 0 14px rgba(255, 71, 126, 0.25); }
+
+  /* Achievement Rarity Tiers */
+  .ach-rarity-bronze { background: rgba(217, 119, 6, 0.16); color: #F59E0B; border: 1px solid rgba(217, 119, 6, 0.45); }
+  .ach-rarity-silver { background: rgba(167, 180, 201, 0.18); color: #E2E8F0; border: 1px solid rgba(167, 180, 201, 0.45); }
+  .ach-rarity-gold { background: rgba(255, 176, 32, 0.18); color: #FFB020; border: 1px solid rgba(255, 176, 32, 0.55); }
+  .ach-rarity-diamond { background: rgba(0, 217, 255, 0.18); color: #00D9FF; border: 1px solid rgba(0, 217, 255, 0.55); }
+  .ach-rarity-mythic { background: rgba(255, 71, 126, 0.20); color: #FF477E; border: 1px solid rgba(255, 71, 126, 0.60); }
 
   .filter-bar {
-    width: min(100%, 660px);
+    width: min(100%, 680px);
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
     justify-content: center;
   }
   .filter-pill {
-    padding: 6px 13px; border-radius: 999px; border: 1px solid var(--line);
-    background: rgba(15, 23, 42, 0.65); color: var(--text-dim);
-    font-size: 12px; font-weight: 800; cursor: pointer;
+    padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--panel-solid); color: var(--text-dim);
+    font-size: 11px; font-weight: 800; cursor: pointer;
+    transition: all 0.15s ease;
   }
-  .filter-pill.active { background: rgba(52, 211, 153, 0.18); border-color: var(--accent); color: #ecfdf5; }
+  .filter-pill:hover { border-color: var(--line-strong); color: var(--text); }
+  .filter-pill.active { background: rgba(0, 217, 255, 0.16); border-color: var(--accent-2); color: var(--text); box-shadow: 0 0 12px rgba(0, 217, 255, 0.18); }
+
+  /* ---------- Skin Shop Showcase Hero & Search ---------- */
+  .shop-showcase-card {
+    width: min(100%, 680px);
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: linear-gradient(145deg, rgba(24, 36, 58, 0.92), rgba(17, 27, 45, 0.96));
+    border: 1px solid var(--line-strong);
+    box-shadow: var(--shadow);
+    text-align: left;
+    align-items: center;
+  }
+  #shop-showcase-canvas {
+    width: 200px;
+    height: 110px;
+    border-radius: 14px;
+    background: radial-gradient(circle at 50% 50%, rgba(0, 217, 255, 0.10), rgba(8, 13, 24, 0.9));
+    border: 1px solid var(--line);
+    display: block;
+  }
+  .showcase-details { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .showcase-top-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .showcase-name { font-size: 18px; font-weight: 900; color: var(--text); }
+  .showcase-cat-tag {
+    font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 2px 8px; border-radius: 6px; background: rgba(24, 36, 58, 0.9); color: var(--accent-2); border: 1px solid var(--line);
+  }
+  .showcase-desc { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+  .showcase-req-wrap {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 7px 10px; border-radius: 10px; background: rgba(8, 13, 24, 0.65); border: 1px solid var(--line);
+  }
+  .showcase-req-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: var(--text-dim); }
+  .showcase-bar { width: 100%; height: 6px; border-radius: 999px; background: rgba(8, 13, 24, 0.9); overflow: hidden; }
+  .showcase-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: 999px; transition: width 0.25s ease; }
+
+  .shop-toolbar {
+    width: min(100%, 680px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .skin-search-input {
+    flex: 1;
+    min-width: 170px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--panel-solid);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    outline: none;
+  }
+  .skin-search-input:focus { border-color: var(--accent-2); box-shadow: 0 0 10px rgba(0, 217, 255, 0.2); }
 
   .skin-actions-row { display: flex; gap: 6px; margin-top: 4px; }
   .skin-act-btn {
     flex: 1; min-height: 34px; padding: 5px 8px; border-radius: 9px;
-    border: 1px solid var(--line-strong); background: rgba(30, 41, 59, 0.85);
+    border: 1px solid var(--line-strong); background: var(--panel-2);
     color: var(--text); font-size: 11px; font-weight: 800; cursor: pointer;
+    transition: transform 0.1s ease, filter 0.15s ease;
   }
-  .skin-act-btn.buy { background: rgba(251, 191, 36, 0.18); border-color: rgba(251, 191, 36, 0.55); color: #fde68a; }
-  .skin-act-btn.trial { background: rgba(34, 211, 238, 0.15); border-color: rgba(34, 211, 238, 0.45); color: #a5f3fc; }
-  .skin-act-btn.equip { background: rgba(52, 211, 153, 0.2); border-color: var(--accent); color: #a7f3d0; }
+  .skin-act-btn:hover { filter: brightness(1.12); }
+  .skin-act-btn:active { transform: scale(0.96); }
+  .skin-act-btn.buy { background: rgba(255, 176, 32, 0.16); border-color: rgba(255, 176, 32, 0.55); color: #FFB020; }
+  .skin-act-btn.trial { background: rgba(0, 217, 255, 0.14); border-color: rgba(0, 217, 255, 0.45); color: #00D9FF; }
+  .skin-act-btn.equip { background: rgba(0, 245, 160, 0.18); border-color: var(--accent); color: #00F5A0; }
+
+  /* ---------- Tier Tabs (Missions & Categories) ---------- */
+  .tier-tabs {
+    width: min(100%, 680px);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .tier-tab-btn {
+    min-height: 44px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--panel-solid);
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+  }
+  .tier-tab-btn.active[data-tier="daily"] {
+    background: rgba(0, 217, 255, 0.15); border-color: var(--accent-2); color: var(--text);
+    box-shadow: 0 0 16px rgba(0, 217, 255, 0.18);
+  }
+  .tier-tab-btn.active[data-tier="weekly"] {
+    background: rgba(168, 85, 247, 0.18); border-color: var(--purple); color: #E9D5FF;
+    box-shadow: 0 0 16px rgba(168, 85, 247, 0.22);
+  }
+  .tier-tab-btn.active[data-tier="elite"] {
+    background: rgba(255, 71, 126, 0.18); border-color: var(--pink); color: #FFE4E6;
+    box-shadow: 0 0 16px rgba(255, 71, 126, 0.25);
+  }
 
   /* ---------- Missions, Achievements & Rewards Lists ---------- */
   .card-list {
-    width: min(100%, 660px);
+    width: min(100%, 680px);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -481,26 +597,157 @@
     padding: 14px 16px; border-radius: 16px;
     background: var(--panel); border: 1px solid var(--line);
     text-align: left;
+    transition: border-color 0.15s ease, transform 0.15s ease;
   }
+  .mission-card.ready-claim { border-color: var(--accent); box-shadow: 0 0 18px rgba(0, 245, 160, 0.16); }
+  .mission-card.tier-weekly { border-left: 3px solid var(--purple); }
+  .mission-card.tier-elite { border-left: 3px solid var(--pink); }
+  .mission-card.tier-daily { border-left: 3px solid var(--accent-2); }
   .mission-info { flex: 1; min-width: 0; }
-  .mission-title { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 2px; }
-  .mission-desc { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
+  .mission-head-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 3px; }
+  .mission-title { font-size: 14px; font-weight: 800; color: var(--text); }
+  .mission-desc { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; line-height: 1.35; }
   .mission-prog-wrap { display: flex; align-items: center; gap: 10px; }
-  .mission-bar { flex: 1; height: 7px; border-radius: 999px; background: rgba(2, 6, 23, 0.7); overflow: hidden; }
-  .mission-bar-fill { height: 100%; background: linear-gradient(90deg, #34d399, #22d3ee); border-radius: 999px; }
+  .mission-bar { flex: 1; height: 7px; border-radius: 999px; background: rgba(8, 13, 24, 0.8); overflow: hidden; border: 1px solid rgba(38, 54, 79, 0.6); }
+  .mission-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: 999px; transition: width 0.25s ease; }
+  .mission-card.tier-weekly .mission-bar-fill { background: linear-gradient(90deg, var(--purple), var(--accent-2)); }
+  .mission-card.tier-elite .mission-bar-fill { background: linear-gradient(90deg, var(--pink), var(--gold)); }
   .mission-count { font-size: 11px; font-weight: 800; color: var(--text-faint); font-variant-numeric: tabular-nums; }
   .mission-reward-col { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
-  .reward-tag { font-size: 11px; font-weight: 800; color: var(--gold); background: rgba(251, 191, 36, 0.12); padding: 3px 8px; border-radius: 8px; }
+  .reward-tag { font-size: 11px; font-weight: 800; color: var(--gold); background: rgba(255, 176, 32, 0.13); border: 1px solid rgba(255, 176, 32, 0.32); padding: 3px 8px; border-radius: 8px; }
+  .reward-bonus-tag { font-size: 10px; font-weight: 800; color: var(--pink); background: rgba(255, 71, 126, 0.14); border: 1px solid rgba(255, 71, 126, 0.35); padding: 2px 7px; border-radius: 6px; }
   .claim-btn {
     min-height: 36px; padding: 6px 14px; border-radius: 10px; border: none;
-    background: linear-gradient(135deg, #34d399, #22d3ee); color: #022c22;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: var(--accent-ink);
     font-size: 12px; font-weight: 900; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 245, 160, 0.25);
+    transition: transform 0.12s ease, filter 0.12s ease;
   }
-  .claim-btn:disabled { background: rgba(30, 41, 59, 0.7); color: var(--text-faint); border: 1px solid var(--line); cursor: default; }
+  .claim-btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+  .claim-btn:active:not(:disabled) { transform: scale(0.96); }
+  .claim-btn:disabled { background: var(--panel-2); color: var(--text-faint); border: 1px solid var(--line); box-shadow: none; cursor: default; }
+
+  /* ---------- Achievement Summary Header ---------- */
+  .ach-overview-bar {
+    width: min(100%, 680px);
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: var(--panel-solid);
+    border: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+  }
+  .ach-overview-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .ach-badge-icon {
+    width: 38px; height: 38px; border-radius: 12px;
+    display: grid; place-items: center; flex: none;
+    font-size: 18px; font-weight: 900;
+    background: var(--panel-2); border: 1px solid var(--line-strong);
+  }
+
+  /* ---------- Non-Intrusive In-Game Quest / Achievement Toast ---------- */
+  #ingame-quest-toast {
+    position: fixed;
+    top: max(58px, calc(env(safe-area-inset-top) + 46px));
+    left: 50%;
+    transform: translateX(-50%) translateY(-16px);
+    z-index: 88;
+    pointer-events: none;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgba(17, 27, 45, 0.94);
+    border: 1px solid var(--accent);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(0, 245, 160, 0.25);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 800;
+    opacity: 0;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+  #ingame-quest-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  #ingame-quest-toast .qt-tag {
+    padding: 2px 7px; border-radius: 999px;
+    background: rgba(0, 245, 160, 0.2); color: var(--accent);
+    font-size: 10px; font-weight: 900; text-transform: uppercase;
+  }
+
+  /* ---------- Skippable Animated Reward Reveal Modal ---------- */
+  #reward-reveal-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 98;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8, 13, 24, 0.86);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 20px;
+    cursor: pointer;
+  }
+  #reward-particle-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .reward-reveal-card {
+    position: relative;
+    z-index: 2;
+    width: min(100%, 380px);
+    padding: 26px 22px 22px;
+    border-radius: 24px;
+    background: linear-gradient(160deg, #18243A 0%, #111B2D 100%);
+    border: 2px solid var(--gold);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75), 0 0 36px rgba(255, 176, 32, 0.28);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+    animation: rewardPopIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes rewardPopIn {
+    0% { transform: scale(0.78); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .reward-reveal-icon {
+    width: 68px; height: 68px; border-radius: 20px;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 176, 32, 0.32), rgba(168, 85, 247, 0.18));
+    border: 1px solid rgba(255, 176, 32, 0.65);
+    display: grid; place-items: center;
+    font-size: 32px;
+    box-shadow: 0 0 24px rgba(255, 176, 32, 0.3);
+  }
+  .reward-reveal-type {
+    font-size: 11px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent-2);
+  }
+  .reward-reveal-title { font-size: 24px; font-weight: 900; color: var(--text); line-height: 1.15; }
+  .reward-reveal-sub { font-size: 13px; color: var(--text-dim); line-height: 1.45; }
+  .reward-items-row {
+    display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;
+    margin: 4px 0;
+  }
+  .reward-pill-item {
+    padding: 7px 14px; border-radius: 12px;
+    background: rgba(8, 13, 24, 0.75); border: 1px solid var(--line-strong);
+    font-size: 14px; font-weight: 900; color: var(--gold);
+  }
+  .reward-skip-hint { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
 
   /* ---------- Daily 7-Day Grid ---------- */
   .daily-grid {
-    width: min(100%, 660px);
+    width: min(100%, 680px);
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 10px;
@@ -511,9 +758,9 @@
     display: flex; flex-direction: column; align-items: center; gap: 6px;
     position: relative;
   }
-  .day-card.day-7 { grid-column: span 2; background: linear-gradient(135deg, rgba(251, 191, 36, 0.16), rgba(16, 185, 129, 0.16)); border-color: rgba(251, 191, 36, 0.5); }
-  .day-card.claimed { opacity: 0.55; border-color: rgba(52, 211, 153, 0.4); }
-  .day-card.active-day { border-color: var(--gold); box-shadow: 0 0 22px rgba(251, 191, 36, 0.22); }
+  .day-card.day-7 { grid-column: span 2; background: linear-gradient(135deg, rgba(255, 176, 32, 0.16), rgba(0, 245, 160, 0.16)); border-color: rgba(255, 176, 32, 0.5); }
+  .day-card.claimed { opacity: 0.55; border-color: rgba(0, 245, 160, 0.4); }
+  .day-card.active-day { border-color: var(--gold); box-shadow: 0 0 22px rgba(255, 176, 32, 0.22); }
   .day-num { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-faint); }
   .day-val { font-size: 14px; font-weight: 900; color: var(--text); }
   .day-sub { font-size: 11px; color: var(--gold); font-weight: 700; }
@@ -525,8 +772,8 @@
     margin-top: auto;
     padding: 6px 12px;
     border-radius: 10px;
-    background: rgba(2, 6, 23, 0.75);
-    border: 1px dashed rgba(148, 163, 184, 0.25);
+    background: rgba(8, 13, 24, 0.78);
+    border: 1px dashed var(--line-strong);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -535,8 +782,8 @@
     color: var(--text-dim);
   }
   .ad-badge-pill {
-    padding: 2px 6px; border-radius: 4px; background: rgba(251, 191, 36, 0.2);
-    color: #fde68a; font-size: 9px; font-weight: 900; text-transform: uppercase;
+    padding: 2px 6px; border-radius: 4px; background: rgba(255, 176, 32, 0.2);
+    color: #FFB020; font-size: 9px; font-weight: 900; text-transform: uppercase;
   }
 
   /* ---------- Modals (Revive & Confirmation & Interstitial Test) ---------- */
@@ -544,7 +791,7 @@
     z-index: 95;
     display: none;
     justify-content: center;
-    background: rgba(2, 6, 23, 0.84);
+    background: rgba(8, 13, 24, 0.84);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     padding: 20px;
@@ -555,7 +802,7 @@
     border-radius: 22px;
     background: var(--panel-solid);
     border: 1px solid var(--line-strong);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -566,10 +813,10 @@
   .modal-actions { width: 100%; display: flex; flex-direction: column; gap: 8px; }
   .ad-watch-btn {
     width: 100%; min-height: 50px; padding: 10px 18px; border-radius: 14px; border: none;
-    background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1c1917;
+    background: linear-gradient(135deg, #FFB020, #F59E0B); color: #1c1917;
     font-size: 15px; font-weight: 900; cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 8px 24px rgba(255, 176, 32, 0.3);
   }
   .ad-watch-btn:disabled { opacity: 0.5; cursor: default; }
 
@@ -733,15 +980,15 @@
   #skins-screen, #settings-screen {
     z-index: 70;
     display: none;
-    justify-content: center;
-    gap: 14px;
-    padding: max(20px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom));
+    justify-content: flex-start;
+    gap: 10px;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(22px, env(safe-area-inset-bottom));
   }
-  #skins-screen h2, #settings-screen h2 { font-size: 30px; font-weight: 900; letter-spacing: 0.02em; }
-  .skins-subtitle { color: var(--text-dim); font-size: 14px; }
+  #skins-screen h2, #settings-screen h2 { font-size: clamp(22px, 5vw, 28px); font-weight: 900; letter-spacing: 0.02em; }
+  .skins-subtitle { color: var(--text-dim); font-size: 13px; }
   #skin-list {
-    width: min(100%, 640px);
-    max-height: min(62vh, 540px);
+    width: min(100%, 680px);
+    max-height: min(50vh, 480px);
     overflow-y: auto;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -749,30 +996,33 @@
     padding: 3px;
     touch-action: pan-y;
     scrollbar-width: thin;
-    scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+    scrollbar-color: rgba(167, 180, 201, 0.35) transparent;
   }
   .skin-card {
-    display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 0;
+    display: flex; flex-direction: column; align-items: stretch; gap: 7px; min-width: 0;
     padding: 12px; text-align: left; border: 1px solid var(--line); border-radius: 14px;
     color: var(--text); background: var(--panel); cursor: pointer; font: inherit;
-    transition: transform 0.12s ease, border-color 0.15s ease;
+    transition: transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease;
   }
-  .skin-card:not(.locked):hover { border-color: var(--line-strong); transform: translateY(-1px); }
-  .skin-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 22px rgba(52, 211, 153, 0.18); }
-  .skin-card.locked { filter: grayscale(0.85); opacity: 0.6; cursor: default; }
+  .skin-card:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+  .skin-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 20px rgba(0, 245, 160, 0.18); }
+  .skin-card.previewing:not(.selected) { border-color: var(--accent-2); box-shadow: 0 0 0 1px var(--accent-2); }
+  .skin-card.locked { opacity: 0.88; }
   .skin-name-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; }
   .skin-state {
     font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap;
-    padding: 2px 7px; border-radius: 999px; background: rgba(52, 211, 153, 0.15); color: #a7f3d0;
+    padding: 2px 7px; border-radius: 999px; background: rgba(0, 245, 160, 0.15); color: #00F5A0;
   }
   .skin-card.selected .skin-state { background: var(--accent); color: var(--accent-ink); }
-  .skin-card.locked .skin-state { background: rgba(148, 163, 184, 0.15); color: var(--text-dim); }
-  .skin-progress { min-height: 14px; color: var(--text-faint); font-size: 11px; line-height: 1.3; }
+  .skin-card.locked .skin-state { background: rgba(113, 129, 154, 0.18); color: var(--text-dim); }
+  .skin-progress { min-height: 14px; color: var(--text-dim); font-size: 11px; line-height: 1.3; }
+  .skin-mini-bar { width: 100%; height: 4px; border-radius: 999px; background: rgba(8, 13, 24, 0.85); overflow: hidden; }
+  .skin-mini-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: 999px; }
   .skin-preview { display: flex; align-items: center; height: 22px; padding-left: 4px; }
   .skin-preview i {
     width: 14px; height: 14px; margin-left: -3px; border-radius: 50%;
     background: linear-gradient(145deg, var(--skin-light), var(--skin-dark));
-    border: 1px solid rgba(255, 255, 255, 0.25); animation: skinWiggle 0.9s ease-in-out infinite alternate;
+    border: 1px solid rgba(255, 255, 255, 0.28); animation: skinWiggle 0.9s ease-in-out infinite alternate;
   }
   .skin-preview i:nth-child(2) { animation-delay: -0.12s; }
   .skin-preview i:nth-child(3) { animation-delay: -0.24s; }
@@ -855,6 +1105,9 @@
     #skin-list { grid-template-columns: 1fr 1fr; gap: 8px; }
     .skin-card { padding: 10px; }
     .logo-mark { width: 64px; height: 64px; }
+    .shop-showcase-card { grid-template-columns: 1fr; text-align: center; justify-items: center; }
+    .showcase-details { width: 100%; text-align: left; }
+    #shop-showcase-canvas { width: 100%; max-width: 260px; height: 96px; }
   }
   @media (max-width: 400px) {
     .controls-hint { grid-template-columns: 1fr; }
@@ -907,6 +1160,10 @@
 <div id="rare-indicator" aria-hidden="true"><span>↑</span><small>Rare orb</small></div>
 <div id="kill-message" aria-live="polite"></div>
 <div id="powerup-indicator" aria-live="polite"></div>
+<div id="ingame-quest-toast" aria-live="polite">
+  <span class="qt-tag" id="qt-badge">MISSION</span>
+  <span id="qt-text">Completed!</span>
+</div>
 <div id="touch-joystick" aria-hidden="true"><div class="joystick-ring"><div id="joystick-thumb"></div></div></div>
 
 <!-- Menu Start Screen -->
@@ -993,7 +1250,7 @@
       </button>
     </div>
 
-    <button type="button" class="menu-secondary" id="menu-removeads-btn" onclick="openScreen('removeads')" style="font-size:13px; min-height:40px; border-color:rgba(251,191,36,0.4); color:#fde68a;">
+    <button type="button" class="menu-secondary" id="menu-removeads-btn" onclick="openScreen('removeads')" style="font-size:13px; min-height:40px; border-color:rgba(255,176,32,0.45); color:#FFB020;">
       ✦ Remove Forced Ads &amp; Ad-Free Info
     </button>
   </div>
@@ -1001,23 +1258,62 @@
   <a class="privacy-link" href="privacy-policy.html">Privacy Policy &amp; Ad Disclosures</a>
 </div>
 
-<!-- 1. SKIN SHOP SCREEN -->
+<!-- 1. SKIN SHOP SCREEN (56+ SKINS GALLERY) -->
 <div id="skins-screen" class="subscreen" aria-label="Snake skins">
   <div class="subscreen-header">
-    <h2>Skin Collection</h2>
+    <div>
+      <h2>Skin Vault</h2>
+      <div class="skins-subtitle" id="skin-collection-counter">3 / 56 Unlocked &bull; Purely cosmetic, identical hitboxes</div>
+    </div>
     <div style="display:flex;align-items:center;gap:8px;">
       <div class="coin-pill"><span class="coin-icon">$</span><span id="shop-coins-val">0</span></div>
       <button class="back-pill" type="button" onclick="closeSubscreen()">← Menu</button>
     </div>
   </div>
-  <div class="skins-subtitle">All skins are purely cosmetic and preserve identical hitboxes.</div>
+
+  <!-- Large Live Animated Showcase Banner for Previewed / Selected Skin -->
+  <div class="shop-showcase-card" id="shop-showcase-card">
+    <canvas id="shop-showcase-canvas" width="360" height="198"></canvas>
+    <div class="showcase-details">
+      <div class="showcase-top-row">
+        <span class="showcase-name" id="showcase-skin-name">Classic Green</span>
+        <span class="rarity-badge rarity-common" id="showcase-skin-rarity">COMMON</span>
+        <span class="showcase-cat-tag" id="showcase-skin-cat">Creature</span>
+      </div>
+      <div class="showcase-desc" id="showcase-skin-desc">Balanced emerald scales built for the arena.</div>
+      <div class="showcase-req-wrap">
+        <div class="showcase-req-row">
+          <span id="showcase-req-text">Starter Skin</span>
+          <span id="showcase-req-pct" style="color:var(--accent);">100%</span>
+        </div>
+        <div class="showcase-bar"><div class="showcase-bar-fill" id="showcase-req-fill" style="width:100%;"></div></div>
+      </div>
+      <div class="skin-actions-row" id="showcase-actions-row"></div>
+    </div>
+  </div>
+
+  <!-- Category Tabs & Search Input -->
+  <div class="shop-toolbar">
+    <div class="filter-bar" id="skin-category-bar" style="width:auto;justify-content:flex-start;">
+      <button type="button" class="filter-pill active" data-cat="all" onclick="setSkinCategory('all')">All Categories</button>
+      <button type="button" class="filter-pill" data-cat="funny" onclick="setSkinCategory('funny')">Funny &amp; Meme</button>
+      <button type="button" class="filter-pill" data-cat="creature" onclick="setSkinCategory('creature')">Creatures</button>
+      <button type="button" class="filter-pill" data-cat="fantasy" onclick="setSkinCategory('fantasy')">Fantasy</button>
+      <button type="button" class="filter-pill" data-cat="cyber" onclick="setSkinCategory('cyber')">Cyber &amp; Neon</button>
+    </div>
+    <input type="search" id="skin-search-input" class="skin-search-input" placeholder="Search 56 skins..." oninput="setSkinSearch(this.value)">
+  </div>
+
+  <!-- Rarity Filter Pills -->
   <div class="filter-bar" id="skin-filter-bar">
-    <button type="button" class="filter-pill active" data-filter="all" onclick="setSkinFilter('all')">All (16)</button>
+    <button type="button" class="filter-pill active" data-filter="all" onclick="setSkinFilter('all')">All Rarity</button>
     <button type="button" class="filter-pill" data-filter="unlocked" onclick="setSkinFilter('unlocked')">Owned</button>
     <button type="button" class="filter-pill" data-filter="common" onclick="setSkinFilter('common')">Common</button>
+    <button type="button" class="filter-pill" data-filter="uncommon" onclick="setSkinFilter('uncommon')">Uncommon</button>
     <button type="button" class="filter-pill" data-filter="rare" onclick="setSkinFilter('rare')">Rare</button>
     <button type="button" class="filter-pill" data-filter="epic" onclick="setSkinFilter('epic')">Epic</button>
     <button type="button" class="filter-pill" data-filter="legendary" onclick="setSkinFilter('legendary')">Legendary</button>
+    <button type="button" class="filter-pill" data-filter="mythic" onclick="setSkinFilter('mythic')">Mythic</button>
   </div>
   <div id="skin-list"></div>
   <div class="ad-banner-slot" id="banner-slot-skins">
@@ -1026,14 +1322,25 @@
   </div>
 </div>
 
-<!-- 2. DAILY MISSIONS SCREEN -->
-<div id="missions-screen" class="subscreen" aria-label="Daily Missions">
+<!-- 2. 3-TIER MISSIONS SCREEN (DAILY / WEEKLY / ELITE) -->
+<div id="missions-screen" class="subscreen" aria-label="Missions">
   <div class="subscreen-header">
     <div>
-      <h2>Daily Missions</h2>
-      <div class="skins-subtitle" id="missions-reset-timer">Resets at local midnight</div>
+      <h2>Mission Command</h2>
+      <div class="skins-subtitle" id="missions-reset-timer">Daily &bull; Resets at local midnight</div>
     </div>
     <button class="back-pill" type="button" onclick="closeSubscreen()">← Menu</button>
+  </div>
+  <div class="tier-tabs" id="missions-tier-tabs">
+    <button type="button" class="tier-tab-btn active" data-tier="daily" onclick="setMissionTier('daily')">
+      <span>⚡ Daily (4)</span>
+    </button>
+    <button type="button" class="tier-tab-btn" data-tier="weekly" onclick="setMissionTier('weekly')">
+      <span>📆 Weekly (5)</span>
+    </button>
+    <button type="button" class="tier-tab-btn" data-tier="elite" onclick="setMissionTier('elite')">
+      <span>👑 Elite (8)</span>
+    </button>
   </div>
   <div class="card-list" id="missions-list"></div>
   <div class="ad-banner-slot" id="banner-slot-missions">
@@ -1052,7 +1359,7 @@
     <button class="back-pill" type="button" onclick="closeSubscreen()">← Menu</button>
   </div>
   <div class="daily-grid" id="daily-rewards-grid"></div>
-  <div class="panel" style="width:min(100%,660px);display:flex;align-items:center;justify-content:space-between;gap:14px;text-align:left;">
+  <div class="panel" style="width:min(100%,680px);display:flex;align-items:center;justify-content:space-between;gap:14px;text-align:left;">
     <div>
       <div style="font-size:15px;font-weight:900;color:var(--gold);">Optional Bonus Chest</div>
       <div style="font-size:12px;color:var(--text-dim);">Watch a short rewarded video to earn +75 Coins &amp; +40 XP anytime.</div>
@@ -1065,14 +1372,32 @@
   </div>
 </div>
 
-<!-- 4. ACHIEVEMENTS SCREEN -->
+<!-- 4. ACHIEVEMENTS SCREEN (42+ ACHIEVEMENTS & 8 CATEGORIES) -->
 <div id="achievements-screen" class="subscreen" aria-label="Achievements">
   <div class="subscreen-header">
     <div>
-      <h2>Achievements</h2>
-      <div class="skins-subtitle" id="achievements-summary-text">0 / 12 Unlocked</div>
+      <h2>Hall of Achievements</h2>
+      <div class="skins-subtitle" id="achievements-summary-text">0 / 42 Unlocked (0%)</div>
     </div>
     <button class="back-pill" type="button" onclick="closeSubscreen()">← Menu</button>
+  </div>
+  <div class="ach-overview-bar">
+    <div class="ach-overview-top">
+      <span style="font-size:12px;font-weight:800;color:var(--text);">Collection Completion</span>
+      <span id="ach-completion-pct" style="font-size:12px;font-weight:900;color:var(--accent);">0%</span>
+    </div>
+    <div class="showcase-bar"><div class="showcase-bar-fill" id="ach-completion-fill" style="width:0%;"></div></div>
+  </div>
+  <div class="filter-bar" id="ach-category-bar">
+    <button type="button" class="filter-pill active" data-acat="all" onclick="setAchievementCategory('all')">All (42)</button>
+    <button type="button" class="filter-pill" data-acat="survival" onclick="setAchievementCategory('survival')">Survival</button>
+    <button type="button" class="filter-pill" data-acat="combat" onclick="setAchievementCategory('combat')">Combat</button>
+    <button type="button" class="filter-pill" data-acat="growth" onclick="setAchievementCategory('growth')">Growth</button>
+    <button type="button" class="filter-pill" data-acat="abilities" onclick="setAchievementCategory('abilities')">Abilities</button>
+    <button type="button" class="filter-pill" data-acat="collection" onclick="setAchievementCategory('collection')">Collection</button>
+    <button type="button" class="filter-pill" data-acat="kingslayer" onclick="setAchievementCategory('kingslayer')">King Slayer</button>
+    <button type="button" class="filter-pill" data-acat="hardmode" onclick="setAchievementCategory('hardmode')">Hard Mode</button>
+    <button type="button" class="filter-pill" data-acat="secret" onclick="setAchievementCategory('secret')">Secret ???</button>
   </div>
   <div class="card-list" id="achievements-list"></div>
 </div>
@@ -1109,7 +1434,7 @@
       <li><b>Removed:</b> All Banner ads in the Skin Shop, Missions, and Rewards menus</li>
       <li><b>Preserved (Optional):</b> Rewarded video buttons (Revive Snake, 2x Match Coins, Bonus Chest, and Skin Trial) remain available whenever you voluntarily choose to watch an ad for a bonus.</li>
     </ul>
-    <div style="padding:12px;border-radius:12px;background:rgba(2,6,23,0.6);border:1px solid var(--line);font-size:12px;color:var(--text-dim);line-height:1.45;" id="billing-architecture-note">
+    <div style="padding:12px;border-radius:12px;background:rgba(8,13,24,0.6);border:1px solid var(--line);font-size:12px;color:var(--text-dim);line-height:1.45;" id="billing-architecture-note">
       <b>Billing Status:</b> Google Play Billing (`com.muneeb.neonserpents.remove_ads`) is architected via `BillingManager`. Connect your Google Play Console in-app product ID in production builds to enable live checkout.
     </div>
     <button type="button" class="play-btn" id="purchase-removeads-btn" onclick="attemptRemoveAdsPurchase()" style="font-size:15px;min-height:48px;">
@@ -1174,16 +1499,30 @@
     </div>
     <div class="settings-row inline">
       <span>Reset Save Data</span>
-      <button class="settings-option" style="border-color:rgba(251,113,133,0.45);color:#fda4af;" onclick="promptResetProgress()">Reset Progress</button>
+      <button class="settings-option" style="border-color:rgba(244,63,94,0.45);color:#FDA4AF;" onclick="promptResetProgress()">Reset Progress</button>
     </div>
     <div style="font-size:11px;color:var(--text-faint);text-align:center;padding-top:4px;">
-      Serpent Run v2.0.0 &bull; Save Schema v2 &bull; AdMob Mode: <b id="settings-ad-env">development</b>
+      Serpent Run v3.0.0 &bull; Neon Abyss Edition &bull; AdMob Mode: <b id="settings-ad-env">development</b>
     </div>
   </div>
 </div>
 
 <div id="skin-unlock-toast" role="status" aria-live="polite"></div>
 <div id="fps-counter" aria-live="off">60 FPS</div>
+
+<!-- Skippable Animated Reward Reveal Modal -->
+<div id="reward-reveal-modal" role="dialog" aria-modal="true" onclick="closeRewardRevealModal()">
+  <canvas id="reward-particle-canvas"></canvas>
+  <div class="reward-reveal-card" id="reward-reveal-card" onclick="event.stopPropagation()">
+    <div class="reward-reveal-icon" id="reward-reveal-icon">🏆</div>
+    <div class="reward-reveal-type" id="reward-reveal-type">REWARD UNLOCKED</div>
+    <div class="reward-reveal-title" id="reward-reveal-title">Level Up!</div>
+    <div class="reward-reveal-sub" id="reward-reveal-sub">You reached a new milestone.</div>
+    <div class="reward-items-row" id="reward-items-row"></div>
+    <button type="button" class="play-btn" style="width:100%;min-height:46px;font-size:15px;margin-top:4px;" onclick="closeRewardRevealModal()">Awesome!</button>
+    <div class="reward-skip-hint">Tap anywhere to continue</div>
+  </div>
+</div>
 
 <!-- Pause Overlay -->
 <div id="pause-overlay">
@@ -1381,22 +1720,77 @@ const PALETTE_PLAYER = {
 };
 
 const SKINS = [
-  { id: 'classic', name: 'Classic Green', rarity: 'common', price: 0, palette: { ...PALETTE_PLAYER, pattern: 'scales', headShape: 'round' }, unlock: { type: 'default' } },
-  { id: 'cobra', name: 'King Cobra', rarity: 'rare', price: 0, palette: { head: '#c28136', bodyStart: '#8b5a2b', bodyEnd: '#2e1c0c', scale: '#e0c080', glow: 'rgba(212, 143, 56, 0.75)', eyeIris: '#d97706', eyePupil: '#1c1917', tongue: '#1c1917', pattern: 'chevron', headShape: 'cobra', hoodWidth: 1.85 }, unlock: { type: 'default' } },
-  { id: 'python', name: 'Reticulated Python', rarity: 'common', price: 0, palette: { head: '#786043', bodyStart: '#54422e', bodyEnd: '#1e1610', scale: '#c4a47c', glow: 'rgba(168, 134, 98, 0.65)', eyeIris: '#b45309', eyePupil: '#0c0a09', tongue: '#1c1917', pattern: 'reticulated', headShape: 'python' }, unlock: { type: 'default' } },
-  { id: 'viper', name: 'Emerald Tree Boa', rarity: 'common', price: 150, palette: { head: '#10b981', bodyStart: '#059669', bodyEnd: '#064e3b', scale: '#ffffff', glow: 'rgba(52, 211, 153, 0.75)', eyeIris: '#fde047', eyePupil: '#022c22', tongue: '#f43f5e', pattern: 'lightning', headShape: 'viper' }, unlock: { type: 'time', seconds: 30 } },
-  { id: 'coral', name: 'Coral Snake', rarity: 'common', price: 220, palette: { head: '#111827', bodyStart: '#dc2626', bodyEnd: '#111827', scale: '#facc15', glow: 'rgba(239, 68, 68, 0.7)', eyeIris: '#1f2937', eyePupil: '#000000', tongue: '#000000', pattern: 'coral_tricolor', headShape: 'round' }, unlock: { type: 'time', seconds: 60 } },
-  { id: 'rattlesnake', name: 'Diamondback', rarity: 'rare', price: 300, palette: { head: '#926a42', bodyStart: '#684522', bodyEnd: '#291809', scale: '#fef08a', glow: 'rgba(180, 130, 70, 0.6)', eyeIris: '#78350f', eyePupil: '#0c0a09', tongue: '#1c1917', pattern: 'diamonds', headShape: 'viper' }, unlock: { type: 'length', length: 35 } },
-  { id: 'blackmamba', name: 'Black Mamba', rarity: 'rare', price: 420, palette: { head: '#334155', bodyStart: '#1e293b', bodyEnd: '#0f172a', scale: '#64748b', glow: 'rgba(100, 116, 139, 0.8)', eyeIris: '#0f172a', eyePupil: '#020617', tongue: '#020617', pattern: 'smooth', headShape: 'coffin' }, unlock: { type: 'length', length: 50 } },
-  { id: 'anaconda', name: 'Green Anaconda', rarity: 'rare', price: 500, palette: { head: '#3f4f2c', bodyStart: '#2d3a1e', bodyEnd: '#131b0c', scale: '#1c1917', glow: 'rgba(63, 79, 44, 0.7)', eyeIris: '#ca8a04', eyePupil: '#0c0a09', tongue: '#450a0a', pattern: 'ocelli', headShape: 'python' }, unlock: { type: 'time', seconds: 120 } },
-  { id: 'seasnake', name: 'Banded Sea Krait', rarity: 'epic', price: 650, palette: { head: '#38bdf8', bodyStart: '#0284c7', bodyEnd: '#0f172a', scale: '#38bdf8', glow: 'rgba(56, 189, 248, 0.8)', eyeIris: '#0369a1', eyePupil: '#082f49', tongue: '#38bdf8', pattern: 'krait_rings', headShape: 'paddle' }, unlock: { type: 'time', seconds: 180 } },
-  { id: 'albino', name: 'Albino Python', rarity: 'epic', price: 750, palette: { head: '#fef08a', bodyStart: '#fed7aa', bodyEnd: '#ffffff', scale: '#ffffff', glow: 'rgba(254, 240, 138, 0.85)', eyeIris: '#ef4444', eyePupil: '#991b1b', tongue: '#f43f5e', pattern: 'clouded', headShape: 'python' }, unlock: { type: 'length', length: 70 } },
-  { id: 'cyber', name: 'Cyber Neon', rarity: 'epic', price: 900, palette: { head: '#06b6d4', bodyStart: '#3b82f6', bodyEnd: '#8b5cf6', scale: '#a5f3fc', glow: 'rgba(6, 182, 212, 0.95)', eyeIris: '#ec4899', eyePupil: '#082f49', tongue: '#ec4899', pattern: 'neon_grid', headShape: 'arrow' }, unlock: { type: 'time', seconds: 240 } },
-  { id: 'ocean', name: 'Ocean Blue', rarity: 'common', price: 250, palette: { head: '#7dd3fc', bodyStart: '#38bdf8', bodyEnd: '#1d4ed8', scale: 'rgba(224,242,254,.45)', glow: 'rgba(56,189,248,.75)', eyeIris: '#0369a1', eyePupil: '#082f49', tongue: '#fb7185', pattern: 'bands', headShape: 'round' }, unlock: { type: 'time', seconds: 90 } },
-  { id: 'magma', name: 'Magma Viper', rarity: 'epic', price: 1100, palette: { head: '#fdba74', bodyStart: '#f97316', bodyEnd: '#7c2d12', scale: 'rgba(254,215,170,.55)', glow: 'rgba(249,115,22,.82)', eyeIris: '#9a3412', eyePupil: '#431407', tongue: '#fef3c7', pattern: 'embers', headShape: 'viper' }, unlock: { type: 'time', seconds: 300 } },
-  { id: 'aurora', name: 'Aurora Spirit', rarity: 'legendary', price: 1400, palette: { head: '#e9d5ff', bodyStart: '#a78bfa', bodyEnd: '#0f766e', scale: 'rgba(240,253,250,.58)', glow: 'rgba(167,139,250,.82)', eyeIris: '#6d28d9', eyePupil: '#2e1065', tongue: '#f0abfc', pattern: 'ribbons', headShape: 'round' }, unlock: { type: 'length', length: 85 } },
-  { id: 'ghost', name: 'Ghost Spectre', rarity: 'legendary', price: 1650, palette: { head: '#f8fafc', bodyStart: '#cbd5e1', bodyEnd: '#64748b', scale: 'rgba(255,255,255,.48)', glow: 'rgba(226,232,240,.8)', eyeIris: '#64748b', eyePupil: '#1e293b', tongue: '#c4b5fd', pattern: 'spots', headShape: 'round' }, unlock: { type: 'length', length: 100 } },
-  { id: 'golden', name: 'Golden Dragon', rarity: 'legendary', price: 2000, palette: { head: '#fef08a', bodyStart: '#facc15', bodyEnd: '#92400e', scale: 'rgba(255,251,191,.7)', glow: 'rgba(250,204,21,.9)', eyeIris: '#a16207', eyePupil: '#422006', tongue: '#fb7185', pattern: 'dragon', headShape: 'dragon' }, unlock: { type: 'time', seconds: 400 } }
+  // ================= EXISTING 16 SKINS (PRESERVED + ENHANCED METADATA) =================
+  { id: 'classic', name: 'Classic Green', category: 'creature', rarity: 'common', price: 0, desc: 'Balanced emerald scales built for the arena.', palette: { ...PALETTE_PLAYER, pattern: 'scales', headShape: 'round', eyeStyle: 'normal' }, unlock: { type: 'default' } },
+  { id: 'cobra', name: 'King Cobra', category: 'creature', rarity: 'rare', price: 0, desc: 'Flared royal hood with deadly chevron markings.', palette: { head: '#c28136', bodyStart: '#8b5a2b', bodyEnd: '#2e1c0c', scale: '#e0c080', glow: 'rgba(212, 143, 56, 0.75)', eyeIris: '#d97706', eyePupil: '#1c1917', tongue: '#1c1917', pattern: 'chevron', headShape: 'cobra', eyeStyle: 'slit', hoodWidth: 1.85 }, unlock: { type: 'default' } },
+  { id: 'python', name: 'Reticulated Python', category: 'creature', rarity: 'common', price: 0, desc: 'Heavy constrictor covered in interlocking jungle mesh.', palette: { head: '#786043', bodyStart: '#54422e', bodyEnd: '#1e1610', scale: '#c4a47c', glow: 'rgba(168, 134, 98, 0.65)', eyeIris: '#b45309', eyePupil: '#0c0a09', tongue: '#1c1917', pattern: 'reticulated', headShape: 'python', eyeStyle: 'slit' }, unlock: { type: 'default' } },
+  { id: 'viper', name: 'Emerald Tree Boa', category: 'creature', rarity: 'common', price: 150, desc: 'Rainforest ambush predator with white dorsal lightning.', palette: { head: '#10b981', bodyStart: '#059669', bodyEnd: '#064e3b', scale: '#ffffff', glow: 'rgba(52, 211, 153, 0.75)', eyeIris: '#fde047', eyePupil: '#022c22', tongue: '#f43f5e', pattern: 'lightning', headShape: 'viper', eyeStyle: 'slit' }, unlock: { type: 'time', seconds: 30 } },
+  { id: 'coral', name: 'Coral Snake', category: 'creature', rarity: 'uncommon', price: 220, desc: 'Warning tricolor bands of crimson, gold, and obsidian.', palette: { head: '#111827', bodyStart: '#dc2626', bodyEnd: '#111827', scale: '#facc15', glow: 'rgba(239, 68, 68, 0.7)', eyeIris: '#1f2937', eyePupil: '#000000', tongue: '#000000', pattern: 'coral_tricolor', headShape: 'round', eyeStyle: 'normal' }, unlock: { type: 'time', seconds: 60 } },
+  { id: 'ocean', name: 'Ocean Blue', category: 'fantasy', rarity: 'common', price: 250, desc: 'Tidal wave rings pulsing with deep abyssal currents.', palette: { head: '#7dd3fc', bodyStart: '#38bdf8', bodyEnd: '#1d4ed8', scale: 'rgba(224,242,254,.45)', glow: 'rgba(56,189,248,.75)', eyeIris: '#0369a1', eyePupil: '#082f49', tongue: '#fb7185', pattern: 'bands', headShape: 'round', eyeStyle: 'normal' }, unlock: { type: 'time', seconds: 90 } },
+  { id: 'rattlesnake', name: 'Diamondback', category: 'creature', rarity: 'rare', price: 300, desc: 'Arid canyon striker with crisp diamond dorsal armor.', palette: { head: '#926a42', bodyStart: '#684522', bodyEnd: '#291809', scale: '#fef08a', glow: 'rgba(180, 130, 70, 0.6)', eyeIris: '#78350f', eyePupil: '#0c0a09', tongue: '#1c1917', pattern: 'diamonds', headShape: 'viper', eyeStyle: 'slit' }, unlock: { type: 'length', length: 35 } },
+  { id: 'blackmamba', name: 'Black Mamba', category: 'creature', rarity: 'rare', price: 420, desc: 'Coffin-headed speed demon with gunmetal satin scales.', palette: { head: '#334155', bodyStart: '#1e293b', bodyEnd: '#0f172a', scale: '#64748b', glow: 'rgba(100, 116, 139, 0.8)', eyeIris: '#0f172a', eyePupil: '#020617', tongue: '#020617', pattern: 'smooth', headShape: 'coffin', eyeStyle: 'angry' }, unlock: { type: 'length', length: 50 } },
+  { id: 'anaconda', name: 'Green Anaconda', category: 'creature', rarity: 'rare', price: 500, desc: 'Swamp colossus marked with dark river ocelli spots.', palette: { head: '#3f4f2c', bodyStart: '#2d3a1e', bodyEnd: '#131b0c', scale: '#1c1917', glow: 'rgba(63, 79, 44, 0.7)', eyeIris: '#ca8a04', eyePupil: '#0c0a09', tongue: '#450a0a', pattern: 'ocelli', headShape: 'python', eyeStyle: 'slit' }, unlock: { type: 'time', seconds: 120 } },
+  { id: 'seasnake', name: 'Banded Sea Krait', category: 'creature', rarity: 'epic', price: 650, desc: 'Pelagic reef hunter with glowing cyan sea bands.', palette: { head: '#38bdf8', bodyStart: '#0284c7', bodyEnd: '#0f172a', scale: '#38bdf8', glow: 'rgba(56, 189, 248, 0.8)', eyeIris: '#0369a1', eyePupil: '#082f49', tongue: '#38bdf8', pattern: 'krait_rings', headShape: 'paddle', eyeStyle: 'normal', trailEffect: 'bubbles' }, unlock: { type: 'time', seconds: 180 } },
+  { id: 'albino', name: 'Albino Python', category: 'creature', rarity: 'epic', price: 750, desc: 'Rare ivory and gold morph with ruby predator eyes.', palette: { head: '#fef08a', bodyStart: '#fed7aa', bodyEnd: '#ffffff', scale: '#ffffff', glow: 'rgba(254, 240, 138, 0.85)', eyeIris: '#ef4444', eyePupil: '#991b1b', tongue: '#f43f5e', pattern: 'clouded', headShape: 'python', eyeStyle: 'slit', trailEffect: 'shimmer' }, unlock: { type: 'length', length: 70 } },
+  { id: 'cyber', name: 'Cyber Neon', category: 'cyber', rarity: 'epic', price: 900, desc: 'Synthwave grid runner charged with high-voltage cyan.', palette: { head: '#06b6d4', bodyStart: '#3b82f6', bodyEnd: '#8b5cf6', scale: '#a5f3fc', glow: 'rgba(6, 182, 212, 0.95)', eyeIris: '#ec4899', eyePupil: '#082f49', tongue: '#ec4899', pattern: 'neon_grid', headShape: 'arrow', eyeStyle: 'visor', trailEffect: 'neon' }, unlock: { type: 'time', seconds: 240 } },
+  { id: 'magma', name: 'Magma Viper', category: 'fantasy', rarity: 'epic', price: 1100, desc: 'Molten volcanic crust venting superheated embers.', palette: { head: '#fdba74', bodyStart: '#f97316', bodyEnd: '#7c2d12', scale: 'rgba(254,215,170,.55)', glow: 'rgba(249,115,22,.82)', eyeIris: '#9a3412', eyePupil: '#431407', tongue: '#fef3c7', pattern: 'embers', headShape: 'viper', eyeStyle: 'glowing', trailEffect: 'embers' }, unlock: { type: 'time', seconds: 300 } },
+  { id: 'aurora', name: 'Aurora Spirit', category: 'fantasy', rarity: 'legendary', price: 1400, desc: 'Celestial northern lights weaving across ethereal scales.', palette: { head: '#e9d5ff', bodyStart: '#a78bfa', bodyEnd: '#0f766e', scale: 'rgba(240,253,250,.58)', glow: 'rgba(167,139,250,.82)', eyeIris: '#6d28d9', eyePupil: '#2e1065', tongue: '#f0abfc', pattern: 'ribbons', headShape: 'round', eyeStyle: 'glowing', trailEffect: 'aurora' }, unlock: { type: 'length', length: 85 } },
+  { id: 'ghost', name: 'Ghost Spectre', category: 'fantasy', rarity: 'legendary', price: 1650, desc: 'Phantom wraith drifting silently through the dark abyss.', palette: { head: '#f8fafc', bodyStart: '#cbd5e1', bodyEnd: '#64748b', scale: 'rgba(255,255,255,.48)', glow: 'rgba(226,232,240,.8)', eyeIris: '#64748b', eyePupil: '#1e293b', tongue: '#c4b5fd', pattern: 'spots', headShape: 'round', eyeStyle: 'glowing', trailEffect: 'mist' }, unlock: { type: 'length', length: 100 } },
+  { id: 'golden', name: 'Golden Dragon', category: 'creature', rarity: 'legendary', price: 2000, desc: 'Imperial horned dragon clad in radiant 24-karat armor.', palette: { head: '#fef08a', bodyStart: '#facc15', bodyEnd: '#92400e', scale: 'rgba(255,251,191,.7)', glow: 'rgba(250,204,21,.9)', eyeIris: '#a16207', eyePupil: '#422006', tongue: '#fb7185', pattern: 'dragon', headShape: 'dragon', eyeStyle: 'glowing', trailEffect: 'gold_sparks' }, unlock: { type: 'time', seconds: 400 } },
+
+  // ================= A. FUNNY / MEME SKINS (16 SKINS) =================
+  { id: 'banana', name: 'Banana Serpent', category: 'funny', rarity: 'common', price: 180, desc: '100% potassium power with ripe brown sugar spots and googly eyes.', palette: { head: '#FDE047', bodyStart: '#FACC15', bodyEnd: '#713F12', scale: '#78350F', glow: 'rgba(250, 204, 21, 0.72)', eyeIris: '#FFFFFF', eyePupil: '#111827', tongue: '#F43F5E', pattern: 'banana_spots', headShape: 'round', eyeStyle: 'googly' }, unlock: { type: 'time', seconds: 45 } },
+  { id: 'hotdog', name: 'Hot Dog Snake', category: 'funny', rarity: 'uncommon', price: 260, desc: 'Grilled stadium frankfurter topped with a wavy yellow mustard line.', palette: { head: '#EA580C', bodyStart: '#C2410C', bodyEnd: '#9A3412', scale: '#FACC15', glow: 'rgba(234, 88, 12, 0.72)', eyeIris: '#FEF08A', eyePupil: '#1C1917', tongue: '#FACC15', pattern: 'hotdog_mustard', headShape: 'round', eyeStyle: 'googly' }, unlock: { type: 'length', length: 40 } },
+  { id: 'pizza', name: 'Pizza Serpent', category: 'funny', rarity: 'rare', price: 380, desc: 'Melted mozzarella crust loaded with spicy pepperoni slices.', palette: { head: '#FBBF24', bodyStart: '#F59E0B', bodyEnd: '#B45309', scale: '#DC2626', glow: 'rgba(245, 158, 11, 0.78)', eyeIris: '#DC2626', eyePupil: '#1C1917', tongue: '#EF4444', pattern: 'pizza_pepperoni', headShape: 'viper', eyeStyle: 'googly' }, unlock: { type: 'kills', count: 5 } },
+  { id: 'rubberduck', name: 'Rubber Duck Snake', category: 'funny', rarity: 'uncommon', price: 280, desc: 'Squeaky bath-time champion complete with a bright orange duck bill.', palette: { head: '#FDE047', bodyStart: '#FACC15', bodyEnd: '#EAB308', scale: '#FB923C', glow: 'rgba(253, 224, 71, 0.8)', eyeIris: '#38BDF8', eyePupil: '#020617', tongue: '#FB923C', pattern: 'smooth', headShape: 'duck', eyeStyle: 'cute' }, unlock: { type: 'time', seconds: 75 } },
+  { id: 'noob', name: 'Noob Snake', category: 'funny', rarity: 'common', price: 160, desc: 'Classic blocky retro yellow-blue-green noob colors with derpy eyes.', palette: { head: '#FACC15', bodyStart: '#3B82F6', bodyEnd: '#22C55E', scale: '#FDE047', glow: 'rgba(59, 130, 246, 0.72)', eyeIris: '#FFFFFF', eyePupil: '#000000', tongue: '#F43F5E', pattern: 'noob_blocks', headShape: 'pixel', eyeStyle: 'derp' }, unlock: { type: 'length', length: 30 } },
+  { id: 'memeface', name: 'Meme Face Snake', category: 'funny', rarity: 'rare', price: 450, desc: 'Deal-with-it pixel sunglasses and chaotic meme energy.', palette: { head: '#F8FAFC', bodyStart: '#E2E8F0', bodyEnd: '#64748B', scale: '#0F172A', glow: 'rgba(248, 250, 252, 0.8)', eyeIris: '#000000', eyePupil: '#FFFFFF', tongue: '#FF477E', pattern: 'meme_stripes', headShape: 'round', eyeStyle: 'sunglasses' }, unlock: { type: 'kills', count: 10 } },
+  { id: 'donut', name: 'Donut Serpent', category: 'funny', rarity: 'rare', price: 420, desc: 'Strawberry frosted glaze covered in rainbow confetti sprinkles.', palette: { head: '#F472B6', bodyStart: '#EC4899', bodyEnd: '#D97706', scale: '#38BDF8', glow: 'rgba(244, 114, 182, 0.82)', eyeIris: '#FDE047', eyePupil: '#500724', tongue: '#38BDF8', pattern: 'donut_sprinkles', headShape: 'round', eyeStyle: 'cute' }, unlock: { type: 'length', length: 55 } },
+  { id: 'toilet', name: 'Toilet Snake', category: 'funny', rarity: 'uncommon', price: 310, desc: 'Porcelain plumbing escapee swirling with aqua flush vortexes.', palette: { head: '#FFFFFF', bodyStart: '#E0F2FE', bodyEnd: '#0284C7', scale: '#38BDF8', glow: 'rgba(56, 189, 248, 0.75)', eyeIris: '#0284C7', eyePupil: '#082F49', tongue: '#38BDF8', pattern: 'swirl_flush', headShape: 'round', eyeStyle: 'derp' }, unlock: { type: 'time', seconds: 100 } },
+  { id: 'rainbow', name: 'Rainbow Worm', category: 'funny', rarity: 'epic', price: 780, desc: 'Full-spectrum prismatic worm cycling through every neon hue.', palette: { head: '#FF477E', bodyStart: '#00F5A0', bodyEnd: '#A855F7', scale: '#FACC15', glow: 'rgba(0, 245, 160, 0.88)', eyeIris: '#FFFFFF', eyePupil: '#111827', tongue: '#FF477E', pattern: 'rainbow_cycle', headShape: 'round', eyeStyle: 'cute', trailEffect: 'rainbow' }, unlock: { type: 'length', length: 75 } },
+  { id: 'frog', name: 'Frog Snake', category: 'funny', rarity: 'uncommon', price: 290, desc: 'Amphibian hybrid with wide bulging frog eyes and lily-pad spots.', palette: { head: '#4ADE80', bodyStart: '#22C55E', bodyEnd: '#15803D', scale: '#BBF7D0', glow: 'rgba(74, 222, 128, 0.75)', eyeIris: '#FACC15', eyePupil: '#052E16', tongue: '#FB7185', pattern: 'frog_spots', headShape: 'frog', eyeStyle: 'googly' }, unlock: { type: 'time', seconds: 80 } },
+  { id: 'bee', name: 'Bee Snake', category: 'funny', rarity: 'rare', price: 460, desc: 'Buzzing honey-striker with translucent wings and black-gold bands.', palette: { head: '#FACC15', bodyStart: '#EAB308', bodyEnd: '#1C1917', scale: '#111827', glow: 'rgba(250, 204, 21, 0.82)', eyeIris: '#1C1917', eyePupil: '#000000', tongue: '#F59E0B', pattern: 'bee_stripes', headShape: 'bee', eyeStyle: 'cute' }, unlock: { type: 'kills', count: 12 } },
+  { id: 'penguin', name: 'Penguin Snake', category: 'funny', rarity: 'uncommon', price: 320, desc: 'Antarctic tuxedo waddler with a snowy belly and orange beak.', palette: { head: '#1E293B', bodyStart: '#0F172A', bodyEnd: '#334155', scale: '#F8FAFC', glow: 'rgba(148, 163, 184, 0.75)', eyeIris: '#38BDF8', eyePupil: '#020617', tongue: '#FB923C', pattern: 'penguin_tux', headShape: 'duck', eyeStyle: 'cute' }, unlock: { type: 'time', seconds: 110 } },
+  { id: 'chicken', name: 'Chicken Snake', category: 'funny', rarity: 'rare', price: 410, desc: 'Feathered barnyard brawler sporting a bright crimson rooster comb.', palette: { head: '#FEFCE8', bodyStart: '#FDE68A', bodyEnd: '#D97706', scale: '#EF4444', glow: 'rgba(253, 230, 138, 0.78)', eyeIris: '#F59E0B', eyePupil: '#1C1917', tongue: '#EF4444', pattern: 'feathers', headShape: 'chicken', eyeStyle: 'googly' }, unlock: { type: 'kills', count: 8 } },
+  { id: 'candy', name: 'Candy Snake', category: 'funny', rarity: 'rare', price: 480, desc: 'Peppermint twist cane spiraling with glossy sugar stripes.', palette: { head: '#FB7185', bodyStart: '#F43F5E', bodyEnd: '#FFFFFF', scale: '#FFFFFF', glow: 'rgba(251, 113, 133, 0.84)', eyeIris: '#E11D48', eyePupil: '#4C0519', tongue: '#F43F5E', pattern: 'candy_stripes', headShape: 'round', eyeStyle: 'cute' }, unlock: { type: 'length', length: 60 } },
+  { id: 'bubblegum', name: 'Bubblegum Snake', category: 'funny', rarity: 'epic', price: 720, desc: 'Pop-art neon pink chew with floating glossy bubble highlights.', palette: { head: '#FF477E', bodyStart: '#F472B6', bodyEnd: '#C084FC', scale: '#FCE7F3', glow: 'rgba(255, 71, 126, 0.88)', eyeIris: '#00D9FF', eyePupil: '#500724', tongue: '#00D9FF', pattern: 'bubbles', headShape: 'round', eyeStyle: 'cute', trailEffect: 'bubbles' }, unlock: { type: 'length', length: 80 } },
+  { id: 'disco', name: 'Disco Snake', category: 'funny', rarity: 'legendary', price: 1450, desc: 'Mirrored dance-floor fever flashing sequencedfunk tiles.', palette: { head: '#E879F9', bodyStart: '#38BDF8', bodyEnd: '#FACC15', scale: '#FFFFFF', glow: 'rgba(232, 121, 249, 0.92)', eyeIris: '#FACC15', eyePupil: '#1E1B4B', tongue: '#00F5A0', pattern: 'disco_tiles', headShape: 'round', eyeStyle: 'sunglasses', trailEffect: 'rainbow' }, unlock: { type: 'kills', count: 35 } },
+
+  // ================= B. NEW REALISTIC / CREATURE SKINS (9 NEW + 10 EXISTING = 19 CREATURES) =================
+  { id: 'emerald_python', name: 'Emerald Python', category: 'creature', rarity: 'uncommon', price: 290, desc: 'Canopy coil serpent with deep jade saddle markings.', palette: { head: '#00F5A0', bodyStart: '#10B981', bodyEnd: '#064E3B', scale: '#A7F3D0', glow: 'rgba(0, 245, 160, 0.78)', eyeIris: '#FACC15', eyePupil: '#022C22', tongue: '#F43F5E', pattern: 'reticulated', headShape: 'python', eyeStyle: 'slit' }, unlock: { type: 'time', seconds: 95 } },
+  { id: 'arctic_viper', name: 'Arctic Viper', category: 'creature', rarity: 'rare', price: 520, desc: 'Tundra frost predator camouflaged in glacier-white chevrons.', palette: { head: '#E0F2FE', bodyStart: '#BAE6FD', bodyEnd: '#0369A1', scale: '#FFFFFF', glow: 'rgba(186, 230, 253, 0.84)', eyeIris: '#00D9FF', eyePupil: '#082F49', tongue: '#38BDF8', pattern: 'chevron', headShape: 'viper', eyeStyle: 'slit' }, unlock: { type: 'time', seconds: 150 } },
+  { id: 'coral_predator', name: 'Coral Predator', category: 'creature', rarity: 'rare', price: 540, desc: 'Apex reef striker with venomous scarlet and obsidian rings.', palette: { head: '#F43F5E', bodyStart: '#E11D48', bodyEnd: '#0F172A', scale: '#FBBF24', glow: 'rgba(244, 63, 94, 0.82)', eyeIris: '#FBBF24', eyePupil: '#000000', tongue: '#F43F5E', pattern: 'coral_tricolor', headShape: 'viper', eyeStyle: 'angry' }, unlock: { type: 'kills', count: 15 } },
+  { id: 'desert_rattler', name: 'Desert Rattler', category: 'creature', rarity: 'uncommon', price: 340, desc: 'Sun-baked sidewinder with sandy Mojave diamond scales.', palette: { head: '#D97706', bodyStart: '#B45309', bodyEnd: '#451A03', scale: '#FDE68A', glow: 'rgba(217, 119, 6, 0.74)', eyeIris: '#FDE047', eyePupil: '#1C1917', tongue: '#1C1917', pattern: 'diamonds', headShape: 'viper', eyeStyle: 'slit' }, unlock: { type: 'length', length: 45 } },
+  { id: 'jungle_boa', name: 'Jungle Boa', category: 'creature', rarity: 'uncommon', price: 330, desc: 'Amazonian river boa with mossy rosette camouflaged coils.', palette: { head: '#65A30D', bodyStart: '#4D7C0F', bodyEnd: '#1A2E05', scale: '#BEF264', glow: 'rgba(101, 163, 13, 0.75)', eyeIris: '#CA8A04', eyePupil: '#052E16', tongue: '#7F1D1D', pattern: 'ocelli', headShape: 'python', eyeStyle: 'slit' }, unlock: { type: 'time', seconds: 115 } },
+  { id: 'blood_moon', name: 'Blood Moon Serpent', category: 'creature', rarity: 'epic', price: 980, desc: 'Awakened under a crimson eclipse with glowing lunar sigils.', palette: { head: '#F43F5E', bodyStart: '#9F1239', bodyEnd: '#1F0910', scale: '#FDA4AF', glow: 'rgba(244, 63, 94, 0.92)', eyeIris: '#FF477E', eyePupil: '#FFFFFF', tongue: '#FF477E', pattern: 'blood_moon', headShape: 'cobra', eyeStyle: 'glowing', hoodWidth: 1.75, trailEffect: 'crimson' }, unlock: { type: 'kills', count: 25 } },
+  { id: 'leviathan', name: 'Deep Sea Leviathan', category: 'creature', rarity: 'legendary', price: 1600, desc: 'Bioluminescent trench monster sporting finned gill crests.', palette: { head: '#00D9FF', bodyStart: '#0284C7', bodyEnd: '#081426', scale: '#00F5A0', glow: 'rgba(0, 217, 255, 0.92)', eyeIris: '#00F5A0', eyePupil: '#042F2E', tongue: '#00F5A0', pattern: 'leviathan_fins', headShape: 'leviathan', eyeStyle: 'glowing', trailEffect: 'bubbles' }, unlock: { type: 'time', seconds: 330 } },
+  { id: 'poison_fang', name: 'Poison Fang', category: 'creature', rarity: 'epic', price: 890, desc: 'Neurotoxic pit viper dripping with radioactive lime venom.', palette: { head: '#A3E635', bodyStart: '#4D7C0F', bodyEnd: '#1E1B4B', scale: '#D9F99D', glow: 'rgba(163, 230, 53, 0.88)', eyeIris: '#A855F7', eyePupil: '#052E16', tongue: '#A855F7', pattern: 'venom_drip', headShape: 'viper', eyeStyle: 'slit', trailEffect: 'toxic' }, unlock: { type: 'kills', count: 20 } },
+
+  // ================= C. NEW FANTASY / SPECIAL SKINS (12 NEW + 4 EXISTING = 16 FANTASY) =================
+  { id: 'lava_beast', name: 'Lava Beast', category: 'fantasy', rarity: 'epic', price: 950, desc: 'Tectonic titan with cracked obsidian plates over liquid magma.', palette: { head: '#FB923C', bodyStart: '#DC2626', bodyEnd: '#1C1917', scale: '#FACC15', glow: 'rgba(239, 68, 68, 0.9)', eyeIris: '#FEF08A', eyePupil: '#7F1D1D', tongue: '#FACC15', pattern: 'lava_cracks', headShape: 'dragon', eyeStyle: 'glowing', trailEffect: 'embers' }, unlock: { type: 'length', length: 90 } },
+  { id: 'ice_dragon', name: 'Ice Dragon', category: 'fantasy', rarity: 'legendary', price: 1500, desc: 'Frostborne wyrm exhaling sub-zero crystalline blizzard shards.', palette: { head: '#E0F2FE', bodyStart: '#38BDF8', bodyEnd: '#1E3A8A', scale: '#FFFFFF', glow: 'rgba(0, 217, 255, 0.92)', eyeIris: '#00D9FF', eyePupil: '#FFFFFF', tongue: '#7DD3FC', pattern: 'ice_shards', headShape: 'dragon', eyeStyle: 'glowing', trailEffect: 'frost' }, unlock: { type: 'time', seconds: 320 } },
+  { id: 'crystal', name: 'Crystal Serpent', category: 'fantasy', rarity: 'epic', price: 880, desc: 'Refractive amethyst and quartz facets that bend arena light.', palette: { head: '#E9D5FF', bodyStart: '#C084FC', bodyEnd: '#3B82F6', scale: '#FFFFFF', glow: 'rgba(192, 132, 252, 0.88)', eyeIris: '#00D9FF', eyePupil: '#2E1065', tongue: '#F472B6', pattern: 'crystal_facets', headShape: 'crystal', eyeStyle: 'glowing', trailEffect: 'shimmer' }, unlock: { type: 'length', length: 82 } },
+  { id: 'void_snake', name: 'Void Snake', category: 'fantasy', rarity: 'legendary', price: 1700, desc: 'Event-horizon entity absorbing light into a violet singularity.', palette: { head: '#A855F7', bodyStart: '#3B0764', bodyEnd: '#030712', scale: '#C084FC', glow: 'rgba(168, 85, 247, 0.94)', eyeIris: '#FF477E', eyePupil: '#000000', tongue: '#A855F7', pattern: 'void_stars', headShape: 'coffin', eyeStyle: 'glowing', trailEffect: 'void' }, unlock: { type: 'kills', count: 40 } },
+  { id: 'cosmic', name: 'Cosmic Serpent', category: 'fantasy', rarity: 'mythic', price: 2400, desc: 'Nebula weaver carrying whole star clusters inside its body.', palette: { head: '#00D9FF', bodyStart: '#A855F7', bodyEnd: '#0F172A', scale: '#FDE047', glow: 'rgba(0, 217, 255, 0.95)', eyeIris: '#FFB020', eyePupil: '#FFFFFF', tongue: '#FF477E', pattern: 'cosmic_stars', headShape: 'dragon', eyeStyle: 'glowing', trailEffect: 'cosmos' }, unlock: { type: 'level', level: 15 } },
+  { id: 'storm', name: 'Storm Snake', category: 'fantasy', rarity: 'epic', price: 920, desc: 'Thundercloud tempest crackling with live high-voltage arcs.', palette: { head: '#38BDF8', bodyStart: '#1D4ED8', bodyEnd: '#0F172A', scale: '#FDE047', glow: 'rgba(56, 189, 248, 0.9)', eyeIris: '#FDE047', eyePupil: '#FFFFFF', tongue: '#38BDF8', pattern: 'storm_bolts', headShape: 'arrow', eyeStyle: 'glowing', trailEffect: 'lightning' }, unlock: { type: 'time', seconds: 260 } },
+  { id: 'shadow_assassin', name: 'Shadow Assassin', category: 'fantasy', rarity: 'epic', price: 860, desc: 'Stealth shinobi serpent veiled in smoke with crimson daggers.', palette: { head: '#1E293B', bodyStart: '#0F172A', bodyEnd: '#020617', scale: '#F43F5E', glow: 'rgba(244, 63, 94, 0.85)', eyeIris: '#F43F5E', eyePupil: '#000000', tongue: '#F43F5E', pattern: 'assassin_blades', headShape: 'arrow', eyeStyle: 'angry', trailEffect: 'mist' }, unlock: { type: 'kills', count: 18 } },
+  { id: 'phoenix', name: 'Phoenix Serpent', category: 'fantasy', rarity: 'mythic', price: 2500, desc: 'Immortal solar firebird reborn in golden-crimson plumage.', palette: { head: '#FEF08A', bodyStart: '#F97316', bodyEnd: '#DC2626', scale: '#FACC15', glow: 'rgba(255, 176, 32, 0.96)', eyeIris: '#FFFFFF', eyePupil: '#F59E0B', tongue: '#FEF08A', pattern: 'phoenix_plumes', headShape: 'phoenix', eyeStyle: 'glowing', trailEffect: 'embers' }, unlock: { type: 'hard_time', seconds: 240 } },
+  { id: 'ancient_guardian', name: 'Ancient Guardian', category: 'fantasy', rarity: 'legendary', price: 1550, desc: 'Runic temple protector carved from weathered stone and emerald mana.', palette: { head: '#00F5A0', bodyStart: '#334155', bodyEnd: '#1E293B', scale: '#00F5A0', glow: 'rgba(0, 245, 160, 0.88)', eyeIris: '#00F5A0', eyePupil: '#FFFFFF', tongue: '#00D9FF', pattern: 'ancient_runes', headShape: 'dragon', eyeStyle: 'glowing', trailEffect: 'shimmer' }, unlock: { type: 'achievements', count: 15 } },
+  { id: 'spirit_snake', name: 'Spirit Snake', category: 'fantasy', rarity: 'epic', price: 840, desc: 'Mystic shrine guardian radiating tranquil cyan wisps.', palette: { head: '#A5F3FC', bodyStart: '#22D3EE', bodyEnd: '#0E7490', scale: '#ECFEFF', glow: 'rgba(0, 217, 255, 0.88)', eyeIris: '#FFFFFF', eyePupil: '#083344', tongue: '#A5F3FC', pattern: 'ribbons', headShape: 'round', eyeStyle: 'glowing', trailEffect: 'aurora' }, unlock: { type: 'time', seconds: 210 } },
+  { id: 'toxic_reaper', name: 'Toxic Reaper', category: 'fantasy', rarity: 'legendary', price: 1620, desc: 'Bio-hazard harbinger pulsing with corrosive acid rings.', palette: { head: '#00F5A0', bodyStart: '#84CC16', bodyEnd: '#14532D', scale: '#A855F7', glow: 'rgba(0, 245, 160, 0.92)', eyeIris: '#A855F7', eyePupil: '#000000', tongue: '#00F5A0', pattern: 'venom_drip', headShape: 'coffin', eyeStyle: 'angry', trailEffect: 'toxic' }, unlock: { type: 'kills', count: 30 } },
+  { id: 'celestial_dragon', name: 'Celestial Dragon', category: 'fantasy', rarity: 'mythic', price: 2800, desc: 'Supreme astral sovereign crowned in starlight and mythic pink.', palette: { head: '#FF477E', bodyStart: '#FFB020', bodyEnd: '#A855F7', scale: '#FFFFFF', glow: 'rgba(255, 71, 126, 0.96)', eyeIris: '#00D9FF', eyePupil: '#FFFFFF', tongue: '#00F5A0', pattern: 'celestial_halos', headShape: 'dragon', eyeStyle: 'glowing', trailEffect: 'cosmos' }, unlock: { type: 'king_kills', count: 5 } },
+
+  // ================= D. NEW CYBER / NEON SKINS (10 NEW + 1 EXISTING = 11 CYBER) =================
+  { id: 'cyber_serpent', name: 'Cyber Serpent', category: 'cyber', rarity: 'rare', price: 560, desc: 'Augmented chrome chassis wired with neon green fiber optics.', palette: { head: '#00F5A0', bodyStart: '#1E293B', bodyEnd: '#0F172A', scale: '#00F5A0', glow: 'rgba(0, 245, 160, 0.86)', eyeIris: '#00F5A0', eyePupil: '#022C22', tongue: '#00D9FF', pattern: 'circuit_board', headShape: 'arrow', eyeStyle: 'visor' }, unlock: { type: 'length', length: 65 } },
+  { id: 'neon_overlord', name: 'Neon Overlord', category: 'cyber', rarity: 'legendary', price: 1750, desc: 'Apex cybernetic warlord surging with dual magenta-cyan cores.', palette: { head: '#FF477E', bodyStart: '#A855F7', bodyEnd: '#00D9FF', scale: '#FFFFFF', glow: 'rgba(255, 71, 126, 0.94)', eyeIris: '#00D9FF', eyePupil: '#090D16', tongue: '#00F5A0', pattern: 'neon_grid', headShape: 'samurai', eyeStyle: 'visor', trailEffect: 'neon' }, unlock: { type: 'level', level: 12 } },
+  { id: 'glitch_beast', name: 'Glitch Beast', category: 'cyber', rarity: 'epic', price: 960, desc: 'Corrupted memory anomaly shifting RGB scanline blocks.', palette: { head: '#00D9FF', bodyStart: '#FF477E', bodyEnd: '#0F172A', scale: '#00F5A0', glow: 'rgba(0, 217, 255, 0.9)', eyeIris: '#FF477E', eyePupil: '#00F5A0', tongue: '#00F5A0', pattern: 'glitch_blocks', headShape: 'pixel', eyeStyle: 'visor', trailEffect: 'neon' }, unlock: { type: 'kills', count: 22 } },
+  { id: 'digital_snake', name: 'Digital Snake', category: 'cyber', rarity: 'uncommon', price: 360, desc: '8-bit arcade voxel crawler rendered in crisp cyan telemetry.', palette: { head: '#00D9FF', bodyStart: '#0284C7', bodyEnd: '#1E3A8A', scale: '#7DD3FC', glow: 'rgba(0, 217, 255, 0.8)', eyeIris: '#FFFFFF', eyePupil: '#082F49', tongue: '#00F5A0', pattern: 'noob_blocks', headShape: 'pixel', eyeStyle: 'visor' }, unlock: { type: 'time', seconds: 130 } },
+  { id: 'cyber_samurai', name: 'Cyber Samurai', category: 'cyber', rarity: 'legendary', price: 1680, desc: 'Armored Ronin unit with a horned kabuto crest and katana edges.', palette: { head: '#F43F5E', bodyStart: '#1E293B', bodyEnd: '#090D16', scale: '#FFB020', glow: 'rgba(244, 63, 94, 0.92)', eyeIris: '#FFB020', eyePupil: '#000000', tongue: '#F43F5E', pattern: 'samurai_armor', headShape: 'samurai', eyeStyle: 'visor', trailEffect: 'crimson' }, unlock: { type: 'kills', count: 28 } },
+  { id: 'hologram', name: 'Hologram Serpent', category: 'cyber', rarity: 'epic', price: 940, desc: 'Hard-light projection flickering with translucent wireframe rings.', palette: { head: '#00D9FF', bodyStart: '#38BDF8', bodyEnd: '#082F49', scale: '#E0F2FE', glow: 'rgba(0, 217, 255, 0.9)', eyeIris: '#FFFFFF', eyePupil: '#00D9FF', tongue: '#00F5A0', pattern: 'hologram_rings', headShape: 'arrow', eyeStyle: 'visor', trailEffect: 'neon' }, unlock: { type: 'length', length: 95 } },
+  { id: 'plasma_snake', name: 'Plasma Snake', category: 'cyber', rarity: 'epic', price: 990, desc: 'Contained fusion reactor undulating with ionized magenta arcs.', palette: { head: '#E879F9', bodyStart: '#A855F7', bodyEnd: '#3B0764', scale: '#00D9FF', glow: 'rgba(168, 85, 247, 0.92)', eyeIris: '#00D9FF', eyePupil: '#FFFFFF', tongue: '#FF477E', pattern: 'plasma_pulse', headShape: 'arrow', eyeStyle: 'glowing', trailEffect: 'neon' }, unlock: { type: 'time', seconds: 280 } },
+  { id: 'neon_ghost', name: 'Neon Ghost', category: 'cyber', rarity: 'rare', price: 620, desc: 'Stealth netrunner cloaked in ultraviolet phantom circuitry.', palette: { head: '#C084FC', bodyStart: '#6366F1', bodyEnd: '#1E1B4B', scale: '#00D9FF', glow: 'rgba(192, 132, 252, 0.85)', eyeIris: '#00F5A0', eyePupil: '#1E1B4B', tongue: '#00D9FF', pattern: 'circuit_board', headShape: 'round', eyeStyle: 'glowing' }, unlock: { type: 'time', seconds: 195 } },
+  { id: 'quantum', name: 'Quantum Serpent', category: 'cyber', rarity: 'mythic', price: 2600, desc: 'Superposition accelerator phasing across parallel dimensions.', palette: { head: '#00F5A0', bodyStart: '#00D9FF', bodyEnd: '#A855F7', scale: '#FFFFFF', glow: 'rgba(0, 245, 160, 0.96)', eyeIris: '#FF477E', eyePupil: '#FFFFFF', tongue: '#FFB020', pattern: 'quantum_rings', headShape: 'crystal', eyeStyle: 'visor', trailEffect: 'cosmos' }, unlock: { type: 'length', length: 200 } },
+  { id: 'matrix_snake', name: 'Matrix Snake', category: 'cyber', rarity: 'legendary', price: 1580, desc: 'Pure executable code streaming cascading green glyphs.', palette: { head: '#00F5A0', bodyStart: '#10B981', bodyEnd: '#022C22', scale: '#A7F3D0', glow: 'rgba(0, 245, 160, 0.94)', eyeIris: '#00F5A0', eyePupil: '#000000', tongue: '#00F5A0', pattern: 'matrix_code', headShape: 'pixel', eyeStyle: 'visor', trailEffect: 'neon' }, unlock: { type: 'missions', count: 10 } }
 ];
 const SKIN_UNLOCKS_KEY = 'serpentRun_unlockedSkins';
 const SELECTED_SKIN_KEY = 'serpentRun_selectedSkin';
@@ -1998,56 +2392,136 @@ function triggerHaptic(ms = 18) {
 }
 
 // ============================================================
-// §3.5  SAVE SYSTEM v2, PROGRESSION, MISSIONS, REWARDS & ADMOB
+// §3.5  SAVE SYSTEM v3 (BACKWARD-COMPATIBLE), 3-TIER MISSIONS, 42 ACHIEVEMENTS & REWARD REVEAL
 // ============================================================
 const SAVE_STORAGE_KEY = 'serpentRun_save_v2';
-const SAVE_SCHEMA_VERSION = 2;
+const SAVE_SCHEMA_VERSION = 3;
 
 const LEVEL_TITLES = [
   'Starter Serpent', 'Reef Hatchling', 'Tidal Glider', 'Kelp Stalker', 'Current Rider',
   'Abyssal Striker', 'Venom Vanguard', 'Coil Tactician', 'Apex Predator', 'Leviathan',
-  'Mythic Wyrm', 'Sovereign King'
+  'Mythic Wyrm', 'Sovereign King', 'Cosmic Overlord', 'Quantum Immortal'
 ];
 
 const DAILY_REWARDS_CYCLE = [
-  { day: 1, type: 'coins', amount: 100, title: '100 Coins', sub: 'Starter Bonus' },
-  { day: 2, type: 'coins', amount: 150, title: '150 Coins', sub: 'Coin Pouch' },
-  { day: 3, type: 'coins', amount: 250, title: '250 Coins', sub: 'Treasure Chest' },
-  { day: 4, type: 'xp', amount: 300, title: '+300 XP', sub: 'Level Boost' },
-  { day: 5, type: 'coins', amount: 400, title: '400 Coins', sub: 'Royal Vault' },
-  { day: 6, type: 'skin_or_coins', skinId: 'anaconda', fallbackCoins: 550, title: 'Anaconda Skin', sub: 'Rare Skin or 550c' },
-  { day: 7, type: 'skin_or_coins', skinId: 'cyber', fallbackCoins: 1000, title: 'Cyber Neon Skin', sub: 'Epic Skin or 1000c' }
+  { day: 1, type: 'coins', amount: 120, title: '120 Coins', sub: 'Starter Bonus' },
+  { day: 2, type: 'coins', amount: 180, title: '180 Coins', sub: 'Coin Pouch' },
+  { day: 3, type: 'coins', amount: 260, title: '260 Coins', sub: 'Treasure Chest' },
+  { day: 4, type: 'xp', amount: 350, title: '+350 XP', sub: 'Level Boost' },
+  { day: 5, type: 'coins', amount: 450, title: '450 Coins', sub: 'Royal Vault' },
+  { day: 6, type: 'skin_or_coins', skinId: 'anaconda', fallbackCoins: 600, title: 'Anaconda Skin', sub: 'Rare Skin or 600c' },
+  { day: 7, type: 'skin_or_coins', skinId: 'cyber', fallbackCoins: 1100, title: 'Cyber Neon Skin', sub: 'Epic Skin or 1100c' }
 ];
 
+// A. DAILY MISSIONS POOL (10 Definitions — 4 Rotate Daily at Local Midnight)
 const MISSION_POOL = [
-  { id: 'eat_50', title: 'Hungry Serpent', desc: 'Collect 50 food value in matches today', type: 'food', target: 50, rewardCoins: 120, rewardXp: 80 },
-  { id: 'survive_180', title: 'Deep Survivor', desc: 'Survive 180 total seconds in the arena', type: 'survive', target: 180, rewardCoins: 150, rewardXp: 100 },
-  { id: 'kill_5', title: 'Coil Trapper', desc: 'Eliminate 5 rival snakes today', type: 'kills', target: 5, rewardCoins: 160, rewardXp: 110 },
-  { id: 'len_100', title: 'Colossus', desc: 'Reach a snake length of 100 in a single run', type: 'max_length', target: 100, rewardCoins: 180, rewardXp: 120 },
-  { id: 'powerup_3', title: 'Power Collector', desc: 'Pick up 3 random map power-ups', type: 'powerups', target: 3, rewardCoins: 130, rewardXp: 90 },
-  { id: 'dash_10', title: 'High Voltage', desc: 'Activate the Dash ability 10 times', type: 'dash', target: 10, rewardCoins: 125, rewardXp: 85 },
-  { id: 'nodie_60', title: 'Untouchable', desc: 'Survive at least 60 seconds in one match', type: 'single_survive', target: 60, rewardCoins: 140, rewardXp: 95 },
-  { id: 'coins_100', title: 'Treasure Hunter', desc: 'Earn 100 coins from matches or rewards', type: 'coins_earned', target: 100, rewardCoins: 150, rewardXp: 100 }
+  { id: 'eat_100', tier: 'daily', difficulty: 'Easy', rarity: 'common', title: 'Hungry Serpent', desc: 'Collect 100 food value across matches today', type: 'food', target: 100, rewardCoins: 140, rewardXp: 90 },
+  { id: 'survive_180', tier: 'daily', difficulty: 'Normal', rarity: 'uncommon', title: 'Deep Survivor', desc: 'Survive 3 minutes (180s) total in the arena today', type: 'survive', target: 180, rewardCoins: 160, rewardXp: 110 },
+  { id: 'kill_5', tier: 'daily', difficulty: 'Normal', rarity: 'rare', title: 'Coil Trapper', desc: 'Eliminate 5 rival snakes today', type: 'kills', target: 5, rewardCoins: 175, rewardXp: 120 },
+  { id: 'len_120', tier: 'daily', difficulty: 'Normal', rarity: 'rare', title: 'Colossus', desc: 'Reach a snake length of 120 in a single run', type: 'max_length', target: 120, rewardCoins: 190, rewardXp: 130 },
+  { id: 'powerup_3', tier: 'daily', difficulty: 'Easy', rarity: 'uncommon', title: 'Power Collector', desc: 'Pick up 3 map power-ups today', type: 'powerups', target: 3, rewardCoins: 150, rewardXp: 100 },
+  { id: 'dash_10', tier: 'daily', difficulty: 'Easy', rarity: 'common', title: 'High Voltage', desc: 'Activate the Dash ability 10 times today', type: 'dash', target: 10, rewardCoins: 135, rewardXp: 90 },
+  { id: 'nodie_90', tier: 'daily', difficulty: 'Normal', rarity: 'uncommon', title: 'Untouchable', desc: 'Survive at least 90 seconds in one match', type: 'single_survive', target: 90, rewardCoins: 165, rewardXp: 110 },
+  { id: 'king_1', tier: 'daily', difficulty: 'Hard', rarity: 'epic', title: 'Regicide', desc: 'Eliminate 1 crowned King Snake today', type: 'king_kills', target: 1, rewardCoins: 240, rewardXp: 160 },
+  { id: 'matches_3', tier: 'daily', difficulty: 'Easy', rarity: 'common', title: 'Arena Regular', desc: 'Play 3 matches in any difficulty mode', type: 'matches', target: 3, rewardCoins: 140, rewardXp: 95 },
+  { id: 'coins_200', tier: 'daily', difficulty: 'Normal', rarity: 'uncommon', title: 'Treasure Hunter', desc: 'Earn 200 coins from matches or rewards today', type: 'coins_earned', target: 200, rewardCoins: 170, rewardXp: 115 }
 ];
 
+// B. WEEKLY MISSIONS POOL (7 Definitions — 5 Rotate Weekly by ISO Week)
+const WEEKLY_MISSION_POOL = [
+  { id: 'wk_kill_50', tier: 'weekly', difficulty: 'Hard', rarity: 'epic', title: 'Swarm Decimator', desc: 'Eliminate 50 enemy snakes this week', type: 'kills', target: 50, rewardCoins: 650, rewardXp: 450 },
+  { id: 'wk_survive_20m', tier: 'weekly', difficulty: 'Normal', rarity: 'rare', title: 'Abyssal Endurance', desc: 'Survive 20 minutes (1,200s) total across matches', type: 'survive', target: 1200, rewardCoins: 600, rewardXp: 420 },
+  { id: 'wk_len300_3x', tier: 'weekly', difficulty: 'Hard', rarity: 'epic', title: 'Triple Titan', desc: 'Reach length 150+ in 3 separate matches this week', type: 'matches_len150', target: 3, rewardCoins: 700, rewardXp: 500 },
+  { id: 'wk_top3_10', tier: 'weekly', difficulty: 'Normal', rarity: 'rare', title: 'Podium Dominator', desc: 'Finish in the Top 3 arena rank in 10 matches', type: 'top3_matches', target: 10, rewardCoins: 680, rewardXp: 480 },
+  { id: 'wk_powerups_30', tier: 'weekly', difficulty: 'Normal', rarity: 'rare', title: 'Relic Overcharge', desc: 'Collect 30 map power-ups this week', type: 'powerups', target: 30, rewardCoins: 580, rewardXp: 400 },
+  { id: 'wk_kings_5', tier: 'weekly', difficulty: 'Hard', rarity: 'legendary', title: 'Crown Breaker', desc: 'Defeat 5 crowned King Snakes this week', type: 'king_kills', target: 5, rewardCoins: 850, rewardXp: 600 },
+  { id: 'wk_dailies_12', tier: 'weekly', difficulty: 'Normal', rarity: 'epic', title: 'Dedicated Striker', desc: 'Claim 12 daily missions this week', type: 'dailies_claimed', target: 12, rewardCoins: 750, rewardXp: 520 }
+];
+
+// C. ELITE CHALLENGES POOL (8 High-Skill Long-Term Challenges with Exclusive Rewards)
+const ELITE_MISSION_POOL = [
+  { id: 'el_hard_8m', tier: 'elite', difficulty: 'Elite', rarity: 'mythic', title: 'Hellfire Marathon', desc: 'Survive Hard mode for 8 minutes (480s) in a single match', stat: 'hardSurvivalTime', target: 480, rewardCoins: 1500, rewardXp: 1000, bonusSkinId: 'phoenix', bonusTitle: 'Hellfire Immortal' },
+  { id: 'el_kills_15_one', tier: 'elite', difficulty: 'Elite', rarity: 'legendary', title: 'Arena Executioner', desc: 'Eliminate 15 snakes in a single match', stat: 'singleMatchKills', target: 15, rewardCoins: 1200, rewardXp: 850, bonusSkinId: 'cyber_samurai', bonusTitle: 'Blade of the Abyss' },
+  { id: 'el_len_500', tier: 'elite', difficulty: 'Elite', rarity: 'mythic', title: 'World Serpent', desc: 'Reach an extraordinary snake length of 500', stat: 'highestLength', target: 500, rewardCoins: 1800, rewardXp: 1200, bonusSkinId: 'quantum', bonusTitle: 'Jormungandr' },
+  { id: 'el_king_flawless', tier: 'elite', difficulty: 'Elite', rarity: 'legendary', title: 'Usurper Unscathed', desc: 'Defeat the crowned King Snake without using a revive', stat: 'kingKillNoDeath', target: 1, rewardCoins: 1000, rewardXp: 700, bonusTitle: 'Crown Usurper' },
+  { id: 'el_hard_streak_3', tier: 'elite', difficulty: 'Elite', rarity: 'mythic', title: 'Hardcore Dynasty', desc: 'Reach Top 3 in Hard mode 3 matches consecutively', stat: 'hardWinsStreakBest', target: 3, rewardCoins: 1600, rewardXp: 1100, bonusSkinId: 'celestial_dragon', bonusTitle: 'Apex Sovereign' },
+  { id: 'el_purist_5m', tier: 'elite', difficulty: 'Elite', rarity: 'legendary', title: 'Pure Instinct', desc: 'Survive 5 minutes (300s) in one match without using abilities', stat: 'noAbilitySurvivalTime', target: 300, rewardCoins: 1250, rewardXp: 900, bonusSkinId: 'ancient_guardian', bonusTitle: 'Zen Master' },
+  { id: 'el_rare_10', tier: 'elite', difficulty: 'Elite', rarity: 'epic', title: 'Starlight Harvester', desc: 'Collect 10 rare glowing food orbs across your career', stat: 'rareOrbsCollected', target: 10, rewardCoins: 950, rewardXp: 680, bonusSkinId: 'cosmic', bonusTitle: 'Star Eater' },
+  { id: 'el_streak_10', tier: 'elite', difficulty: 'Elite', rarity: 'legendary', title: 'Unstoppable Rampage', desc: 'Achieve a 10-kill streak in a single life without reviving', stat: 'killStreakBest', target: 10, rewardCoins: 1350, rewardXp: 950, bonusSkinId: 'void_snake', bonusTitle: 'Void Reaper' }
+];
+
+// 42 ACHIEVEMENTS ACROSS 8 CATEGORIES (Bronze, Silver, Gold, Diamond, Mythic)
 const ACHIEVEMENTS_LIST = [
-  { id: 'first_match', title: 'First Dive', desc: 'Complete your first match in Serpent Run', stat: 'totalMatches', target: 1, rewardCoins: 80, rewardXp: 50 },
-  { id: 'first_kill', title: 'First Blood', desc: 'Trap and defeat your first rival snake', stat: 'totalKills', target: 1, rewardCoins: 100, rewardXp: 60 },
-  { id: 'survivor_3m', title: 'Arena Survivor', desc: 'Survive for 3 minutes (180s) in a single match', stat: 'bestSurvivalTime', target: 180, rewardCoins: 200, rewardXp: 120 },
-  { id: 'food_250', title: 'Food Collector', desc: 'Consume 250 total food value across matches', stat: 'totalFoodEaten', target: 250, rewardCoins: 160, rewardXp: 100 },
-  { id: 'giant_120', title: 'Giant Serpent', desc: 'Grow your snake to length 120', stat: 'highestLength', target: 120, rewardCoins: 250, rewardXp: 150 },
-  { id: 'king_slayer', title: 'King Slayer', desc: 'Eliminate the crowned #1 King Snake', stat: 'kingKills', target: 1, rewardCoins: 220, rewardXp: 140 },
-  { id: 'speed_demon', title: 'Speed Demon', desc: 'Use Dash or collect Speed Boosts 25 times', stat: 'totalDashes', target: 25, rewardCoins: 180, rewardXp: 110 },
-  { id: 'master_survivor', title: 'Master Survivor', desc: 'Survive 5 minutes (300s) in a single match', stat: 'bestSurvivalTime', target: 300, rewardCoins: 400, rewardXp: 250 },
-  { id: 'matches_25', title: 'Arena Veteran', desc: 'Play 25 matches', stat: 'totalMatches', target: 25, rewardCoins: 300, rewardXp: 200 },
-  { id: 'matches_100', title: 'Centurion', desc: 'Play 100 matches', stat: 'totalMatches', target: 100, rewardCoins: 750, rewardXp: 500 },
-  { id: 'food_1000', title: 'Insatiable', desc: 'Consume 1,000 total food value', stat: 'totalFoodEaten', target: 1000, rewardCoins: 500, rewardXp: 350 },
-  { id: 'kills_100', title: 'Apex Eliminator', desc: 'Defeat 100 enemy snakes', stat: 'totalKills', target: 100, rewardCoins: 800, rewardXp: 600 }
+  // 1. SURVIVAL (6)
+  { id: 'first_match', category: 'survival', rarity: 'bronze', icon: '🌊', title: 'First Dive', desc: 'Complete your first match in Serpent Run', stat: 'totalMatches', target: 1, rewardCoins: 80, rewardXp: 50 },
+  { id: 'surv_1m', category: 'survival', rarity: 'bronze', icon: '⏱', title: 'Treading Water', desc: 'Survive for 1 minute (60s) in a single match', stat: 'bestSurvivalTime', target: 60, rewardCoins: 110, rewardXp: 70 },
+  { id: 'survivor_3m', category: 'survival', rarity: 'silver', icon: '🛡', title: 'Arena Survivor', desc: 'Survive for 3 minutes (180s) in a single match', stat: 'bestSurvivalTime', target: 180, rewardCoins: 200, rewardXp: 130 },
+  { id: 'master_survivor', category: 'survival', rarity: 'gold', icon: '⚓', title: 'Master Survivor', desc: 'Survive 5 minutes (300s) in a single match', stat: 'bestSurvivalTime', target: 300, rewardCoins: 400, rewardXp: 260 },
+  { id: 'surv_10m', category: 'survival', rarity: 'diamond', icon: '🌌', title: 'Immortal Coil', desc: 'Survive 10 minutes (600s) in a single match', stat: 'bestSurvivalTime', target: 600, rewardCoins: 900, rewardXp: 650, bonusTitle: 'The Undying' },
+  { id: 'matches_100', category: 'survival', rarity: 'gold', icon: '🎖', title: 'Centurion Veteran', desc: 'Complete 100 lifetime arena matches', stat: 'totalMatches', target: 100, rewardCoins: 750, rewardXp: 500 },
+
+  // 2. COMBAT (6)
+  { id: 'first_kill', category: 'combat', rarity: 'bronze', icon: '⚔', title: 'First Blood', desc: 'Trap and defeat your first rival snake', stat: 'totalKills', target: 1, rewardCoins: 100, rewardXp: 60 },
+  { id: 'kills_10', category: 'combat', rarity: 'bronze', icon: '🗡', title: 'Ambush Striker', desc: 'Defeat 10 enemy snakes across matches', stat: 'totalKills', target: 10, rewardCoins: 150, rewardXp: 100 },
+  { id: 'kills_50', category: 'combat', rarity: 'silver', icon: '💥', title: 'Coil Gladiator', desc: 'Defeat 50 enemy snakes across matches', stat: 'totalKills', target: 50, rewardCoins: 350, rewardXp: 240 },
+  { id: 'kills_100', category: 'combat', rarity: 'gold', icon: '☠', title: 'Apex Eliminator', desc: 'Defeat 100 enemy snakes across matches', stat: 'totalKills', target: 100, rewardCoins: 800, rewardXp: 600 },
+  { id: 'kills_500', category: 'combat', rarity: 'mythic', icon: '🩸', title: 'God of War', desc: 'Defeat 500 enemy snakes in your career', stat: 'totalKills', target: 500, rewardCoins: 2000, rewardXp: 1500, bonusSkinId: 'blood_moon', bonusTitle: 'Abyssal Warlord' },
+  { id: 'match_kills_8', category: 'combat', rarity: 'diamond', icon: '🔥', title: 'Octa-Slayer', desc: 'Eliminate 8 enemy snakes in a single match', stat: 'singleMatchKills', target: 8, rewardCoins: 550, rewardXp: 380 },
+
+  // 3. GROWTH (6)
+  { id: 'food_250', category: 'growth', rarity: 'bronze', icon: '🍏', title: 'Food Collector', desc: 'Consume 250 total food value across matches', stat: 'totalFoodEaten', target: 250, rewardCoins: 160, rewardXp: 100 },
+  { id: 'food_1000', category: 'growth', rarity: 'silver', icon: '🍖', title: 'Insatiable', desc: 'Consume 1,000 total food value', stat: 'totalFoodEaten', target: 1000, rewardCoins: 500, rewardXp: 350 },
+  { id: 'food_5000', category: 'growth', rarity: 'diamond', icon: '🍽', title: 'Black Hole Appetite', desc: 'Consume 5,000 total food value', stat: 'totalFoodEaten', target: 5000, rewardCoins: 1100, rewardXp: 800 },
+  { id: 'giant_120', category: 'growth', rarity: 'silver', icon: '🐍', title: 'Giant Serpent', desc: 'Grow your snake to length 120', stat: 'highestLength', target: 120, rewardCoins: 250, rewardXp: 150 },
+  { id: 'giant_250', category: 'growth', rarity: 'gold', icon: '🐉', title: 'Mega Behemoth', desc: 'Grow your snake to length 250', stat: 'highestLength', target: 250, rewardCoins: 600, rewardXp: 420 },
+  { id: 'giant_400', category: 'growth', rarity: 'diamond', icon: '🪐', title: 'Titan Leviathan', desc: 'Grow your snake to length 400', stat: 'highestLength', target: 400, rewardCoins: 1200, rewardXp: 850, bonusSkinId: 'leviathan' },
+
+  // 4. ABILITIES (5)
+  { id: 'speed_demon', category: 'abilities', rarity: 'bronze', icon: '⚡', title: 'Speed Demon', desc: 'Use Dash or collect Speed Boosts 25 times', stat: 'totalDashes', target: 25, rewardCoins: 180, rewardXp: 110 },
+  { id: 'dash_100', category: 'abilities', rarity: 'gold', icon: '🚀', title: 'Hyperdrive', desc: 'Activate Dash 100 times across matches', stat: 'totalDashes', target: 100, rewardCoins: 480, rewardXp: 320 },
+  { id: 'ghost_25', category: 'abilities', rarity: 'silver', icon: '👻', title: 'Phase Walker', desc: 'Activate Ghost ability 25 times', stat: 'ghostUses', target: 25, rewardCoins: 260, rewardXp: 180 },
+  { id: 'magnet_25', category: 'abilities', rarity: 'silver', icon: '🧲', title: 'Magnetic Field', desc: 'Activate Magnet ability 25 times', stat: 'magnetUses', target: 25, rewardCoins: 260, rewardXp: 180 },
+  { id: 'powerups_50', category: 'abilities', rarity: 'gold', icon: '✨', title: 'Power Overwhelming', desc: 'Collect 50 map power-ups', stat: 'totalPowerups', target: 50, rewardCoins: 520, rewardXp: 360 },
+
+  // 5. COLLECTION (5)
+  { id: 'skins_10', category: 'collection', rarity: 'bronze', icon: '🎨', title: 'Wardrobe Starter', desc: 'Own 10 unique snake skins', stat: 'skinsUnlockedCount', target: 10, rewardCoins: 220, rewardXp: 150 },
+  { id: 'skins_25', category: 'collection', rarity: 'gold', icon: '💎', title: 'Skin Connoisseur', desc: 'Own 25 unique snake skins', stat: 'skinsUnlockedCount', target: 25, rewardCoins: 650, rewardXp: 450 },
+  { id: 'skins_50', category: 'collection', rarity: 'mythic', icon: '👑', title: 'Grand Curator', desc: 'Own 50 unique snake skins in your vault', stat: 'skinsUnlockedCount', target: 50, rewardCoins: 2200, rewardXp: 1600, bonusTitle: 'Vault Emperor' },
+  { id: 'coins_5000', category: 'collection', rarity: 'silver', icon: '💰', title: 'Golden Hoarder', desc: 'Earn 5,000 lifetime coins', stat: 'totalCoinsEarned', target: 5000, rewardCoins: 450, rewardXp: 300 },
+  { id: 'level_20', category: 'collection', rarity: 'diamond', icon: '🌟', title: 'Ascended Rank', desc: 'Reach Player Level 20', stat: 'playerLevel', target: 20, rewardCoins: 1000, rewardXp: 700 },
+
+  // 6. KING SLAYER (4)
+  { id: 'king_slayer', category: 'kingslayer', rarity: 'silver', icon: '👑', title: 'King Slayer', desc: 'Eliminate the crowned #1 King Snake', stat: 'kingKills', target: 1, rewardCoins: 240, rewardXp: 160 },
+  { id: 'king_5', category: 'kingslayer', rarity: 'gold', icon: '⚔', title: 'Throne Shatterer', desc: 'Eliminate 5 crowned King Snakes', stat: 'kingKills', target: 5, rewardCoins: 550, rewardXp: 380 },
+  { id: 'king_15', category: 'kingslayer', rarity: 'diamond', icon: '🏰', title: 'Dynasty Ender', desc: 'Eliminate 15 crowned King Snakes', stat: 'kingKills', target: 15, rewardCoins: 1100, rewardXp: 780 },
+  { id: 'king_30', category: 'kingslayer', rarity: 'mythic', icon: '🐉', title: 'Bane of Monarchs', desc: 'Eliminate 30 crowned King Snakes', stat: 'kingKills', target: 30, rewardCoins: 2000, rewardXp: 1400, bonusTitle: 'Godslayer' },
+
+  // 7. HARD MODE (4)
+  { id: 'hard_2m', category: 'hardmode', rarity: 'silver', icon: '🔥', title: 'Trial by Fire', desc: 'Survive 2 minutes (120s) in Hard Mode (50 bots)', stat: 'hardSurvivalTime', target: 120, rewardCoins: 320, rewardXp: 220 },
+  { id: 'hard_4m', category: 'hardmode', rarity: 'gold', icon: '🌋', title: 'Crucible Master', desc: 'Survive 4 minutes (240s) in Hard Mode', stat: 'hardSurvivalTime', target: 240, rewardCoins: 680, rewardXp: 460 },
+  { id: 'hard_top1', category: 'hardmode', rarity: 'diamond', icon: '🏆', title: 'Apex of the Swarm', desc: 'Finish a Hard Mode match at Rank #1', stat: 'hardRank1Count', target: 1, rewardCoins: 850, rewardXp: 600 },
+  { id: 'hard_kills_10', category: 'hardmode', rarity: 'diamond', icon: '💀', title: 'Swarm Butcher', desc: 'Get 10 kills in a single Hard Mode match', stat: 'hardSingleMatchKills', target: 10, rewardCoins: 1150, rewardXp: 820 },
+
+  // 8. SECRET ACHIEVEMENTS (6 — Description hidden until unlocked!)
+  { id: 'sec_night_stalker', category: 'secret', secret: true, rarity: 'gold', icon: '🌙', title: 'Night Stalker', desc: 'Eliminate 3 rival snakes during the Night cycle phase', stat: 'nightKills', target: 3, rewardCoins: 500, rewardXp: 350, bonusSkinId: 'shadow_assassin' },
+  { id: 'sec_danger_dweller', category: 'secret', secret: true, rarity: 'gold', icon: '☢', title: 'Eye of the Maelstrom', desc: 'Spend 60 cumulative seconds inside the central Danger Zone', stat: 'dangerZoneTime', target: 60, rewardCoins: 550, rewardXp: 380 },
+  { id: 'sec_pacifist', category: 'secret', secret: true, rarity: 'diamond', icon: '🕊', title: 'Abyssal Pacifist', desc: 'Survive 3 minutes in a single match with 0 kills', stat: 'pacifist3m', target: 1, rewardCoins: 750, rewardXp: 520, bonusSkinId: 'spirit_snake' },
+  { id: 'sec_meme_lord', category: 'secret', secret: true, rarity: 'gold', icon: '🍌', title: 'Comedy Gold', desc: 'Eliminate 5 snakes while wearing any Funny/Meme skin', stat: 'funnySkinKills', target: 5, rewardCoins: 520, rewardXp: 360, bonusSkinId: 'disco' },
+  { id: 'sec_rare_feast', category: 'secret', secret: true, rarity: 'diamond', icon: '🌠', title: 'Shooting Star', desc: 'Catch a rare glowing orb while Dash or Speed Boost is active', stat: 'dashingRareOrb', target: 1, rewardCoins: 700, rewardXp: 480 },
+  { id: 'sec_comeback', category: 'secret', secret: true, rarity: 'mythic', icon: '🐦‍🔥', title: 'From the Ashes', desc: 'Revive once and go on to reach Rank #1 in that same match', stat: 'reviveToRank1', target: 1, rewardCoins: 1400, rewardXp: 950, bonusTitle: 'Reborn Sovereign' }
 ];
 
 function getLocalDateKey() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function getLocalWeekKey() {
+  const d = new Date();
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const days = Math.floor((d - jan1) / 86400000);
+  const week = Math.ceil((days + jan1.getDay() + 1) / 7);
+  return `${d.getFullYear()}-W${String(week).padStart(2, '0')}`;
 }
 
 function getXpRequiredForLevel(lvl) {
@@ -2057,10 +2531,12 @@ function getXpRequiredForLevel(lvl) {
 function createDefaultProfile() {
   return {
     version: SAVE_SCHEMA_VERSION,
-    coins: 200,
+    coins: 250,
     xp: 0,
     level: 1,
     removeForcedAds: false,
+    unlockedTitles: ['Starter Serpent'],
+    selectedTitle: '',
     settings: {
       sound: !isMuted,
       music: true,
@@ -2081,7 +2557,30 @@ function createDefaultProfile() {
       totalMatches: 0,
       totalDashes: 0,
       totalPowerups: 0,
-      totalCoinsEarned: 200
+      totalCoinsEarned: 250,
+      hardSurvivalTime: getBestTime('hard'),
+      hardRank1Count: 0,
+      hardSingleMatchKills: 0,
+      hardWinsStreak: 0,
+      hardWinsStreakBest: 0,
+      singleMatchKills: 0,
+      killStreakBest: 0,
+      kingKillNoDeath: 0,
+      noAbilitySurvivalTime: 0,
+      rareOrbsCollected: 0,
+      ghostUses: 0,
+      magnetUses: 0,
+      nightKills: 0,
+      dangerZoneTime: 0,
+      pacifist3m: 0,
+      funnySkinKills: 0,
+      dashingRareOrb: 0,
+      reviveToRank1: 0,
+      dailyMissionsCompleted: 0,
+      weeklyMissionsCompleted: 0,
+      eliteMissionsCompleted: 0,
+      skinsUnlockedCount: 3,
+      playerLevel: 1
     },
     dailyReward: {
       streakDay: 1,
@@ -2092,6 +2591,11 @@ function createDefaultProfile() {
       dateKey: '',
       items: []
     },
+    weeklyMissions: {
+      weekKey: '',
+      items: []
+    },
+    eliteMissionsClaimed: {},
     achievementsClaimed: {},
     ads: {
       matchesSinceInterstitial: 0,
@@ -2102,15 +2606,33 @@ function createDefaultProfile() {
 
 let profileData = createDefaultProfile();
 let currentSkinFilter = 'all';
+let currentSkinCategory = 'all';
+let currentSkinSearch = '';
+let previewSkinId = 'classic';
+let currentMissionTier = 'daily';
+let currentAchCategory = 'all';
 let trialSkinId = null;
 let matchFoodEaten = 0;
 let matchPowerupsCollected = 0;
 let matchDashesUsed = 0;
+let matchAbilitiesUsed = 0;
+let matchCurrentKillStreak = 0;
+let matchDangerZoneAccum = 0;
 let matchCoinsEarned = 0;
 let matchXpEarned = 0;
 let matchScore = 0;
 let matchReviveUsed = false;
 let matchDoubleClaimed = false;
+let ingameQuestToastTimer = 0;
+
+function syncDerivedProfileStats() {
+  if (!profileData || !profileData.stats) return;
+  profileData.stats.skinsUnlockedCount = unlockedSkinIds.size;
+  profileData.stats.playerLevel = profileData.level || 1;
+  profileData.stats.bestSurvivalTime = Math.max(profileData.stats.bestSurvivalTime || 0, getOverallBestTime());
+  profileData.stats.highestLength = Math.max(profileData.stats.highestLength || INITIAL_SEGMENTS, getOverallBestLength());
+  profileData.stats.hardSurvivalTime = Math.max(profileData.stats.hardSurvivalTime || 0, getBestTime('hard'));
+}
 
 function loadProfileData() {
   try {
@@ -2118,7 +2640,9 @@ function loadProfileData() {
     const def = createDefaultProfile();
     if (!raw) {
       profileData = def;
+      syncDerivedProfileStats();
       ensureDailyMissionsForToday();
+      ensureWeeklyMissionsForWeek();
       saveProfileData();
       return;
     }
@@ -2131,34 +2655,150 @@ function loadProfileData() {
       coins: Math.max(0, Number(parsed.coins) || 0),
       xp: Math.max(0, Number(parsed.xp) || 0),
       level: Math.max(1, Number(parsed.level) || 1),
+      unlockedTitles: Array.isArray(parsed.unlockedTitles) ? parsed.unlockedTitles : def.unlockedTitles,
+      selectedTitle: parsed.selectedTitle || '',
       settings: { ...def.settings, ...(parsed.settings || {}) },
       stats: { ...def.stats, ...(parsed.stats || {}) },
       dailyReward: { ...def.dailyReward, ...(parsed.dailyReward || {}) },
       dailyMissions: { ...def.dailyMissions, ...(parsed.dailyMissions || {}) },
+      weeklyMissions: { ...def.weeklyMissions, ...(parsed.weeklyMissions || {}) },
+      eliteMissionsClaimed: { ...(parsed.eliteMissionsClaimed || {}) },
       achievementsClaimed: { ...(parsed.achievementsClaimed || {}) },
       ads: { ...def.ads, ...(parsed.ads || {}) }
     };
   } catch (_) {
     profileData = createDefaultProfile();
   }
-  // Sync legacy best records if higher
-  profileData.stats.bestSurvivalTime = Math.max(profileData.stats.bestSurvivalTime || 0, getOverallBestTime());
-  profileData.stats.highestLength = Math.max(profileData.stats.highestLength || INITIAL_SEGMENTS, getOverallBestLength());
-  // Apply audio & control settings
+  syncDerivedProfileStats();
   isMuted = !profileData.settings.sound;
   isMusicMuted = !profileData.settings.music;
   masterVolume = Math.max(0, Math.min(1, (profileData.settings.volume ?? 80) / 100));
+  previewSkinId = selectedSkinId || 'classic';
   applyControlSettingsToDOM();
   ensureDailyMissionsForToday();
+  ensureWeeklyMissionsForWeek();
   saveProfileData();
 }
 
 function saveProfileData() {
   if (!profileData) return;
+  syncDerivedProfileStats();
   profileData.settings.sound = !isMuted;
   profileData.settings.music = !isMusicMuted;
   profileData.settings.volume = Math.round(masterVolume * 100);
   safeStorageSet(SAVE_STORAGE_KEY, JSON.stringify(profileData));
+}
+
+function showIngameQuestToast(badgeText, titleText) {
+  const toast = document.getElementById('ingame-quest-toast');
+  const badgeEl = document.getElementById('qt-badge');
+  const textEl = document.getElementById('qt-text');
+  if (!toast || !badgeEl || !textEl) return;
+  badgeEl.textContent = badgeText;
+  textEl.textContent = titleText;
+  toast.style.display = 'inline-flex';
+  requestAnimationFrame(() => toast.classList.add('show'));
+  clearTimeout(ingameQuestToastTimer);
+  ingameQuestToastTimer = setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => { toast.style.display = 'none'; }, 240);
+  }, 3000);
+}
+
+// Skippable Animated Reward Reveal Modal with Particle Burst
+let rewardParticles = [];
+let rewardParticleAnimId = 0;
+
+function showRewardRevealModal({ icon = '🏆', typeLabel = 'REWARD UNLOCKED', title = 'Congratulations!', subtitle = '', items = [], accentColor = '#FFB020' }) {
+  // Never interrupt active unpaused gameplay
+  if (isGameRunning && !isPaused && !isGameOver) {
+    showIngameQuestToast(typeLabel, `${title} ${items.join(' • ')}`);
+    return;
+  }
+  const modal = document.getElementById('reward-reveal-modal');
+  const card = document.getElementById('reward-reveal-card');
+  const iconEl = document.getElementById('reward-reveal-icon');
+  const typeEl = document.getElementById('reward-reveal-type');
+  const titleEl = document.getElementById('reward-reveal-title');
+  const subEl = document.getElementById('reward-reveal-sub');
+  const itemsEl = document.getElementById('reward-items-row');
+  if (!modal || !iconEl || !typeEl || !titleEl || !subEl || !itemsEl) return;
+
+  iconEl.textContent = icon;
+  typeEl.textContent = typeLabel;
+  typeEl.style.color = accentColor;
+  if (card) card.style.borderColor = accentColor;
+  titleEl.textContent = title;
+  subEl.textContent = subtitle;
+  itemsEl.innerHTML = items.map(it => `<span class="reward-pill-item">${it}</span>`).join('');
+  modal.style.display = 'flex';
+  sfxReward();
+  triggerHaptic(32);
+  startRewardParticles(accentColor);
+}
+
+function closeRewardRevealModal() {
+  const modal = document.getElementById('reward-reveal-modal');
+  if (modal) modal.style.display = 'none';
+  if (rewardParticleAnimId) {
+    cancelAnimationFrame(rewardParticleAnimId);
+    rewardParticleAnimId = 0;
+  }
+}
+
+function startRewardParticles(accentColor = '#FFB020') {
+  const pCanvas = document.getElementById('reward-particle-canvas');
+  if (!pCanvas) return;
+  pCanvas.width = window.innerWidth;
+  pCanvas.height = window.innerHeight;
+  const pCtx = pCanvas.getContext('2d');
+  const cx = pCanvas.width / 2;
+  const cy = pCanvas.height / 2;
+  const palette = [accentColor, '#00F5A0', '#00D9FF', '#A855F7', '#FF477E', '#FFB020', '#FFFFFF'];
+  rewardParticles = [];
+  const count = graphicsQuality === 'low' ? 28 : 56;
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.25;
+    const speed = 3 + Math.random() * 8;
+    rewardParticles.push({
+      x: cx,
+      y: cy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 1.5,
+      size: 3 + Math.random() * 4.5,
+      color: palette[i % palette.length],
+      alpha: 1,
+      decay: 0.014 + Math.random() * 0.012
+    });
+  }
+  if (rewardParticleAnimId) cancelAnimationFrame(rewardParticleAnimId);
+  const step = () => {
+    const modal = document.getElementById('reward-reveal-modal');
+    if (!modal || modal.style.display === 'none') {
+      rewardParticleAnimId = 0;
+      return;
+    }
+    pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+    let alive = 0;
+    for (const p of rewardParticles) {
+      if (p.alpha <= 0) continue;
+      alive++;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.14;
+      p.vx *= 0.98;
+      p.alpha = Math.max(0, p.alpha - p.decay);
+      pCtx.globalAlpha = p.alpha;
+      pCtx.fillStyle = p.color;
+      pCtx.beginPath();
+      pCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      pCtx.fill();
+    }
+    pCtx.globalAlpha = 1;
+    if (alive > 0) rewardParticleAnimId = requestAnimationFrame(step);
+    else rewardParticleAnimId = 0;
+  };
+  rewardParticleAnimId = requestAnimationFrame(step);
 }
 
 function addCoins(amount, trackMission = true) {
@@ -2176,21 +2816,38 @@ function addXp(amount) {
   if (clean <= 0) return;
   profileData.xp += clean;
   let leveledUp = false;
+  let totalBonusCoins = 0;
+  const unlockedMilestoneNames = [];
   while (profileData.xp >= getXpRequiredForLevel(profileData.level)) {
     profileData.xp -= getXpRequiredForLevel(profileData.level);
     profileData.level++;
     leveledUp = true;
-    const levelBonusCoins = 50 + profileData.level * 15;
+    const levelBonusCoins = 60 + profileData.level * 20;
+    totalBonusCoins += levelBonusCoins;
     profileData.coins += levelBonusCoins;
-    // Milestone skin unlocks at levels 5, 10, 15, 20
-    if (profileData.level === 5 && !unlockedSkinIds.has('viper')) unlockedSkinIds.add('viper');
-    if (profileData.level === 10 && !unlockedSkinIds.has('rattlesnake')) unlockedSkinIds.add('rattlesnake');
-    if (profileData.level === 15 && !unlockedSkinIds.has('seasnake')) unlockedSkinIds.add('seasnake');
-    if (profileData.level === 20 && !unlockedSkinIds.has('aurora')) unlockedSkinIds.add('aurora');
+    // Milestone skin unlocks at levels 5, 10, 12, 15, 20
+    const milestones = { 5: 'viper', 10: 'rattlesnake', 12: 'neon_overlord', 15: 'cosmic', 20: 'aurora' };
+    const mSkinId = milestones[profileData.level];
+    if (mSkinId && !unlockedSkinIds.has(mSkinId)) {
+      unlockedSkinIds.add(mSkinId);
+      const sk = SKINS.find(s => s.id === mSkinId);
+      if (sk) unlockedMilestoneNames.push(sk.name);
+    }
     persistUnlockedSkins();
-    showGlobalToast(`Level Up! Level ${profileData.level} (+${levelBonusCoins} Coins)`);
   }
-  if (leveledUp) sfxReward();
+  if (leveledUp) {
+    sfxReward();
+    const rewardItems = [`+${totalBonusCoins} Coins`];
+    for (const n of unlockedMilestoneNames) rewardItems.push(`🐍 ${n}`);
+    showRewardRevealModal({
+      icon: '⚡',
+      typeLabel: 'LEVEL UP!',
+      title: `Reached Level ${profileData.level}`,
+      subtitle: LEVEL_TITLES[Math.min(LEVEL_TITLES.length - 1, Math.floor((profileData.level - 1) / 2))],
+      items: rewardItems,
+      accentColor: '#A855F7'
+    });
+  }
   saveProfileData();
   refreshMenuHeaderUI();
 }
@@ -2205,10 +2862,9 @@ function showGlobalToast(message) {
 
 function ensureDailyMissionsForToday() {
   const today = getLocalDateKey();
-  if (profileData.dailyMissions.dateKey === today && Array.isArray(profileData.dailyMissions.items) && profileData.dailyMissions.items.length === 4) {
+  if (profileData.dailyMissions && profileData.dailyMissions.dateKey === today && Array.isArray(profileData.dailyMissions.items) && profileData.dailyMissions.items.length === 4) {
     return;
   }
-  // Deterministically rotate 4 daily missions by date hash
   let hash = 0;
   for (let i = 0; i < today.length; i++) hash = (hash * 31 + today.charCodeAt(i)) >>> 0;
   const chosen = [];
@@ -2222,36 +2878,121 @@ function ensureDailyMissionsForToday() {
   saveProfileData();
 }
 
+function ensureWeeklyMissionsForWeek() {
+  const weekKey = getLocalWeekKey();
+  if (profileData.weeklyMissions && profileData.weeklyMissions.weekKey === weekKey && Array.isArray(profileData.weeklyMissions.items) && profileData.weeklyMissions.items.length === 5) {
+    return;
+  }
+  let hash = 0;
+  for (let i = 0; i < weekKey.length; i++) hash = (hash * 37 + weekKey.charCodeAt(i)) >>> 0;
+  const chosen = [];
+  const poolCopy = [...WEEKLY_MISSION_POOL];
+  for (let i = 0; i < 5 && poolCopy.length > 0; i++) {
+    const idx = (hash + i * 5) % poolCopy.length;
+    const m = poolCopy.splice(idx, 1)[0];
+    chosen.push({ id: m.id, progress: 0, claimed: false });
+  }
+  profileData.weeklyMissions = { weekKey, items: chosen };
+  saveProfileData();
+}
+
 function recordMissionProgress(type, value, isAbsoluteMax = false) {
   ensureDailyMissionsForToday();
+  ensureWeeklyMissionsForWeek();
   let updated = false;
-  for (const item of profileData.dailyMissions.items) {
-    if (item.claimed) continue;
-    const def = MISSION_POOL.find(m => m.id === item.id);
-    if (!def || def.type !== type) continue;
-    const prev = item.progress || 0;
-    item.progress = isAbsoluteMax ? Math.max(prev, value) : Math.min(def.target, prev + value);
-    if (item.progress !== prev) updated = true;
-  }
+
+  const updateList = (items, pool, badgeLabel) => {
+    for (const item of items) {
+      if (item.claimed) continue;
+      const def = pool.find(m => m.id === item.id);
+      if (!def || def.type !== type) continue;
+      const prev = item.progress || 0;
+      if (prev >= def.target) continue;
+      item.progress = isAbsoluteMax ? Math.min(def.target, Math.max(prev, value)) : Math.min(def.target, prev + value);
+      if (item.progress !== prev) {
+        updated = true;
+        if (item.progress >= def.target && prev < def.target) {
+          showIngameQuestToast(badgeLabel, `${def.title} Ready to Claim!`);
+        }
+      }
+    }
+  };
+
+  updateList(profileData.dailyMissions.items, MISSION_POOL, 'DAILY MISSION');
+  updateList(profileData.weeklyMissions.items, WEEKLY_MISSION_POOL, 'WEEKLY MISSION');
+
   if (updated) {
     saveProfileData();
     refreshNavBadges();
   }
 }
 
-function claimMissionReward(missionId) {
-  const item = profileData.dailyMissions.items.find(m => m.id === missionId);
-  const def = MISSION_POOL.find(m => m.id === missionId);
+function claimMissionReward(missionId, tier = 'daily') {
+  ensureDailyMissionsForToday();
+  ensureWeeklyMissionsForWeek();
+
+  if (tier === 'elite') {
+    const def = ELITE_MISSION_POOL.find(m => m.id === missionId);
+    if (!def || profileData.eliteMissionsClaimed[missionId]) return;
+    const curVal = profileData.stats[def.stat] || 0;
+    if (curVal < def.target) return;
+    profileData.eliteMissionsClaimed[missionId] = true;
+    profileData.stats.eliteMissionsCompleted = (profileData.stats.eliteMissionsCompleted || 0) + 1;
+    addCoins(def.rewardCoins, false);
+    addXp(def.rewardXp);
+    const items = [`+${def.rewardCoins} Coins`, `+${def.rewardXp} XP`];
+    if (def.bonusSkinId && !unlockedSkinIds.has(def.bonusSkinId)) {
+      unlockedSkinIds.add(def.bonusSkinId);
+      persistUnlockedSkins();
+      const sk = SKINS.find(s => s.id === def.bonusSkinId);
+      if (sk) items.push(`🐍 ${sk.name}`);
+    }
+    if (def.bonusTitle) {
+      if (!profileData.unlockedTitles.includes(def.bonusTitle)) profileData.unlockedTitles.push(def.bonusTitle);
+      profileData.selectedTitle = def.bonusTitle;
+      items.push(`👑 Title: ${def.bonusTitle}`);
+    }
+    saveProfileData();
+    renderMissionsScreen();
+    refreshNavBadges();
+    showRewardRevealModal({
+      icon: '👑',
+      typeLabel: 'ELITE CHALLENGE CONQUERED',
+      title: def.title,
+      subtitle: def.desc,
+      items,
+      accentColor: '#FF477E'
+    });
+    return;
+  }
+
+  const isWeekly = tier === 'weekly';
+  const list = isWeekly ? profileData.weeklyMissions.items : profileData.dailyMissions.items;
+  const pool = isWeekly ? WEEKLY_MISSION_POOL : MISSION_POOL;
+  const item = list.find(m => m.id === missionId);
+  const def = pool.find(m => m.id === missionId);
   if (!item || !def || item.claimed || item.progress < def.target) return;
   item.claimed = true;
-  sfxReward();
-  triggerHaptic(25);
+  if (isWeekly) {
+    profileData.stats.weeklyMissionsCompleted = (profileData.stats.weeklyMissionsCompleted || 0) + 1;
+  } else {
+    profileData.stats.dailyMissionsCompleted = (profileData.stats.dailyMissionsCompleted || 0) + 1;
+    recordMissionProgress('dailies_claimed', 1);
+  }
   addCoins(def.rewardCoins, false);
   addXp(def.rewardXp);
+  checkSkinUnlocks();
   saveProfileData();
   renderMissionsScreen();
   refreshNavBadges();
-  showGlobalToast(`Mission Claimed: +${def.rewardCoins} Coins & +${def.rewardXp} XP`);
+  showRewardRevealModal({
+    icon: isWeekly ? '📆' : '⚡',
+    typeLabel: isWeekly ? 'WEEKLY MISSION COMPLETE' : 'DAILY MISSION COMPLETE',
+    title: def.title,
+    subtitle: def.desc,
+    items: [`+${def.rewardCoins} Coins`, `+${def.rewardXp} XP`],
+    accentColor: isWeekly ? '#A855F7' : '#00D9FF'
+  });
 }
 
 function canClaimDailyRewardToday() {
@@ -2266,43 +3007,69 @@ function claimDailyLoginReward() {
   profileData.dailyReward.streakDay = (dayIdx + 1) % 7 + 1;
   profileData.dailyReward.totalClaims = (profileData.dailyReward.totalClaims || 0) + 1;
 
-  sfxReward();
-  triggerHaptic(30);
+  const items = [];
   if (reward.type === 'coins') {
     addCoins(reward.amount);
-    showGlobalToast(`Day ${reward.day} Claimed: +${reward.amount} Coins!`);
+    items.push(`+${reward.amount} Coins`);
   } else if (reward.type === 'xp') {
     addXp(reward.amount);
-    showGlobalToast(`Day ${reward.day} Claimed: +${reward.amount} XP!`);
+    items.push(`+${reward.amount} XP`);
   } else if (reward.type === 'skin_or_coins') {
     if (!unlockedSkinIds.has(reward.skinId)) {
       unlockedSkinIds.add(reward.skinId);
       persistUnlockedSkins();
-      showGlobalToast(`Day ${reward.day} Claimed: ${reward.title} Unlocked!`);
+      items.push(`🐍 ${reward.title}`);
     } else {
       addCoins(reward.fallbackCoins);
-      showGlobalToast(`Day ${reward.day} Claimed: +${reward.fallbackCoins} Coins!`);
+      items.push(`+${reward.fallbackCoins} Coins`);
     }
   }
   saveProfileData();
   renderDailyRewardsScreen();
   refreshNavBadges();
+  showRewardRevealModal({
+    icon: '🎁',
+    typeLabel: `DAY ${reward.day} LOGIN REWARD`,
+    title: reward.title,
+    subtitle: reward.sub,
+    items,
+    accentColor: '#FFB020'
+  });
 }
 
 function claimAchievement(achId) {
+  syncDerivedProfileStats();
   const def = ACHIEVEMENTS_LIST.find(a => a.id === achId);
   if (!def || profileData.achievementsClaimed[achId]) return;
   const curVal = profileData.stats[def.stat] || 0;
   if (curVal < def.target) return;
   profileData.achievementsClaimed[achId] = true;
-  sfxReward();
-  triggerHaptic(25);
   addCoins(def.rewardCoins, false);
   addXp(def.rewardXp);
+  const items = [`+${def.rewardCoins} Coins`, `+${def.rewardXp} XP`];
+  if (def.bonusSkinId && !unlockedSkinIds.has(def.bonusSkinId)) {
+    unlockedSkinIds.add(def.bonusSkinId);
+    persistUnlockedSkins();
+    const sk = SKINS.find(s => s.id === def.bonusSkinId);
+    if (sk) items.push(`🐍 ${sk.name}`);
+  }
+  if (def.bonusTitle) {
+    if (!profileData.unlockedTitles.includes(def.bonusTitle)) profileData.unlockedTitles.push(def.bonusTitle);
+    profileData.selectedTitle = def.bonusTitle;
+    items.push(`👑 Title: ${def.bonusTitle}`);
+  }
+  checkSkinUnlocks();
   saveProfileData();
   renderAchievementsScreen();
   refreshNavBadges();
-  showGlobalToast(`Achievement Unlocked: +${def.rewardCoins} Coins!`);
+  showRewardRevealModal({
+    icon: def.icon || '🏆',
+    typeLabel: `${(def.rarity || 'bronze').toUpperCase()} ACHIEVEMENT`,
+    title: def.title,
+    subtitle: def.desc,
+    items,
+    accentColor: def.rarity === 'mythic' ? '#FF477E' : def.rarity === 'diamond' ? '#00D9FF' : '#FFB020'
+  });
 }
 
 // ============================================================
@@ -2858,6 +3625,65 @@ function persistUnlockedSkins() {
   safeStorageSet(SKIN_UNLOCKS_KEY, JSON.stringify([...unlockedSkinIds]));
 }
 
+function getSkinUnlockProgress(skin) {
+  syncDerivedProfileStats();
+  const u = skin.unlock || { type: 'default' };
+  const s = (profileData && profileData.stats) ? profileData.stats : {};
+  const bestTime = Math.max(s.bestSurvivalTime || 0, getOverallBestTime(), isGameRunning ? survivalSeconds : 0);
+  const bestLength = Math.max(s.highestLength || INITIAL_SEGMENTS, getOverallBestLength(), isGameRunning ? player.length : INITIAL_SEGMENTS);
+  const hardTime = Math.max(s.hardSurvivalTime || 0, getBestTime('hard'), (isGameRunning && currentDifficulty === 'hard') ? survivalSeconds : 0);
+  const totalKills = (s.totalKills || 0);
+  const kingKills = (s.kingKills || 0);
+  const lvl = (profileData && profileData.level) ? profileData.level : 1;
+  const achDone = ACHIEVEMENTS_LIST.filter(a => (s[a.stat] || 0) >= a.target).length;
+  const missionsDone = (s.dailyMissionsCompleted || 0) + (s.weeklyMissionsCompleted || 0) + (s.eliteMissionsCompleted || 0);
+
+  if (u.type === 'default') {
+    return { text: 'Starter Skin (Unlocked by default)', current: 1, target: 1, pct: 100, earned: true };
+  }
+  if (u.type === 'time') {
+    const cur = Math.min(u.seconds, bestTime);
+    const pct = Math.min(100, Math.round((cur / u.seconds) * 100));
+    return { text: `Survive ${formatTime(u.seconds)} (${formatTime(cur)} / ${formatTime(u.seconds)})`, current: cur, target: u.seconds, pct, earned: bestTime >= u.seconds };
+  }
+  if (u.type === 'length') {
+    const cur = Math.min(u.length, bestLength);
+    const pct = Math.min(100, Math.round((cur / u.length) * 100));
+    return { text: `Reach Length ${u.length} (${cur} / ${u.length})`, current: cur, target: u.length, pct, earned: bestLength >= u.length };
+  }
+  if (u.type === 'kills') {
+    const cur = Math.min(u.count, totalKills);
+    const pct = Math.min(100, Math.round((cur / u.count) * 100));
+    return { text: `Defeat ${u.count} Snakes (${cur} / ${u.count})`, current: cur, target: u.count, pct, earned: totalKills >= u.count };
+  }
+  if (u.type === 'hard_time') {
+    const cur = Math.min(u.seconds, hardTime);
+    const pct = Math.min(100, Math.round((cur / u.seconds) * 100));
+    return { text: `Survive ${formatTime(u.seconds)} in Hard Mode (${formatTime(cur)})`, current: cur, target: u.seconds, pct, earned: hardTime >= u.seconds };
+  }
+  if (u.type === 'king_kills') {
+    const cur = Math.min(u.count, kingKills);
+    const pct = Math.min(100, Math.round((cur / u.count) * 100));
+    return { text: `Slay ${u.count} King Snakes (${cur} / ${u.count})`, current: cur, target: u.count, pct, earned: kingKills >= u.count };
+  }
+  if (u.type === 'level') {
+    const cur = Math.min(u.level, lvl);
+    const pct = Math.min(100, Math.round((cur / u.level) * 100));
+    return { text: `Reach Player Level ${u.level} (Lv.${cur} / ${u.level})`, current: cur, target: u.level, pct, earned: lvl >= u.level };
+  }
+  if (u.type === 'achievements') {
+    const cur = Math.min(u.count, achDone);
+    const pct = Math.min(100, Math.round((cur / u.count) * 100));
+    return { text: `Complete ${u.count} Achievements (${cur} / ${u.count})`, current: cur, target: u.count, pct, earned: achDone >= u.count };
+  }
+  if (u.type === 'missions') {
+    const cur = Math.min(u.count, missionsDone);
+    const pct = Math.min(100, Math.round((cur / u.count) * 100));
+    return { text: `Complete ${u.count} Missions (${cur} / ${u.count})`, current: cur, target: u.count, pct, earned: missionsDone >= u.count };
+  }
+  return { text: 'Special Unlock', current: 0, target: 1, pct: 0, earned: false };
+}
+
 function setSkinFilter(filter) {
   currentSkinFilter = filter;
   document.querySelectorAll('#skin-filter-bar .filter-pill').forEach(btn => {
@@ -2866,45 +3692,117 @@ function setSkinFilter(filter) {
   renderSkinMenu();
 }
 
+function setSkinCategory(cat) {
+  currentSkinCategory = cat;
+  document.querySelectorAll('#skin-category-bar .filter-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.cat === cat);
+  });
+  renderSkinMenu();
+}
+
+function setSkinSearch(query) {
+  currentSkinSearch = String(query || '').trim().toLowerCase();
+  renderSkinMenu();
+}
+
+function previewSkin(skinId) {
+  previewSkinId = skinId;
+  renderSkinShowcase();
+  document.querySelectorAll('#skin-list .skin-card').forEach(card => {
+    card.classList.toggle('previewing', card.dataset.skinId === skinId);
+  });
+}
+
+function renderSkinShowcase() {
+  const skin = getSkin(previewSkinId || selectedSkinId);
+  if (!skin) return;
+  const unlocked = unlockedSkinIds.has(skin.id);
+  const isTrial = !unlocked && trialSkinId === skin.id;
+  const selected = selectedSkinId === skin.id;
+  const rarity = skin.rarity || 'common';
+  const price = skin.price || 250;
+  const prog = getSkinUnlockProgress(skin);
+  const catNames = { funny: 'Funny & Meme', creature: 'Creature', fantasy: 'Fantasy', cyber: 'Cyber & Neon' };
+
+  const nameEl = document.getElementById('showcase-skin-name');
+  const rarityEl = document.getElementById('showcase-skin-rarity');
+  const catEl = document.getElementById('showcase-skin-cat');
+  const descEl = document.getElementById('showcase-skin-desc');
+  const reqTextEl = document.getElementById('showcase-req-text');
+  const reqPctEl = document.getElementById('showcase-req-pct');
+  const reqFillEl = document.getElementById('showcase-req-fill');
+  const actionsEl = document.getElementById('showcase-actions-row');
+
+  if (nameEl) nameEl.textContent = skin.name;
+  if (rarityEl) {
+    rarityEl.className = `rarity-badge rarity-${rarity}`;
+    rarityEl.textContent = rarity.toUpperCase();
+  }
+  if (catEl) catEl.textContent = catNames[skin.category] || 'Special';
+  if (descEl) descEl.textContent = skin.desc || 'Custom procedural arena serpent.';
+  if (reqTextEl) reqTextEl.textContent = unlocked ? '✓ Owned in Collection' : `${prog.text} • or ${price} Coins`;
+  if (reqPctEl) reqPctEl.textContent = unlocked ? 'OWNED' : `${prog.pct}%`;
+  if (reqFillEl) reqFillEl.style.width = `${unlocked ? 100 : prog.pct}%`;
+
+  if (actionsEl) {
+    if (unlocked || isTrial) {
+      actionsEl.innerHTML = `<button type="button" class="skin-act-btn equip" onclick="selectSkin('${skin.id}')">${selected ? '✓ Currently Equipped' : 'Equip Skin'}</button>`;
+    } else {
+      actionsEl.innerHTML = `
+        <button type="button" class="skin-act-btn buy" onclick="promptBuySkin('${skin.id}')">Unlock (${price} Coins)</button>
+        <button type="button" class="skin-act-btn trial" onclick="trySkinWithAd('${skin.id}')">▶ Try 1 Match Free (Ad)</button>
+      `;
+    }
+  }
+  drawShowcaseSnakePreview();
+}
+
 function renderSkinMenu() {
   if (!skinListEl) return;
   const shopCoinsEl = document.getElementById('shop-coins-val');
   if (shopCoinsEl && profileData) shopCoinsEl.textContent = profileData.coins.toLocaleString();
-  const bestTime = Math.max(getOverallBestTime(), isGameRunning ? survivalSeconds : 0);
-  const bestLength = Math.max(getOverallBestLength(), isGameRunning ? player.length : INITIAL_SEGMENTS);
+  const counterEl = document.getElementById('skin-collection-counter');
+  if (counterEl) counterEl.textContent = `${unlockedSkinIds.size} / ${SKINS.length} Unlocked • Purely cosmetic, identical hitboxes`;
+
+  if (!previewSkinId || !SKINS.some(s => s.id === previewSkinId)) {
+    previewSkinId = selectedSkinId || 'classic';
+  }
+  renderSkinShowcase();
 
   const filtered = SKINS.filter(skin => {
-    if (currentSkinFilter === 'all') return true;
-    if (currentSkinFilter === 'unlocked') return unlockedSkinIds.has(skin.id) || trialSkinId === skin.id;
-    return (skin.rarity || 'common') === currentSkinFilter;
+    if (currentSkinCategory !== 'all' && skin.category !== currentSkinCategory) return false;
+    if (currentSkinFilter === 'unlocked' && !(unlockedSkinIds.has(skin.id) || trialSkinId === skin.id)) return false;
+    if (currentSkinFilter !== 'all' && currentSkinFilter !== 'unlocked' && (skin.rarity || 'common') !== currentSkinFilter) return false;
+    if (currentSkinSearch) {
+      const hay = `${skin.name} ${skin.desc || ''} ${skin.category || ''} ${skin.rarity || ''}`.toLowerCase();
+      if (!hay.includes(currentSkinSearch)) return false;
+    }
+    return true;
   });
 
   skinListEl.innerHTML = filtered.map(skin => {
     const unlocked = unlockedSkinIds.has(skin.id);
     const isTrial = !unlocked && trialSkinId === skin.id;
     const selected = selectedSkinId === skin.id;
+    const isPreviewing = previewSkinId === skin.id;
     const rarity = skin.rarity || 'common';
     const price = skin.price || 250;
-    const hint = skin.unlock.type === 'time'
-      ? `Survive ${formatTime(skin.unlock.seconds)} (best: ${formatTime(bestTime)}) or buy for ${price} Coins`
-      : skin.unlock.type === 'length'
-        ? `Reach length ${skin.unlock.length} (best: ${bestLength}) or buy for ${price} Coins`
-        : 'Starter skin';
-    const state = selected ? 'Equipped' : unlocked ? 'Owned' : isTrial ? '1-Match Trial' : `${price} Coins`;
+    const prog = getSkinUnlockProgress(skin);
+    const state = selected ? 'Equipped' : unlocked ? 'Owned' : isTrial ? '1-Match Trial' : `${price}c`;
 
     let actionsHtml = '';
     if (unlocked || isTrial) {
       actionsHtml = `<div class="skin-actions-row">
-        <button type="button" class="skin-act-btn equip" onclick="selectSkin('${skin.id}')">${selected ? '✓ Equipped' : 'Equip Skin'}</button>
+        <button type="button" class="skin-act-btn equip" onclick="event.stopPropagation();selectSkin('${skin.id}')">${selected ? '✓ Equipped' : 'Equip'}</button>
       </div>`;
     } else {
       actionsHtml = `<div class="skin-actions-row">
-        <button type="button" class="skin-act-btn buy" onclick="promptBuySkin('${skin.id}')">Buy (${price}c)</button>
-        <button type="button" class="skin-act-btn trial" onclick="trySkinWithAd('${skin.id}')">▶ Try Free (Ad)</button>
+        <button type="button" class="skin-act-btn buy" onclick="event.stopPropagation();promptBuySkin('${skin.id}')">Buy (${price}c)</button>
+        <button type="button" class="skin-act-btn trial" onclick="event.stopPropagation();trySkinWithAd('${skin.id}')">▶ Try Free</button>
       </div>`;
     }
 
-    return `<div class="skin-card ${selected ? 'selected' : ''} ${(unlocked || isTrial) ? '' : 'locked'}" style="--skin-light:${skin.palette.head};--skin-dark:${skin.palette.bodyEnd};filter:none;opacity:1;">
+    return `<div class="skin-card ${selected ? 'selected' : ''} ${isPreviewing ? 'previewing' : ''} ${(unlocked || isTrial) ? '' : 'locked'}" data-skin-id="${skin.id}" onclick="previewSkin('${skin.id}')" style="--skin-light:${skin.palette.head};--skin-dark:${skin.palette.bodyEnd};">
       <div class="skin-name-row">
         <span>${skin.name}</span>
         <span class="rarity-badge rarity-${rarity}">${rarity}</span>
@@ -2913,7 +3811,8 @@ function renderSkinMenu() {
         <span class="skin-preview" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
         <span class="skin-state">${state}</span>
       </div>
-      <span class="skin-progress">${hint}</span>
+      <span class="skin-progress">${unlocked ? (skin.desc || 'Ready to equip') : prog.text}</span>
+      <div class="skin-mini-bar"><div class="skin-mini-bar-fill" style="width:${unlocked ? 100 : prog.pct}%"></div></div>
       ${actionsHtml}
     </div>`;
   }).join('');
@@ -2922,6 +3821,7 @@ function renderSkinMenu() {
 function promptBuySkin(skinId) {
   const skin = SKINS.find(s => s.id === skinId);
   if (!skin || unlockedSkinIds.has(skinId)) return;
+  previewSkinId = skinId;
   const price = skin.price || 250;
   if (profileData.coins < price) {
     showConfirmModal('Not Enough Coins', `You need ${price} Coins to unlock ${skin.name} (you have ${profileData.coins} Coins). Play matches, complete missions, or watch an optional bonus ad to earn more!`, [
@@ -2942,9 +3842,21 @@ function promptBuySkin(skinId) {
         persistUnlockedSkins();
         saveProfileData();
         selectSkin(skinId);
-        sfxReward();
-        triggerHaptic(30);
-        showGlobalToast(`${skin.name} Purchased & Equipped!`);
+        const isHighTier = ['epic', 'legendary', 'mythic'].includes(skin.rarity);
+        if (isHighTier) {
+          showRewardRevealModal({
+            icon: '🐍',
+            typeLabel: `${skin.rarity.toUpperCase()} SKIN UNLOCKED`,
+            title: skin.name,
+            subtitle: skin.desc || 'Added to your permanent collection!',
+            items: ['✓ Equipped to Snake'],
+            accentColor: skin.rarity === 'mythic' ? '#FF477E' : skin.rarity === 'legendary' ? '#FFB020' : '#A855F7'
+          });
+        } else {
+          sfxReward();
+          triggerHaptic(30);
+          showGlobalToast(`${skin.name} Purchased & Equipped!`);
+        }
       }
     },
     { label: 'Cancel', primary: false, onClick: closeConfirmModal }
@@ -2959,6 +3871,7 @@ function trySkinWithAd(skinId) {
     onReward: () => {
       trialSkinId = skinId;
       selectedSkinId = skinId;
+      previewSkinId = skinId;
       player.palette = getSkin().palette;
       sfxReward();
       renderSkinMenu();
@@ -2978,7 +3891,10 @@ function openScreen(name) {
   if (target) target.style.display = 'flex';
   AdManager.refreshBannerVisibility();
   AdManager.syncNativeBannerForScreen(name);
-  if (name === 'skins') renderSkinMenu();
+  if (name === 'skins') {
+    previewSkinId = selectedSkinId || 'classic';
+    renderSkinMenu();
+  }
   else if (name === 'missions') renderMissionsScreen();
   else if (name === 'rewards') renderDailyRewardsScreen();
   else if (name === 'achievements') renderAchievementsScreen();
@@ -3001,26 +3917,91 @@ function closeSkins() { closeSubscreen(); }
 function selectSkin(skinId) {
   if (!unlockedSkinIds.has(skinId) && trialSkinId !== skinId) return;
   selectedSkinId = skinId;
+  previewSkinId = skinId;
   if (unlockedSkinIds.has(skinId)) safeStorageSet(SELECTED_SKIN_KEY, selectedSkinId);
   player.palette = getSkin().palette;
   renderSkinMenu();
   refreshMenuHeaderUI();
 }
 
+function setMissionTier(tier) {
+  currentMissionTier = ['daily', 'weekly', 'elite'].includes(tier) ? tier : 'daily';
+  document.querySelectorAll('#missions-tier-tabs .tier-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tier === currentMissionTier);
+  });
+  renderMissionsScreen();
+}
+
 function renderMissionsScreen() {
   ensureDailyMissionsForToday();
+  ensureWeeklyMissionsForWeek();
+  syncDerivedProfileStats();
   const listEl = document.getElementById('missions-list');
+  const timerEl = document.getElementById('missions-reset-timer');
   if (!listEl) return;
-  listEl.innerHTML = profileData.dailyMissions.items.map(item => {
-    const def = MISSION_POOL.find(m => m.id === item.id);
+
+  if (timerEl) {
+    if (currentMissionTier === 'daily') {
+      const now = new Date();
+      const hrs = 23 - now.getHours();
+      const mins = 59 - now.getMinutes();
+      timerEl.textContent = `Daily Rotation • Resets in ${hrs}h ${mins}m`;
+    } else if (currentMissionTier === 'weekly') {
+      timerEl.textContent = `Weekly Operations (${profileData.weeklyMissions.weekKey}) • High-value rewards`;
+    } else {
+      timerEl.textContent = `Elite Challenges • Permanent high-skill trials with Mythic & Legendary rewards`;
+    }
+  }
+
+  if (currentMissionTier === 'elite') {
+    listEl.innerHTML = ELITE_MISSION_POOL.map(def => {
+      const cur = Math.min(def.target, profileData.stats[def.stat] || 0);
+      const pct = Math.min(100, Math.round((cur / def.target) * 100));
+      const done = cur >= def.target;
+      const claimed = Boolean(profileData.eliteMissionsClaimed[def.id]);
+      const btnLabel = claimed ? '✓ Conquered' : done ? 'Claim Elite' : `${pct}%`;
+      const bonusSkin = def.bonusSkinId ? SKINS.find(s => s.id === def.bonusSkinId) : null;
+      return `<div class="mission-card tier-elite ${(done && !claimed) ? 'ready-claim' : ''}">
+        <div class="mission-info">
+          <div class="mission-head-row">
+            <span class="mission-title">${def.title}</span>
+            <span class="rarity-badge rarity-${def.rarity || 'legendary'}">${def.difficulty}</span>
+          </div>
+          <div class="mission-desc">${def.desc}</div>
+          <div class="mission-prog-wrap">
+            <div class="mission-bar"><div class="mission-bar-fill" style="width:${pct}%"></div></div>
+            <span class="mission-count">${cur} / ${def.target}</span>
+          </div>
+        </div>
+        <div class="mission-reward-col">
+          <span class="reward-tag">+${def.rewardCoins}c &bull; +${def.rewardXp} XP</span>
+          ${bonusSkin ? `<span class="reward-bonus-tag">🐍 ${bonusSkin.name}</span>` : ''}
+          ${def.bonusTitle ? `<span class="reward-bonus-tag">👑 ${def.bonusTitle}</span>` : ''}
+          <button type="button" class="claim-btn" ${(!done || claimed) ? 'disabled' : ''} onclick="claimMissionReward('${def.id}', 'elite')">${btnLabel}</button>
+        </div>
+      </div>`;
+    }).join('');
+    return;
+  }
+
+  const isWeekly = currentMissionTier === 'weekly';
+  const items = isWeekly ? profileData.weeklyMissions.items : profileData.dailyMissions.items;
+  const pool = isWeekly ? WEEKLY_MISSION_POOL : MISSION_POOL;
+  const tierClass = isWeekly ? 'tier-weekly' : 'tier-daily';
+
+  listEl.innerHTML = items.map(item => {
+    const def = pool.find(m => m.id === item.id);
     if (!def) return '';
     const prog = Math.min(def.target, item.progress || 0);
     const pct = Math.min(100, Math.round((prog / def.target) * 100));
     const done = prog >= def.target;
     const btnLabel = item.claimed ? '✓ Claimed' : done ? 'Claim Reward' : 'In Progress';
-    return `<div class="mission-card">
+    return `<div class="mission-card ${tierClass} ${(done && !item.claimed) ? 'ready-claim' : ''}">
       <div class="mission-info">
-        <div class="mission-title">${def.title}</div>
+        <div class="mission-head-row">
+          <span class="mission-title">${def.title}</span>
+          <span class="rarity-badge rarity-${def.rarity || 'common'}">${def.difficulty || 'Normal'}</span>
+        </div>
         <div class="mission-desc">${def.desc}</div>
         <div class="mission-prog-wrap">
           <div class="mission-bar"><div class="mission-bar-fill" style="width:${pct}%"></div></div>
@@ -3029,7 +4010,7 @@ function renderMissionsScreen() {
       </div>
       <div class="mission-reward-col">
         <span class="reward-tag">+${def.rewardCoins}c &bull; +${def.rewardXp} XP</span>
-        <button type="button" class="claim-btn" ${(!done || item.claimed) ? 'disabled' : ''} onclick="claimMissionReward('${def.id}')">${btnLabel}</button>
+        <button type="button" class="claim-btn" ${(!done || item.claimed) ? 'disabled' : ''} onclick="claimMissionReward('${def.id}', '${isWeekly ? 'weekly' : 'daily'}')">${btnLabel}</button>
       </div>
     </div>`;
   }).join('');
@@ -3067,37 +4048,69 @@ function renderDailyRewardsScreen() {
   }).join('');
 }
 
+function setAchievementCategory(cat) {
+  currentAchCategory = cat || 'all';
+  document.querySelectorAll('#ach-category-bar .filter-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.acat === currentAchCategory);
+  });
+  renderAchievementsScreen();
+}
+
 function renderAchievementsScreen() {
+  syncDerivedProfileStats();
   const listEl = document.getElementById('achievements-list');
   const sumEl = document.getElementById('achievements-summary-text');
+  const pctEl = document.getElementById('ach-completion-pct');
+  const fillEl = document.getElementById('ach-completion-fill');
   if (!listEl) return;
-  let unlockedCount = 0;
-  listEl.innerHTML = ACHIEVEMENTS_LIST.map(a => {
+
+  let totalUnlocked = 0;
+  for (const a of ACHIEVEMENTS_LIST) {
+    if ((profileData.stats[a.stat] || 0) >= a.target) totalUnlocked++;
+  }
+  const overallPct = Math.min(100, Math.round((totalUnlocked / ACHIEVEMENTS_LIST.length) * 100));
+  if (sumEl) sumEl.textContent = `${totalUnlocked} / ${ACHIEVEMENTS_LIST.length} Unlocked (${overallPct}%)`;
+  if (pctEl) pctEl.textContent = `${overallPct}%`;
+  if (fillEl) fillEl.style.width = `${overallPct}%`;
+
+  const filtered = ACHIEVEMENTS_LIST.filter(a => currentAchCategory === 'all' || a.category === currentAchCategory);
+
+  listEl.innerHTML = filtered.map(a => {
     const cur = Math.min(a.target, profileData.stats[a.stat] || 0);
     const done = cur >= a.target;
     const claimed = Boolean(profileData.achievementsClaimed[a.id]);
-    if (done) unlockedCount++;
     const pct = Math.min(100, Math.round((cur / a.target) * 100));
     const btnLabel = claimed ? '✓ Claimed' : done ? 'Claim' : `${pct}%`;
-    return `<div class="mission-card">
+    const isHiddenSecret = Boolean(a.secret && !done && !claimed);
+    const displayTitle = isHiddenSecret ? '??? Secret Achievement' : a.title;
+    const displayDesc = isHiddenSecret ? 'Hidden secret challenge — discover it in the arena to reveal!' : a.desc;
+    const bonusSkin = a.bonusSkinId ? SKINS.find(s => s.id === a.bonusSkinId) : null;
+
+    return `<div class="mission-card ${(done && !claimed) ? 'ready-claim' : ''}">
+      <div class="ach-badge-icon">${isHiddenSecret ? '❓' : (a.icon || '🏆')}</div>
       <div class="mission-info">
-        <div class="mission-title">${a.title}</div>
-        <div class="mission-desc">${a.desc}</div>
+        <div class="mission-head-row">
+          <span class="mission-title">${displayTitle}</span>
+          <span class="rarity-badge ach-rarity-${a.rarity || 'bronze'}">${a.rarity || 'bronze'}</span>
+        </div>
+        <div class="mission-desc">${displayDesc}</div>
         <div class="mission-prog-wrap">
           <div class="mission-bar"><div class="mission-bar-fill" style="width:${pct}%"></div></div>
-          <span class="mission-count">${cur} / ${a.target}</span>
+          <span class="mission-count">${isHiddenSecret ? '? / ?' : `${cur} / ${a.target}`}</span>
         </div>
       </div>
       <div class="mission-reward-col">
         <span class="reward-tag">+${a.rewardCoins}c &bull; +${a.rewardXp} XP</span>
+        ${bonusSkin ? `<span class="reward-bonus-tag">🐍 ${bonusSkin.name}</span>` : ''}
+        ${a.bonusTitle ? `<span class="reward-bonus-tag">👑 ${a.bonusTitle}</span>` : ''}
         <button type="button" class="claim-btn" ${(!done || claimed) ? 'disabled' : ''} onclick="claimAchievement('${a.id}')">${btnLabel}</button>
       </div>
     </div>`;
   }).join('');
-  if (sumEl) sumEl.textContent = `${unlockedCount} / ${ACHIEVEMENTS_LIST.length} Completed`;
 }
 
 function renderCareerStatsScreen() {
+  syncDerivedProfileStats();
   const gridEl = document.getElementById('career-stats-grid');
   if (!gridEl) return;
   const s = profileData.stats;
@@ -3108,8 +4121,10 @@ function renderCareerStatsScreen() {
     { label: 'Highest Snake Length', val: (s.highestLength || INITIAL_SEGMENTS).toLocaleString() },
     { label: 'Total Matches Played', val: (s.totalMatches || 0).toLocaleString() },
     { label: 'Total Enemy Kills', val: (s.totalKills || 0).toLocaleString() },
+    { label: 'Best Single-Match Kills', val: (s.singleMatchKills || 0).toLocaleString() },
     { label: 'King Snakes Slain', val: (s.kingKills || 0).toLocaleString() },
     { label: 'Total Food Eaten', val: (s.totalFoodEaten || 0).toLocaleString() },
+    { label: 'Rare Glowing Orbs', val: (s.rareOrbsCollected || 0).toLocaleString() },
     { label: 'Skins Unlocked', val: `${unlockedSkinIds.size} / ${SKINS.length}` },
     { label: 'Lifetime Coins Earned', val: (s.totalCoinsEarned || 0).toLocaleString() },
     { label: 'Best Time (Easy)', val: formatTime(getBestTime('easy')) },
@@ -3157,12 +4172,18 @@ function watchRewardedBonusCoins() {
   AdManager.showRewardedAd({
     placement: `Bonus Chest (+${bonus} Coins & +40 XP)`,
     onReward: () => {
-      sfxReward();
       addCoins(bonus);
       addXp(40);
       renderSkinMenu();
       renderDailyRewardsScreen();
-      showGlobalToast(`Reward Granted: +${bonus} Coins & +40 XP!`);
+      showRewardRevealModal({
+        icon: '💎',
+        typeLabel: 'BONUS CHEST OPENED',
+        title: 'Rewarded Video Bonus',
+        subtitle: 'Thanks for watching! Your rewards have been added.',
+        items: [`+${bonus} Coins`, '+40 XP'],
+        accentColor: '#FFB020'
+      });
     }
   });
 }
@@ -3210,9 +4231,11 @@ function promptResetProgress() {
           unlockedSkinIds.add('cobra');
           unlockedSkinIds.add('python');
           selectedSkinId = 'classic';
+          previewSkinId = 'classic';
           trialSkinId = null;
           profileData = createDefaultProfile();
           ensureDailyMissionsForToday();
+          ensureWeeklyMissionsForWeek();
           saveProfileData();
           persistUnlockedSkins();
           refreshMenuHeaderUI();
@@ -3228,10 +4251,18 @@ function promptResetProgress() {
 
 function refreshNavBadges() {
   ensureDailyMissionsForToday();
-  const missionReady = profileData.dailyMissions.items.some(it => {
+  ensureWeeklyMissionsForWeek();
+  syncDerivedProfileStats();
+  const dailyReady = profileData.dailyMissions.items.some(it => {
     const def = MISSION_POOL.find(m => m.id === it.id);
     return def && !it.claimed && (it.progress || 0) >= def.target;
   });
+  const weeklyReady = profileData.weeklyMissions.items.some(it => {
+    const def = WEEKLY_MISSION_POOL.find(m => m.id === it.id);
+    return def && !it.claimed && (it.progress || 0) >= def.target;
+  });
+  const eliteReady = ELITE_MISSION_POOL.some(def => !profileData.eliteMissionsClaimed[def.id] && (profileData.stats[def.stat] || 0) >= def.target);
+  const missionReady = dailyReady || weeklyReady || eliteReady;
   const rewardReady = canClaimDailyRewardToday();
   const achReady = ACHIEVEMENTS_LIST.some(a => !profileData.achievementsClaimed[a.id] && (profileData.stats[a.stat] || 0) >= a.target);
 
@@ -3256,8 +4287,9 @@ function refreshMenuHeaderUI() {
 
   const reqXp = getXpRequiredForLevel(profileData.level);
   const titleIdx = Math.min(LEVEL_TITLES.length - 1, Math.floor((profileData.level - 1) / 2));
+  const activeTitle = profileData.selectedTitle || LEVEL_TITLES[titleIdx];
   if (lvlNum) lvlNum.textContent = profileData.level;
-  if (lvlTitle) lvlTitle.textContent = LEVEL_TITLES[titleIdx];
+  if (lvlTitle) lvlTitle.textContent = activeTitle;
   if (xpText) xpText.textContent = `${profileData.xp} / ${reqXp} XP`;
   if (xpFill) xpFill.style.width = `${Math.min(100, Math.round((profileData.xp / reqXp) * 100))}%`;
   if (coinsVal) coinsVal.textContent = profileData.coins.toLocaleString();
@@ -3274,53 +4306,210 @@ function refreshMenuHeaderUI() {
 let menuPreviewAnimId = 0;
 let menuPreviewPhase = 0;
 
-function drawMenuSnakePreview() {
-  const pCanvas = document.getElementById('menu-snake-canvas');
-  if (!pCanvas) return;
+function drawSnakePreviewOnCanvas(pCanvas, skin, phase) {
+  if (!pCanvas || !skin) return;
   const pCtx = pCanvas.getContext('2d');
   const w = pCanvas.width;
   const h = pCanvas.height;
   pCtx.clearRect(0, 0, w, h);
 
-  const skin = getSkin();
   const pal = skin.palette;
-  menuPreviewPhase += 0.09;
+  const segCount = 18;
+  const startX = 34;
+  const endX = w - 48;
 
-  const segCount = 16;
-  const startX = 36;
-  const endX = w - 46;
+  // Ambient aura trail particles for Epic/Legendary/Mythic skins
+  if (pal.trailEffect) {
+    for (let k = 0; k < 7; k++) {
+      const px = startX + ((k * 43 + phase * 18) % (endX - startX));
+      const py = h / 2 + Math.sin(phase * 1.3 + k * 1.7) * (h * 0.28);
+      pCtx.save();
+      pCtx.globalAlpha = 0.45;
+      pCtx.fillStyle = pal.trailEffect === 'rainbow' ? `hsl(${(phase * 60 + k * 50) % 360}, 90%, 60%)` : (pal.scale || pal.head);
+      pCtx.beginPath();
+      pCtx.arc(px, py, 2.5 + (k % 3), 0, Math.PI * 2);
+      pCtx.fill();
+      pCtx.restore();
+    }
+  }
+
   for (let i = segCount - 1; i >= 0; i--) {
     const t = i / segCount;
     const x = endX - t * (endX - startX);
-    const y = h / 2 + Math.sin(menuPreviewPhase - i * 0.45) * 14;
-    const r = Math.max(5, 13 * (1 - t * 0.55));
+    const y = h / 2 + Math.sin(phase - i * 0.44) * (h * 0.14);
+    let r = Math.max(5, (h * 0.125) * (1 - t * 0.52));
+    if (pal.headShape === 'cobra' && i < 5) {
+      r *= 1 + Math.sin((i / 5) * Math.PI) * 0.55;
+    }
+
     pCtx.beginPath();
-    pCtx.fillStyle = interpolateColor(pal.bodyStart, pal.bodyEnd, t);
-    pCtx.arc(x, y, r, 0, Math.PI * 2);
-    pCtx.fill();
+    if (pal.pattern === 'rainbow_cycle') {
+      pCtx.fillStyle = `hsl(${(i * 22 - phase * 40) % 360}, 90%, 58%)`;
+    } else if (pal.pattern === 'bee_stripes') {
+      pCtx.fillStyle = i % 2 === 0 ? '#FACC15' : '#18181B';
+    } else if (pal.pattern === 'candy_stripes') {
+      pCtx.fillStyle = i % 2 === 0 ? '#F43F5E' : '#FFFFFF';
+    } else if (pal.pattern === 'coral_tricolor') {
+      pCtx.fillStyle = i % 3 === 0 ? '#111827' : i % 3 === 1 ? '#FACC15' : '#DC2626';
+    } else {
+      pCtx.fillStyle = interpolateColor(pal.bodyStart, pal.bodyEnd, t);
+    }
+
+    if (pal.headShape === 'pixel') {
+      pCtx.fillRect(x - r, y - r, r * 2, r * 2);
+    } else {
+      pCtx.arc(x, y, r, 0, Math.PI * 2);
+      pCtx.fill();
+    }
+
+    // Procedural body markings on preview segments
+    if (pal.pattern === 'hotdog_mustard' && i > 0) {
+      pCtx.fillStyle = '#FACC15';
+      pCtx.beginPath();
+      pCtx.arc(x, y + Math.sin(i * 0.9 + phase) * 3, r * 0.35, 0, Math.PI * 2);
+      pCtx.fill();
+    } else if (pal.pattern === 'pizza_pepperoni' && i % 2 === 1) {
+      pCtx.fillStyle = '#DC2626';
+      pCtx.beginPath();
+      pCtx.arc(x, y, r * 0.45, 0, Math.PI * 2);
+      pCtx.fill();
+    } else if (pal.pattern === 'donut_sprinkles' && i % 2 === 0) {
+      pCtx.fillStyle = ['#38BDF8', '#FDE047', '#00F5A0', '#FFFFFF'][i % 4];
+      pCtx.fillRect(x - 2, y - 2, 5, 2.5);
+    } else if (pal.pattern === 'banana_spots' && i % 3 === 1) {
+      pCtx.fillStyle = '#713F12';
+      pCtx.beginPath();
+      pCtx.arc(x, y, r * 0.32, 0, Math.PI * 2);
+      pCtx.fill();
+    } else if (pal.pattern === 'disco_tiles' || pal.pattern === 'glitch_blocks' || pal.pattern === 'matrix_code') {
+      pCtx.fillStyle = pal.pattern === 'matrix_code' ? '#00F5A0' : `hsl(${(i * 47 + phase * 60) % 360}, 90%, 65%)`;
+      pCtx.fillRect(x - r * 0.4, y - r * 0.4, r * 0.8, r * 0.8);
+    } else if (i % 2 === 0 && pal.scale) {
+      pCtx.fillStyle = pal.scale;
+      pCtx.beginPath();
+      pCtx.arc(x, y, r * 0.34, 0, Math.PI * 2);
+      pCtx.fill();
+    }
+
+    // Bee translucent wings on segment 3
+    if (pal.headShape === 'bee' && i === 3) {
+      pCtx.save();
+      pCtx.fillStyle = 'rgba(224, 242, 254, 0.65)';
+      pCtx.beginPath();
+      pCtx.ellipse(x, y - r * 1.35, r * 0.9, r * 0.55, -0.3, 0, Math.PI * 2);
+      pCtx.ellipse(x, y + r * 1.35, r * 0.9, r * 0.55, 0.3, 0, Math.PI * 2);
+      pCtx.fill();
+      pCtx.restore();
+    }
   }
-  const headY = h / 2 + Math.sin(menuPreviewPhase) * 14;
+
+  // Head & specialty anatomy
+  const headY = h / 2 + Math.sin(phase) * (h * 0.14);
+  const headX = endX + 2;
+  const hr = Math.max(12, h * 0.135);
+
+  if (pal.headShape === 'duck') {
+    pCtx.fillStyle = '#FB923C';
+    pCtx.beginPath();
+    pCtx.ellipse(headX + hr * 0.95, headY, hr * 0.65, hr * 0.45, 0, 0, Math.PI * 2);
+    pCtx.fill();
+  } else if (pal.headShape === 'chicken') {
+    pCtx.fillStyle = '#EF4444';
+    pCtx.beginPath();
+    pCtx.arc(headX - 2, headY - hr * 0.85, hr * 0.38, 0, Math.PI * 2);
+    pCtx.arc(headX + 4, headY - hr * 0.85, hr * 0.35, 0, Math.PI * 2);
+    pCtx.fill();
+    pCtx.fillStyle = '#F59E0B';
+    pCtx.beginPath();
+    pCtx.moveTo(headX + hr, headY - 4);
+    pCtx.lineTo(headX + hr * 1.65, headY);
+    pCtx.lineTo(headX + hr, headY + 4);
+    pCtx.closePath();
+    pCtx.fill();
+  } else if (pal.headShape === 'dragon' || pal.headShape === 'samurai' || pal.headShape === 'phoenix' || pal.headShape === 'leviathan') {
+    pCtx.strokeStyle = pal.scale || '#FACC15';
+    pCtx.lineWidth = 3;
+    pCtx.lineCap = 'round';
+    for (let s = -1; s <= 1; s += 2) {
+      pCtx.beginPath();
+      pCtx.moveTo(headX - 3, headY + s * hr * 0.55);
+      pCtx.lineTo(headX - hr * 1.25, headY + s * hr * 1.25);
+      pCtx.stroke();
+    }
+  }
+
   pCtx.beginPath();
   pCtx.fillStyle = pal.head;
-  pCtx.ellipse(endX + 2, headY, 15, 12, 0, 0, Math.PI * 2);
-  pCtx.fill();
-  for (let s = -1; s <= 1; s += 2) {
-    pCtx.beginPath();
-    pCtx.fillStyle = '#fff';
-    pCtx.arc(endX + 5, headY + s * 6, 3.8, 0, Math.PI * 2);
+  if (pal.headShape === 'pixel') {
+    pCtx.fillRect(headX - hr, headY - hr * 0.85, hr * 2, hr * 1.7);
+  } else if (pal.headShape === 'crystal' || pal.headShape === 'arrow') {
+    pCtx.moveTo(headX + hr * 1.25, headY);
+    pCtx.lineTo(headX - hr * 0.4, headY - hr * 0.95);
+    pCtx.lineTo(headX - hr, headY);
+    pCtx.lineTo(headX - hr * 0.4, headY + hr * 0.95);
+    pCtx.closePath();
     pCtx.fill();
-    pCtx.beginPath();
-    pCtx.fillStyle = pal.eyePupil || '#000';
-    pCtx.arc(endX + 6.2, headY + s * 6, 1.8, 0, Math.PI * 2);
+  } else {
+    pCtx.ellipse(headX, headY, hr * 1.15, hr * 0.9, 0, 0, Math.PI * 2);
     pCtx.fill();
   }
+
+  // Specialty Eyes
+  if (pal.eyeStyle === 'sunglasses') {
+    pCtx.fillStyle = '#090D16';
+    pCtx.fillRect(headX + 1, headY - hr * 0.72, hr * 0.55, hr * 0.55);
+    pCtx.fillRect(headX + 1, headY + hr * 0.17, hr * 0.55, hr * 0.55);
+    pCtx.strokeStyle = '#FFFFFF';
+    pCtx.lineWidth = 1.5;
+    pCtx.strokeRect(headX + 1, headY - hr * 0.72, hr * 0.55, hr * 0.55);
+    pCtx.strokeRect(headX + 1, headY + hr * 0.17, hr * 0.55, hr * 0.55);
+  } else if (pal.eyeStyle === 'visor') {
+    pCtx.fillStyle = pal.eyeIris || '#00D9FF';
+    pCtx.fillRect(headX + 2, headY - hr * 0.65, hr * 0.45, hr * 1.3);
+  } else {
+    for (let s = -1; s <= 1; s += 2) {
+      const ey = headY + s * (pal.headShape === 'frog' ? hr * 0.78 : hr * 0.48);
+      const er = pal.eyeStyle === 'googly' || pal.eyeStyle === 'cute' ? hr * 0.36 : hr * 0.28;
+      pCtx.beginPath();
+      pCtx.fillStyle = pal.eyeStyle === 'glowing' ? (pal.eyeIris || '#00D9FF') : '#FFFFFF';
+      pCtx.arc(headX + 4, ey, er, 0, Math.PI * 2);
+      pCtx.fill();
+      pCtx.beginPath();
+      pCtx.fillStyle = pal.eyePupil || '#000000';
+      const offY = pal.eyeStyle === 'derp' ? s * 1.6 : (pal.eyeStyle === 'googly' ? Math.sin(phase * 2 + s) * 1.4 : 0);
+      if (pal.eyeStyle === 'slit') {
+        pCtx.ellipse(headX + 5, ey, er * 0.75, er * 0.28, 0, 0, Math.PI * 2);
+      } else {
+        pCtx.arc(headX + 5, ey + offY, er * 0.5, 0, Math.PI * 2);
+      }
+      pCtx.fill();
+    }
+  }
+}
+
+function drawMenuSnakePreview() {
+  const pCanvas = document.getElementById('menu-snake-canvas');
+  if (!pCanvas) return;
+  menuPreviewPhase += 0.085;
+  drawSnakePreviewOnCanvas(pCanvas, getSkin(), menuPreviewPhase);
+}
+
+function drawShowcaseSnakePreview() {
+  const sCanvas = document.getElementById('shop-showcase-canvas');
+  if (!sCanvas) return;
+  drawSnakePreviewOnCanvas(sCanvas, getSkin(previewSkinId || selectedSkinId), menuPreviewPhase);
 }
 
 function startMenuPreviewTicker() {
   if (menuPreviewAnimId) return;
   const tick = () => {
-    if (!isGameRunning && menuScreenEl && menuScreenEl.style.display !== 'none') {
-      drawMenuSnakePreview();
+    if (!isGameRunning) {
+      if (menuScreenEl && menuScreenEl.style.display !== 'none') {
+        drawMenuSnakePreview();
+      } else if (activeSubscreenId === 'skins-screen') {
+        menuPreviewPhase += 0.085;
+        drawShowcaseSnakePreview();
+      }
     }
     menuPreviewAnimId = requestAnimationFrame(tick);
   };
@@ -3374,6 +4563,10 @@ function toggleLeftHanded() {
 }
 
 function showSkinUnlockToast(skin) {
+  if (isGameRunning && !isPaused && !isGameOver) {
+    showIngameQuestToast('SKIN UNLOCKED', `🐍 ${skin.name}`);
+    return;
+  }
   if (!skinUnlockToastEl) return;
   skinUnlockToastEl.textContent = `${skin.name} unlocked`;
   skinUnlockToastEl.style.display = 'block';
@@ -3384,18 +4577,17 @@ function showSkinUnlockToast(skin) {
 function checkSkinUnlocks() {
   let changed = false;
   for (const skin of SKINS) {
-    if (unlockedSkinIds.has(skin.id) || skin.unlock.type === 'default') continue;
-    const earned = skin.unlock.type === 'time'
-      ? survivalSeconds >= skin.unlock.seconds
-      : player.length >= skin.unlock.length;
-    if (!earned) continue;
+    if (unlockedSkinIds.has(skin.id) || (skin.unlock && skin.unlock.type === 'default')) continue;
+    const prog = getSkinUnlockProgress(skin);
+    if (!prog.earned) continue;
     unlockedSkinIds.add(skin.id);
     changed = true;
     showSkinUnlockToast(skin);
   }
   if (changed) {
     persistUnlockedSkins();
-    renderSkinMenu();
+    saveProfileData();
+    if (activeSubscreenId === 'skins-screen') renderSkinMenu();
   }
 }
 
@@ -4060,6 +5252,9 @@ function advanceSnake(snake) {
 
   const now = performance.now();
   const inDangerZone = toroidDistSq(snake.x, snake.y, WORLD_WIDTH / 2, WORLD_HEIGHT / 2) < DANGER_ZONE_RADIUS ** 2;
+  if (snake.isPlayer && inDangerZone) {
+    matchDangerZoneAccum += FIXED_STEP_MS / 1000;
+  }
   const isSpeedBoosted = snake.speedBoostUntil && now < snake.speedBoostUntil;
   const speedBoostMul = isSpeedBoosted ? (snake.speedBoostMultiplier || 1.6) : 1;
   const isDashing = now < snake.dashUntil;
@@ -4155,11 +5350,29 @@ function dissolveSnakeIntoFood(snake, rewardMultiplier = 1) {
 
 function showKillMessage(bot, reward, wasKing = false) {
   playerKillCount++;
+  matchCurrentKillStreak++;
   triggerHaptic(30);
   if (statKillsEl) statKillsEl.textContent = playerKillCount;
   if (profileData) {
-    profileData.stats.totalKills = (profileData.stats.totalKills || 0) + 1;
-    if (wasKing) profileData.stats.kingKills = (profileData.stats.kingKills || 0) + 1;
+    const s = profileData.stats;
+    s.totalKills = (s.totalKills || 0) + 1;
+    s.singleMatchKills = Math.max(s.singleMatchKills || 0, playerKillCount);
+    s.killStreakBest = Math.max(s.killStreakBest || 0, matchCurrentKillStreak);
+    if (currentDifficulty === 'hard') {
+      s.hardSingleMatchKills = Math.max(s.hardSingleMatchKills || 0, playerKillCount);
+    }
+    if (wasKing) {
+      s.kingKills = (s.kingKills || 0) + 1;
+      if (!matchReviveUsed) s.kingKillNoDeath = (s.kingKillNoDeath || 0) + 1;
+      recordMissionProgress('king_kills', 1);
+    }
+    if (currentCycle && currentCycle.name === 'Night') {
+      s.nightKills = (s.nightKills || 0) + 1;
+    }
+    const curSkin = getSkin();
+    if (curSkin && curSkin.category === 'funny') {
+      s.funnySkinKills = (s.funnySkinKills || 0) + 1;
+    }
     recordMissionProgress('kills', 1);
   }
   if (killMessageEl) {
@@ -4198,7 +5411,12 @@ function activateAbility(name) {
   if (!ability) return;
   player.abilityReadyAt[name] = now + ability.cooldown;
   player[`${name}Until`] = now + ability.duration;
+  matchAbilitiesUsed++;
   triggerHaptic(18);
+  if (profileData) {
+    if (name === 'ghost') profileData.stats.ghostUses = (profileData.stats.ghostUses || 0) + 1;
+    if (name === 'magnet') profileData.stats.magnetUses = (profileData.stats.magnetUses || 0) + 1;
+  }
   if (name === 'dash') {
     matchDashesUsed++;
     if (profileData) {
@@ -4263,6 +5481,7 @@ function confirmWatchReviveAd() {
     placement: 'Revive Snake (Continue Match)',
     onReward: () => {
       matchReviveUsed = true;
+      matchCurrentKillStreak = 0;
       const safePos = findSafeSpawnCoords();
       player.x = safePos.x;
       player.y = safePos.y;
@@ -4314,15 +5533,44 @@ function finalizeGameOver() {
   matchDoubleClaimed = false;
 
   if (profileData) {
-    profileData.stats.totalMatches = (profileData.stats.totalMatches || 0) + 1;
-    profileData.stats.bestScore = Math.max(profileData.stats.bestScore || 0, matchScore);
-    profileData.stats.bestSurvivalTime = Math.max(profileData.stats.bestSurvivalTime || 0, survivalSeconds);
-    profileData.stats.highestLength = Math.max(profileData.stats.highestLength || INITIAL_SEGMENTS, player.length);
+    const s = profileData.stats;
+    s.totalMatches = (s.totalMatches || 0) + 1;
+    s.bestScore = Math.max(s.bestScore || 0, matchScore);
+    s.bestSurvivalTime = Math.max(s.bestSurvivalTime || 0, survivalSeconds);
+    s.highestLength = Math.max(s.highestLength || INITIAL_SEGMENTS, player.length);
+    s.singleMatchKills = Math.max(s.singleMatchKills || 0, playerKillCount);
+    s.dangerZoneTime = Math.round((s.dangerZoneTime || 0) + matchDangerZoneAccum);
+
+    if (matchAbilitiesUsed === 0) {
+      s.noAbilitySurvivalTime = Math.max(s.noAbilitySurvivalTime || 0, survivalSeconds);
+    }
+    if (survivalSeconds >= 180 && playerKillCount === 0) {
+      s.pacifist3m = (s.pacifist3m || 0) + 1;
+    }
+    if (matchReviveUsed && finalRank === 1) {
+      s.reviveToRank1 = (s.reviveToRank1 || 0) + 1;
+    }
+    if (currentDifficulty === 'hard') {
+      s.hardSurvivalTime = Math.max(s.hardSurvivalTime || 0, survivalSeconds);
+      s.hardSingleMatchKills = Math.max(s.hardSingleMatchKills || 0, playerKillCount);
+      if (finalRank === 1) s.hardRank1Count = (s.hardRank1Count || 0) + 1;
+      if (finalRank <= 3 && survivalSeconds >= 45) {
+        s.hardWinsStreak = (s.hardWinsStreak || 0) + 1;
+        s.hardWinsStreakBest = Math.max(s.hardWinsStreakBest || 0, s.hardWinsStreak);
+      } else {
+        s.hardWinsStreak = 0;
+      }
+    }
+
+    recordMissionProgress('matches', 1, false);
     recordMissionProgress('survive', survivalSeconds, false);
     recordMissionProgress('single_survive', survivalSeconds, true);
     recordMissionProgress('max_length', player.length, true);
+    if (player.length >= 150) recordMissionProgress('matches_len150', 1, false);
+    if (finalRank <= 3 && survivalSeconds >= 30) recordMissionProgress('top3_matches', 1, false);
     addCoins(matchCoinsEarned);
     addXp(matchXpEarned);
+    checkSkinUnlocks();
   }
 
   // Expire 1-match skin trial if used
@@ -4482,6 +5730,10 @@ function checkFoodConsumptionAll() {
         matchFoodEaten += 3;
         if (profileData) {
           profileData.stats.totalFoodEaten = (profileData.stats.totalFoodEaten || 0) + 3;
+          profileData.stats.rareOrbsCollected = (profileData.stats.rareOrbsCollected || 0) + 1;
+          if (now < player.dashUntil || (player.speedBoostUntil && now < player.speedBoostUntil)) {
+            profileData.stats.dashingRareOrb = (profileData.stats.dashingRareOrb || 0) + 1;
+          }
           recordMissionProgress('food', 3);
         }
         if (statLengthEl) statLengthEl.textContent = snake.length;
@@ -4678,6 +5930,11 @@ function goHome() {
 }
 
 window.handleAndroidBack = function () {
+  const rewardModal = document.getElementById('reward-reveal-modal');
+  if (rewardModal && rewardModal.style.display === 'flex') {
+    closeRewardRevealModal();
+    return true;
+  }
   const confirmModal = document.getElementById('confirm-modal');
   if (confirmModal && confirmModal.style.display === 'flex') {
     if (!AdManager.adInProgress) closeConfirmModal();
@@ -4895,6 +6152,9 @@ function initSnake() {
   matchFoodEaten = 0;
   matchPowerupsCollected = 0;
   matchDashesUsed = 0;
+  matchAbilitiesUsed = 0;
+  matchCurrentKillStreak = 0;
+  matchDangerZoneAccum = 0;
   matchCoinsEarned = 0;
   matchXpEarned = 0;
   matchScore = 0;
@@ -5250,12 +6510,11 @@ function drawDiamondScale(cx, cy, radius, angle, color) {
 
 function drawSkinPattern(cx, cy, radius, angle, palette, index) {
   const pattern = palette.pattern || 'scales';
-  if ((pattern === 'scales' || pattern === 'dragon') && index % 2 === 0 && radius > 4) {
-    drawDiamondScale(cx, cy, radius * 0.72, angle, palette.scale);
+  if ((pattern === 'scales' || pattern === 'dragon' || pattern === 'ancient_runes' || pattern === 'crystal_facets') && index % 2 === 0 && radius > 4) {
+    drawDiamondScale(cx, cy, radius * 0.74, angle, palette.scale);
     return;
   }
-  if (pattern === 'chevron' && index % 2 === 0 && radius > 3.5) {
-    // King cobra light chevron / V-shaped crossband mark
+  if ((pattern === 'chevron' || pattern === 'assassin_blades' || pattern === 'samurai_armor' || pattern === 'phoenix_plumes') && index % 2 === 0 && radius > 3.5) {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(angle);
@@ -5264,27 +6523,25 @@ function drawSkinPattern(cx, cy, radius, angle, palette, index) {
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(-radius * 0.6, -radius * 0.75);
-    ctx.lineTo(radius * 0.45, 0);
+    ctx.lineTo(radius * 0.48, 0);
     ctx.lineTo(-radius * 0.6, radius * 0.75);
     ctx.stroke();
     ctx.restore();
     return;
   }
-  if (pattern === 'reticulated' && index % 3 === 0 && radius > 3.5) {
-    // Reticulated python intricate mesh net pattern
+  if ((pattern === 'reticulated' || pattern === 'circuit_board') && index % 3 === 0 && radius > 3.5) {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(angle);
     ctx.strokeStyle = palette.scale;
     ctx.lineWidth = Math.max(1, radius * 0.22);
     ctx.strokeRect(-radius * 0.55, -radius * 0.55, radius * 1.1, radius * 1.1);
-    ctx.fillStyle = '#0f0c08';
+    ctx.fillStyle = pattern === 'circuit_board' ? palette.head : '#0f0c08';
     ctx.fillRect(-radius * 0.22, -radius * 0.22, radius * 0.44, radius * 0.44);
     ctx.restore();
     return;
   }
-  if (pattern === 'lightning' && index % 2 === 0 && radius > 3.5) {
-    // Emerald tree boa vivid white dorsal lightning zigzag bars
+  if ((pattern === 'lightning' || pattern === 'storm_bolts' || pattern === 'plasma_pulse') && index % 2 === 0 && radius > 3.5) {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(angle + Math.PI / 2);
@@ -5300,19 +6557,71 @@ function drawSkinPattern(cx, cy, radius, angle, palette, index) {
     ctx.restore();
     return;
   }
-  if (pattern === 'coral_tricolor') {
-    // Coral snake bold alternating red, yellow, black rings
+  if (pattern === 'coral_tricolor' || pattern === 'bee_stripes' || pattern === 'candy_stripes' || pattern === 'meme_stripes' || pattern === 'noob_blocks') {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(angle + Math.PI / 2);
-    const ringColor = (index % 4 === 0) ? '#facc15' : (index % 2 === 0) ? '#111827' : '#dc2626';
+    let ringColor = palette.scale || '#facc15';
+    if (pattern === 'coral_tricolor') ringColor = (index % 4 === 0) ? '#facc15' : (index % 2 === 0) ? '#111827' : '#dc2626';
+    else if (pattern === 'bee_stripes') ringColor = (index % 2 === 0) ? '#18181b' : '#facc15';
+    else if (pattern === 'candy_stripes') ringColor = (index % 2 === 0) ? '#ffffff' : '#f43f5e';
+    else if (pattern === 'noob_blocks') ringColor = (index % 3 === 0) ? '#facc15' : (index % 3 === 1) ? '#3b82f6' : '#22c55e';
     ctx.fillStyle = ringColor;
-    ctx.fillRect(-radius * 0.95, -Math.max(1.2, radius * 0.45), radius * 1.9, Math.max(2.4, radius * 0.9));
+    ctx.fillRect(-radius * 0.92, -Math.max(1.2, radius * 0.45), radius * 1.84, Math.max(2.4, radius * 0.9));
     ctx.restore();
     return;
   }
-  if (pattern === 'diamonds' && index % 2 === 0 && radius > 3.5) {
-    // Diamondback rattlesnake dark-centered diamond with pale halo
+  if (pattern === 'rainbow_cycle' || pattern === 'disco_tiles' || pattern === 'glitch_blocks' || pattern === 'matrix_code') {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    if (pattern === 'matrix_code') {
+      ctx.fillStyle = '#00F5A0';
+      ctx.fillRect(-radius * 0.5, -radius * 0.2, radius, radius * 0.4);
+    } else {
+      ctx.fillStyle = `hsl(${(index * 28 + animFrame * 3) % 360}, 90%, 60%)`;
+      if (pattern === 'disco_tiles' || pattern === 'glitch_blocks') {
+        ctx.fillRect(-radius * 0.65, -radius * 0.65, radius * 1.3, radius * 1.3);
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.82, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+    return;
+  }
+  if (pattern === 'hotdog_mustard' && radius > 3.5) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.fillStyle = '#FACC15';
+    ctx.beginPath();
+    ctx.arc(0, Math.sin(index * 0.8) * radius * 0.42, Math.max(1.4, radius * 0.36), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+  if ((pattern === 'pizza_pepperoni' || pattern === 'banana_spots' || pattern === 'frog_spots' || pattern === 'bubbles' || pattern === 'venom_drip') && index % 2 === 0 && radius > 3.5) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.fillStyle = palette.scale;
+    ctx.beginPath();
+    ctx.arc(0, (index % 4 === 0 ? 1 : -1) * radius * 0.28, radius * 0.42, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+  if (pattern === 'donut_sprinkles' && radius > 3.5) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle + index);
+    ctx.fillStyle = ['#38BDF8', '#FDE047', '#00F5A0', '#FFFFFF'][index % 4];
+    ctx.fillRect(-radius * 0.45, -1.4, radius * 0.9, 2.8);
+    ctx.restore();
+    return;
+  }
+  if ((pattern === 'diamonds' || pattern === 'lava_cracks' || pattern === 'ice_shards') && index % 2 === 0 && radius > 3.5) {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(angle);
@@ -5325,37 +6634,52 @@ function drawSkinPattern(cx, cy, radius, angle, palette, index) {
     ctx.lineTo(-radius * 0.75, 0);
     ctx.closePath();
     ctx.stroke();
-    ctx.fillStyle = '#1c1917';
-    ctx.fill();
+    if (pattern === 'diamonds') {
+      ctx.fillStyle = '#1c1917';
+      ctx.fill();
+    }
     ctx.restore();
     return;
   }
-  if (pattern === 'ocelli' && index % 3 === 0 && radius > 3.5) {
-    // Anaconda dark circular blotches with golden-brown halo
+  if ((pattern === 'ocelli' || pattern === 'blood_moon' || pattern === 'celestial_halos' || pattern === 'hologram_rings' || pattern === 'quantum_rings' || pattern === 'swirl_flush') && index % 3 === 0 && radius > 3.5) {
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.fillStyle = '#18181b';
+    ctx.fillStyle = pattern === 'ocelli' ? '#18181b' : 'rgba(8, 13, 24, 0.55)';
     ctx.beginPath();
     ctx.arc(0, 0, radius * 0.55, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#ca8a04';
-    ctx.lineWidth = Math.max(1, radius * 0.2);
+    ctx.strokeStyle = palette.scale || '#ca8a04';
+    ctx.lineWidth = Math.max(1.2, radius * 0.24);
     ctx.stroke();
     ctx.restore();
     return;
   }
-  if (pattern === 'krait_rings' && index % 3 === 0) {
-    // Sea krait high-contrast alternating bands
+  if ((pattern === 'krait_rings' || pattern === 'penguin_tux' || pattern === 'feathers') && index % 3 === 0) {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(angle + Math.PI / 2);
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(-radius * 0.9, -Math.max(1, radius * 0.35), radius * 1.8, Math.max(2, radius * 0.7));
+    ctx.fillStyle = palette.scale || '#0f172a';
+    ctx.fillRect(-radius * 0.85, -Math.max(1, radius * 0.35), radius * 1.7, Math.max(2, radius * 0.7));
+    ctx.restore();
+    return;
+  }
+  if (pattern === 'leviathan_fins' && index % 4 === 0 && radius > 4) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.fillStyle = palette.scale;
+    ctx.beginPath();
+    ctx.moveTo(0, -radius);
+    ctx.lineTo(-radius * 0.9, -radius * 1.55);
+    ctx.lineTo(-radius * 0.5, -radius * 0.6);
+    ctx.moveTo(0, radius);
+    ctx.lineTo(-radius * 0.9, radius * 1.55);
+    ctx.lineTo(-radius * 0.5, radius * 0.6);
+    ctx.fill();
     ctx.restore();
     return;
   }
   if (pattern === 'clouded' && index % 3 === 0 && radius > 3.5) {
-    // Albino python soft clouded pattern
     ctx.save();
     ctx.translate(cx, cy);
     ctx.fillStyle = 'rgba(254, 240, 138, 0.75)';
@@ -5366,7 +6690,6 @@ function drawSkinPattern(cx, cy, radius, angle, palette, index) {
     return;
   }
   if (pattern === 'neon_grid' && index % 2 === 0) {
-    // Cyber neon digital energy line
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(angle + Math.PI / 2);
@@ -5392,10 +6715,10 @@ function drawSkinPattern(cx, cy, radius, angle, palette, index) {
     ctx.restore();
     return;
   }
-  if (pattern === 'embers' && index % 4 === 1) {
+  if ((pattern === 'embers' || pattern === 'void_stars' || pattern === 'cosmic_stars') && index % 3 === 1) {
     ctx.fillStyle = palette.scale;
     ctx.beginPath();
-    ctx.arc(cx, cy, Math.max(1, radius * 0.28), 0, Math.PI * 2);
+    ctx.arc(cx, cy, Math.max(1.2, radius * 0.32), 0, Math.PI * 2);
     ctx.fill();
     return;
   }
@@ -5419,7 +6742,7 @@ function drawNameTag(name, x, y, color) {
   const tagWidth = textWidth + paddingX * 2;
   const tagY = y - 26;
 
-  ctx.fillStyle = 'rgba(2, 6, 23, 0.75)';
+  ctx.fillStyle = 'rgba(8, 13, 24, 0.78)';
   ctx.strokeStyle = color;
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -5427,7 +6750,7 @@ function drawNameTag(name, x, y, color) {
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = '#f8fafc';
+  ctx.fillStyle = '#F5F7FF';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(name, x, tagY + tagHeight / 2);
@@ -5440,7 +6763,7 @@ function drawCrownOnKing(snake) {
   ctx.font = `${crownScale}px system-ui, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
-  ctx.shadowColor = 'rgba(250, 204, 21, 0.85)';
+  ctx.shadowColor = 'rgba(255, 176, 32, 0.85)';
   ctx.shadowBlur = 10;
   ctx.fillText('👑', snake.x, snake.y - 32);
   ctx.restore();
@@ -5491,13 +6814,16 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   const segmentStride = graphicsQuality === 'low' ? (far ? 6 : 3) : (far ? 3 : 1);
   const bandCount = graphicsQuality === 'low' ? (far ? 1 : 2) : (far ? 2 : 4);
   const nightGlow = currentCycle.nightFactor * (graphicsQuality === 'low' ? 0.25 : (graphicsQuality === 'medium' ? 0.62 : 1));
-  if (!far && nightGlow > 0.08) {
-    for (let i = 0; i < segs.length; i += 24) {
+  const hasAmbientAura = Boolean(pal.trailEffect) && graphicsQuality !== 'low';
+  if (!far && (nightGlow > 0.08 || hasAmbientAura)) {
+    const auraStride = hasAmbientAura ? 16 : 24;
+    const auraAlpha = Math.max(nightGlow * 0.48, hasAmbientAura ? 0.26 : 0);
+    for (let i = 0; i < segs.length; i += auraStride) {
       const seg = segs[i];
       const perp = seg.angle + Math.PI / 2;
       const x = snake.x + toroidDelta(snake.x, seg.x, WORLD_WIDTH) + Math.cos(perp) * seg.lateralOffset;
       const y = snake.y + toroidDelta(snake.y, seg.y, WORLD_HEIGHT) + Math.sin(perp) * seg.lateralOffset;
-      drawCachedGlow(pal.glow, x, y, Math.max(3, HEAD_RADIUS * (1 - i / segs.length * 0.72)), nightGlow * 0.48);
+      drawCachedGlow(pal.glow, x, y, Math.max(3, HEAD_RADIUS * (1 - i / segs.length * 0.72)), auraAlpha);
     }
   }
   for (let band = 0; band < bandCount; band++) {
@@ -5523,7 +6849,7 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     if (protectedNow) { ctx.stroke(); ctx.globalAlpha = 1; }
   }
   if (!far) {
-    const detailStride = graphicsQuality === 'low' ? 8 : 4;
+    const detailStride = graphicsQuality === 'low' ? 8 : 3;
     for (let i = 0; i < segs.length; i += detailStride) {
       const seg = segs[i];
       const progress = i / segs.length;
@@ -5533,10 +6859,26 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
       const y = snake.y + toroidDelta(snake.y, seg.y, WORLD_HEIGHT) + Math.sin(perp) * seg.lateralOffset;
       drawSkinPattern(x, y, radius, seg.angle, pal, i);
     }
+    // Bee translucent wings behind head
+    if (pal.headShape === 'bee' && segs.length > 3) {
+      const wSeg = segs[3];
+      const wx = snake.x + toroidDelta(snake.x, wSeg.x, WORLD_WIDTH);
+      const wy = snake.y + toroidDelta(snake.y, wSeg.y, WORLD_HEIGHT);
+      ctx.save();
+      ctx.translate(wx, wy);
+      ctx.rotate(wSeg.angle);
+      ctx.fillStyle = 'rgba(224, 242, 254, 0.55)';
+      const flap = Math.sin(animFrame * 0.45) * 0.22;
+      ctx.beginPath();
+      ctx.ellipse(0, -HEAD_RADIUS * 1.25, HEAD_RADIUS * 0.95, HEAD_RADIUS * 0.52, -0.35 + flap, 0, Math.PI * 2);
+      ctx.ellipse(0, HEAD_RADIUS * 1.25, HEAD_RADIUS * 0.95, HEAD_RADIUS * 0.52, 0.35 - flap, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   // Head
-  drawCachedGlow(pal.glow, snake.x, snake.y, HEAD_RADIUS * (1.5 + nightGlow), nightGlow * 0.75);
+  drawCachedGlow(pal.glow, snake.x, snake.y, HEAD_RADIUS * (1.5 + Math.max(nightGlow, hasAmbientAura ? 0.45 : 0)), Math.max(nightGlow * 0.75, hasAmbientAura ? 0.4 : 0));
   ctx.save();
   ctx.translate(snake.x, snake.y);
   ctx.rotate(snake.angle);
@@ -5544,7 +6886,6 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   const headShape = pal.headShape || 'round';
 
   if (headShape === 'cobra') {
-    // Distinctive flared cobra hood behind head
     const hoodSpread = HEAD_RADIUS * (pal.hoodWidth || 1.85);
     ctx.beginPath();
     ctx.moveTo(HEAD_RADIUS * 0.7, 0);
@@ -5559,7 +6900,6 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     ctx.lineWidth = 1.3;
     ctx.stroke();
 
-    // Cobra monocle/spectacle dorsal mark on the back of the hood
     ctx.beginPath();
     ctx.arc(-HEAD_RADIUS * 1.1, -hoodSpread * 0.35, HEAD_RADIUS * 0.38, 0, Math.PI * 2);
     ctx.arc(-HEAD_RADIUS * 1.1, hoodSpread * 0.35, HEAD_RADIUS * 0.38, 0, Math.PI * 2);
@@ -5571,26 +6911,23 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     ctx.arc(-HEAD_RADIUS * 1.1, hoodSpread * 0.35, HEAD_RADIUS * 0.18, 0, Math.PI * 2);
     ctx.fill();
 
-    // Central crown / head plate
     ctx.beginPath();
     ctx.ellipse(3, 0, HEAD_RADIUS * 1.15, HEAD_RADIUS * 0.85, 0, 0, Math.PI * 2);
     ctx.fillStyle = pal.head;
     ctx.fill();
-  } else if (headShape === 'viper') {
-    // Triangular, broad-angled arrow viper head with distinct snout
+  } else if (headShape === 'viper' || headShape === 'arrow' || headShape === 'crystal') {
     ctx.beginPath();
     ctx.moveTo(HEAD_RADIUS * 1.6, 0);
-    ctx.lineTo(-HEAD_RADIUS * 0.7, HEAD_RADIUS * 1.45);
+    ctx.lineTo(-HEAD_RADIUS * 0.7, HEAD_RADIUS * 1.42);
     ctx.quadraticCurveTo(-HEAD_RADIUS * 1.4, HEAD_RADIUS * 0.5, -HEAD_RADIUS * 1.1, 0);
-    ctx.quadraticCurveTo(-HEAD_RADIUS * 1.4, -HEAD_RADIUS * 0.5, -HEAD_RADIUS * 0.7, -HEAD_RADIUS * 1.45);
+    ctx.quadraticCurveTo(-HEAD_RADIUS * 1.4, -HEAD_RADIUS * 0.5, -HEAD_RADIUS * 0.7, -HEAD_RADIUS * 1.42);
     ctx.closePath();
     ctx.fillStyle = pal.head;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = headShape === 'crystal' ? '#FFFFFF' : 'rgba(255,255,255,0.22)';
+    ctx.lineWidth = 1.1;
     ctx.stroke();
   } else if (headShape === 'python') {
-    // Powerful, blunt, broad muscular python head with sensory pits
     ctx.beginPath();
     ctx.moveTo(HEAD_RADIUS * 1.4, -HEAD_RADIUS * 0.4);
     ctx.quadraticCurveTo(HEAD_RADIUS * 1.6, 0, HEAD_RADIUS * 1.4, HEAD_RADIUS * 0.4);
@@ -5600,18 +6937,7 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     ctx.closePath();
     ctx.fillStyle = pal.head;
     ctx.fill();
-
-    // Labial sensory heat pits along jaw
-    ctx.fillStyle = '#1c1917';
-    for (let pSide = -1; pSide <= 1; pSide += 2) {
-      for (let pit = 0; pit < 3; pit++) {
-        ctx.beginPath();
-        ctx.arc(HEAD_RADIUS * (0.4 + pit * 0.35), pSide * HEAD_RADIUS * 0.68, 1.2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
   } else if (headShape === 'coffin') {
-    // Distinctive coffin-shaped elongated head of the Black Mamba
     ctx.beginPath();
     ctx.moveTo(HEAD_RADIUS * 1.6, -HEAD_RADIUS * 0.35);
     ctx.lineTo(HEAD_RADIUS * 1.6, HEAD_RADIUS * 0.35);
@@ -5623,27 +6949,61 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     ctx.fillStyle = pal.head;
     ctx.fill();
   } else if (headShape === 'paddle') {
-    // Flattened, hydrodynamic streamlined sea snake head
     ctx.beginPath();
     ctx.ellipse(3, 0, HEAD_RADIUS * 1.45, HEAD_RADIUS * 0.72, 0, 0, Math.PI * 2);
     ctx.fillStyle = pal.head;
     ctx.fill();
-  } else if (headShape === 'dragon') {
-    // Horned dragon head with crown spikes
+  } else if (headShape === 'pixel') {
+    ctx.fillStyle = pal.head;
+    ctx.fillRect(-HEAD_RADIUS, -HEAD_RADIUS * 0.9, HEAD_RADIUS * 2.1, HEAD_RADIUS * 1.8);
+  } else if (headShape === 'duck') {
+    ctx.fillStyle = '#FB923C';
+    ctx.beginPath();
+    ctx.ellipse(HEAD_RADIUS * 1.05, 0, HEAD_RADIUS * 0.68, HEAD_RADIUS * 0.48, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(1, 0, HEAD_RADIUS * 1.05, HEAD_RADIUS * 0.92, 0, 0, Math.PI * 2);
+    ctx.fillStyle = pal.head;
+    ctx.fill();
+  } else if (headShape === 'chicken') {
+    ctx.fillStyle = '#F59E0B';
+    ctx.beginPath();
+    ctx.moveTo(HEAD_RADIUS * 0.9, -3.5);
+    ctx.lineTo(HEAD_RADIUS * 1.75, 0);
+    ctx.lineTo(HEAD_RADIUS * 0.9, 3.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(1, 0, HEAD_RADIUS * 1.05, HEAD_RADIUS * 0.9, 0, 0, Math.PI * 2);
+    ctx.fillStyle = pal.head;
+    ctx.fill();
+    ctx.fillStyle = '#EF4444';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, HEAD_RADIUS * 0.55, HEAD_RADIUS * 0.24, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (headShape === 'dragon' || headShape === 'samurai' || headShape === 'phoenix' || headShape === 'leviathan') {
     ctx.beginPath();
     ctx.moveTo(HEAD_RADIUS * 1.5, 0);
     ctx.lineTo(HEAD_RADIUS * 0.4, HEAD_RADIUS * 1.1);
-    ctx.lineTo(-HEAD_RADIUS * 1.3, HEAD_RADIUS * 1.35);
+    ctx.lineTo(-HEAD_RADIUS * 1.35, HEAD_RADIUS * 1.42);
     ctx.lineTo(-HEAD_RADIUS * 0.8, HEAD_RADIUS * 0.35);
     ctx.lineTo(-HEAD_RADIUS * 1.5, 0);
     ctx.lineTo(-HEAD_RADIUS * 0.8, -HEAD_RADIUS * 0.35);
-    ctx.lineTo(-HEAD_RADIUS * 1.3, -HEAD_RADIUS * 1.35);
+    ctx.lineTo(-HEAD_RADIUS * 1.35, -HEAD_RADIUS * 1.42);
     ctx.lineTo(HEAD_RADIUS * 0.4, -HEAD_RADIUS * 1.1);
     ctx.closePath();
     ctx.fillStyle = pal.head;
     ctx.fill();
+    if (headShape === 'samurai') {
+      ctx.strokeStyle = '#FFB020';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(HEAD_RADIUS * 0.5, -HEAD_RADIUS * 0.8);
+      ctx.lineTo(HEAD_RADIUS * 1.2, 0);
+      ctx.lineTo(HEAD_RADIUS * 0.5, HEAD_RADIUS * 0.8);
+      ctx.stroke();
+    }
   } else {
-    // Classic rounded head
     ctx.beginPath();
     ctx.ellipse(2, 0, HEAD_RADIUS + 1, HEAD_RADIUS - 1.5, 0, 0, Math.PI * 2);
     ctx.fillStyle = pal.head;
@@ -5661,36 +7021,57 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
 
   ctx.beginPath();
   ctx.ellipse(5, 0, HEAD_RADIUS * 0.45, HEAD_RADIUS * 0.35, 0, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
   ctx.fill();
 
-  // Eyes
+  // Eyes (supports normal, slit, googly, derp, sunglasses, visor, glowing, cute, angry)
+  const eyeStyle = pal.eyeStyle || 'normal';
   const eyeX = 3;
-  const eyeY = 6.2;
-  const eyeRadius = 3.6;
+  const eyeY = headShape === 'frog' ? 8.2 : 6.2;
+  const eyeRadius = (eyeStyle === 'googly' || eyeStyle === 'cute' || headShape === 'frog') ? 4.3 : 3.6;
   const pupilRadius = 1.6;
 
-  for (let eyeSide = -1; eyeSide <= 1; eyeSide += 2) {
-    const ey = eyeY * eyeSide;
+  if (eyeStyle === 'sunglasses') {
+    ctx.fillStyle = '#090D16';
+    ctx.fillRect(1, -7.2, 4.8, 5.2);
+    ctx.fillRect(1, 2.0, 4.8, 5.2);
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 1.1;
+    ctx.strokeRect(1, -7.2, 4.8, 5.2);
+    ctx.strokeRect(1, 2.0, 4.8, 5.2);
+  } else if (eyeStyle === 'visor') {
+    ctx.fillStyle = pal.eyeIris || '#00D9FF';
     ctx.beginPath();
-    ctx.arc(eyeX, ey, eyeRadius, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffffff';
+    ctx.roundRect(1.5, -6.5, 4.2, 13, 2);
     ctx.fill();
+  } else {
+    for (let eyeSide = -1; eyeSide <= 1; eyeSide += 2) {
+      const ey = eyeY * eyeSide;
+      ctx.beginPath();
+      ctx.arc(eyeX, ey, eyeRadius, 0, Math.PI * 2);
+      ctx.fillStyle = eyeStyle === 'glowing' ? (pal.eyeIris || '#00D9FF') : '#ffffff';
+      ctx.fill();
 
-    ctx.beginPath();
-    ctx.arc(eyeX + 0.8, ey, eyeRadius * 0.65, 0, Math.PI * 2);
-    ctx.fillStyle = pal.eyeIris;
-    ctx.fill();
+      ctx.beginPath();
+      ctx.arc(eyeX + 0.8, ey, eyeRadius * 0.65, 0, Math.PI * 2);
+      ctx.fillStyle = pal.eyeIris;
+      ctx.fill();
 
-    ctx.beginPath();
-    ctx.arc(eyeX + 1.2, ey, pupilRadius, 0, Math.PI * 2);
-    ctx.fillStyle = pal.eyePupil;
-    ctx.fill();
+      const wobble = eyeStyle === 'googly' ? Math.sin(animFrame * 0.22 + eyeSide) * 1.1 : (eyeStyle === 'derp' ? eyeSide * 1.4 : 0);
+      ctx.beginPath();
+      if (eyeStyle === 'slit') {
+        ctx.ellipse(eyeX + 1.2, ey, pupilRadius * 1.25, pupilRadius * 0.45, 0, 0, Math.PI * 2);
+      } else {
+        ctx.arc(eyeX + 1.2, ey + wobble, pupilRadius, 0, Math.PI * 2);
+      }
+      ctx.fillStyle = pal.eyePupil;
+      ctx.fill();
 
-    ctx.beginPath();
-    ctx.arc(eyeX + 0.5, ey - 1, 0.8, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
+      ctx.beginPath();
+      ctx.arc(eyeX + 0.5, ey - 1, eyeStyle === 'cute' ? 1.3 : 0.8, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+    }
   }
 
   ctx.restore();
