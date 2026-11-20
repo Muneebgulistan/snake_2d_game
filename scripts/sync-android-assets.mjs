@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readdir } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, writeFile } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,4 +19,14 @@ async function copyTree(sourceDir, targetDir) {
 
 await copyTree(webDir, publicDir);
 await copyFile(join(projectDir, 'capacitor.config.json'), join(androidAssets, 'capacitor.config.json'));
-console.log(`Copied ${relative(projectDir, webDir)} into the Android WebView assets.`);
+
+// Ensure Capacitor native plugins registry is always up to date for Android WebView bridge
+const pluginsJson = [
+  {
+    pkg: '@capacitor-community/admob',
+    classpath: 'com.getcapacitor.community.admob.AdMob'
+  }
+];
+await writeFile(join(androidAssets, 'capacitor.plugins.json'), JSON.stringify(pluginsJson, null, 2) + '\n', 'utf8');
+
+console.log(`Copied ${relative(projectDir, webDir)} and capacitor.plugins.json into the Android WebView assets.`);

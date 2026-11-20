@@ -1167,7 +1167,10 @@
     <div class="settings-row inline"><span>Left-Handed Ability Dock</span><button id="lefthand-toggle" class="settings-option" onclick="toggleLeftHanded()">Off</button></div>
     <div class="settings-row inline">
       <span>Privacy &amp; Data</span>
-      <a class="settings-option" href="privacy-policy.html" style="text-decoration:none;display:inline-grid;place-items:center;">Privacy Policy</a>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="privacy-options-btn" type="button" class="settings-option" onclick="AdManager.openPrivacyOptions()">Ad Consent Options</button>
+        <a class="settings-option" href="privacy-policy.html" style="text-decoration:none;display:inline-grid;place-items:center;">Privacy Policy</a>
+      </div>
     </div>
     <div class="settings-row inline">
       <span>Reset Save Data</span>
@@ -2307,7 +2310,13 @@ function claimAchievement(achId) {
 // ============================================================
 const AdManager = {
   initialized: false,
+  sdkReady: false,
+  canRequestAds: true,
+  privacyOptionsRequired: false,
   adInProgress: false,
+  bannerShown: false,
+  bannerMountActive: false,
+  audioWasMutedBeforeAd: false,
   getConfig() {
     return GAME_CONFIG.ADMOB || {
       environment: 'development',
@@ -2322,39 +2331,211 @@ const AdManager = {
       }
     };
   },
+  isTestingMode() {
+    return this.getConfig().environment !== 'production';
+  },
   getActiveUnitId(kind) {
     const cfg = this.getConfig();
     const isProd = cfg.environment === 'production';
     const table = isProd ? cfg.productionIds : cfg.testIds;
     return (table && table[kind]) || cfg.testIds[kind];
   },
+  isNativeAndroidApp() {
+    try {
+      if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function') {
+        return Boolean(window.Capacitor.isNativePlatform());
+      }
+      if (window.Capacitor && typeof window.Capacitor.getPlatform === 'function') {
+        return window.Capacitor.getPlatform() === 'android' || window.Capacitor.getPlatform() === 'ios';
+      }
+    } catch (_) {}
+    return false;
+  },
   getNativePlugin() {
     return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) || window.AdMob || null;
+  },
+  suspendGameAudioForAd() {
+    this.audioWasMutedBeforeAd = isMuted;
+    if (ambientGain && audioCtx) {
+      try { ambientGain.gain.setValueAtTime(0, audioCtx.currentTime); } catch (_) {}
+    }
+    const plugin = this.getNativePlugin();
+    if (plugin && typeof plugin.setApplicationMuted === 'function') {
+      try { plugin.setApplicationMuted({ muted: Boolean(isMuted) }); } catch (_) {}
+    }
+    if (plugin && typeof plugin.setApplicationVolume === 'function') {
+      try {
+        const roundedVol = Math.round(Math.max(0, Math.min(1, masterVolume)) * 10) / 10;
+        plugin.setApplicationVolume({ volume: roundedVol });
+      } catch (_) {}
+    }
+  },
+  resumeGameAudioAfterAd() {
+    applyAmbientAudioGain();
+    lastLoopFrameTime = performance.now();
+    fixedStepAccumulator = 0;
+  },
+  registerNativeListeners(plugin) {
+    if (!plugin || typeof plugin.addListener !== 'function') return;
+    try {
+      plugin.addListener('onRewardedVideoAdShowed', () => { this.suspendGameAudioForAd(); });
+      plugin.addListener('onRewardedVideoAdDismissed', () => { this.resumeGameAudioAfterAd(); });
+      plugin.addListener('onRewardedVideoAdFailedToShow', () => { this.resumeGameAudioAfterAd(); });
+      plugin.addListener('interstitialAdShowed', () => { this.suspendGameAudioForAd(); });
+      plugin.addListener('interstitialAdDismissed', () => { this.resumeGameAudioAfterAd(); });
+      plugin.addListener('interstitialAdFailedToShow', () => { this.resumeGameAudioAfterAd(); });
+      plugin.addListener('bannerAdLoaded', () => {
+        document.querySelectorAll('.banner-status-text').forEach(el => {
+          el.textContent = this.isTestingMode() ? 'AdMob Native Test Banner Active' : 'AdMob Banner Active';
+        });
+      });
+      plugin.addListener('bannerAdFailedToLoad', () => {
+        this.bannerShown = false;
+      });
+    } catch (_) {}
+  },
+  async handleConsentFlow(plugin) {
+    if (!plugin || typeof plugin.requestConsentInfo !== 'function') return;
+    try {
+      const info = await plugin.requestConsentInfo({
+        tagForUnderAgeOfConsent: false
+      });
+      this.canRequestAds = info && typeof info.canRequestAds === 'boolean' ? info.canRequestAds : true;
+      this.privacyOptionsRequired = info && info.privacyOptionsRequirementStatus === 'REQUIRED';
+
+      if (info && info.status === 'REQUIRED' && info.isConsentFormAvailable && typeof plugin.showConsentForm === 'function') {
+        const formResult = await plugin.showConsentForm();
+        if (formResult && typeof formResult.canRequestAds === 'boolean') {
+          this.canRequestAds = formResult.canRequestAds;
+        }
+        if (formResult && formResult.privacyOptionsRequirementStatus) {
+          this.privacyOptionsRequired = formResult.privacyOptionsRequirementStatus === 'REQUIRED';
+        }
+      }
+    } catch (_) {
+      // UMP consent check failed (e.g., offline or no form configured in AdMob console yet); allow standard non-blocking fallback
+      this.canRequestAds = true;
+    }
+  },
+  async openPrivacyOptions() {
+    const plugin = this.getNativePlugin();
+    if (plugin && typeof plugin.showPrivacyOptionsForm === 'function') {
+      try {
+        await plugin.showPrivacyOptionsForm();
+        showGlobalToast('Ad privacy preferences updated.');
+        return;
+      } catch (err) {
+        showConfirmModal(
+          'Ad Consent Preferences',
+          'No regional GDPR/UMP consent form is currently required for your region, or no UMP message is configured in AdMob yet. You can also manage ad personalization in Android Settings → Google → Ads.',
+          [{ label: 'OK', primary: true, onClick: closeConfirmModal }]
+        );
+        return;
+      }
+    }
+    showConfirmModal(
+      'Ad Consent Preferences',
+      'On Android devices, this opens the Google User Messaging Platform (UMP) privacy options form when required by regional regulations (GDPR / UK / US state privacy laws).',
+      [{ label: 'OK', primary: true, onClick: closeConfirmModal }]
+    );
   },
   async init() {
     if (this.initialized) return;
     this.initialized = true;
     const plugin = this.getNativePlugin();
     if (plugin && typeof plugin.initialize === 'function') {
+      this.registerNativeListeners(plugin);
+      await this.handleConsentFlow(plugin);
       try {
-        await plugin.initialize({ initializeForTesting: this.getConfig().environment !== 'production' });
-      } catch (_) {}
+        await plugin.initialize({
+          initializeForTesting: this.isTestingMode(),
+          tagForChildDirectedTreatment: false,
+          tagForUnderAgeOfConsent: false,
+          maxAdContentRating: 'General'
+        });
+        this.sdkReady = true;
+      } catch (_) {
+        this.sdkReady = false;
+      }
     }
     this.refreshBannerVisibility();
   },
+  async syncNativeBannerForScreen(screenName) {
+    const plugin = this.getNativePlugin();
+    const removed = Boolean(profileData && profileData.removeForcedAds);
+    const eligibleScreens = ['skins', 'missions', 'rewards'];
+    const shouldShow = !removed && !isGameRunning && eligibleScreens.includes(screenName) && navigator.onLine && this.canRequestAds;
+
+    if (!plugin || typeof plugin.showBanner !== 'function') return;
+
+    if (!shouldShow) {
+      if (this.bannerShown || this.bannerMountActive) {
+        this.bannerShown = false;
+        this.bannerMountActive = false;
+        try { await plugin.hideBanner(); } catch (_) {}
+        try { await plugin.removeBanner(); } catch (_) {}
+      }
+      return;
+    }
+
+    if (this.bannerShown) {
+      try {
+        await plugin.resumeBanner();
+        return;
+      } catch (_) {}
+    }
+
+    try {
+      this.bannerMountActive = true;
+      await plugin.showBanner({
+        adId: this.getActiveUnitId('banner'),
+        adSize: 'ADAPTIVE_BANNER',
+        position: 'BOTTOM_CENTER',
+        margin: 0,
+        isTesting: this.isTestingMode()
+      });
+      this.bannerShown = true;
+    } catch (_) {
+      this.bannerShown = false;
+      this.bannerMountActive = false;
+    }
+  },
+  async hideNativeBanner() {
+    const plugin = this.getNativePlugin();
+    if (!plugin) return;
+    if (this.bannerShown || this.bannerMountActive) {
+      this.bannerShown = false;
+      this.bannerMountActive = false;
+      try { await plugin.hideBanner(); } catch (_) {}
+      try { await plugin.removeBanner(); } catch (_) {}
+    }
+  },
   refreshBannerVisibility() {
     const removed = Boolean(profileData && profileData.removeForcedAds);
+    const isNative = this.isNativeAndroidApp() && Boolean(this.getNativePlugin());
     document.querySelectorAll('.ad-banner-slot').forEach(slot => {
-      slot.style.display = removed ? 'none' : 'flex';
+      // On native Android, @capacitor-community/admob renders a real native AdView anchored at BOTTOM_CENTER;
+      // keep space at the bottom so UI cards are never covered by the native banner.
+      if (removed) {
+        slot.style.display = 'none';
+      } else if (isNative) {
+        slot.style.display = 'flex';
+        slot.style.opacity = '0.01';
+        slot.style.pointerEvents = 'none';
+      } else {
+        slot.style.display = 'flex';
+        slot.style.opacity = '1';
+        slot.style.pointerEvents = 'auto';
+      }
     });
   },
   async showRewardedAd({ placement, onReward, onDismiss }) {
-    // Safety rule: never interrupt active unpaused gameplay
+    // Rule 10: Never show or interrupt during active unpaused gameplay
     if (isGameRunning && !isPaused && !isGameOver) return;
     if (this.adInProgress) return;
     if (!navigator.onLine) {
-      showConfirmModal('No Internet Connection', 'Rewarded advertisements require an active internet connection. Please check your connection and try again.', [
-        { label: 'OK', primary: true, onClick: closeConfirmModal }
+      showConfirmModal('No Internet Connection', 'Rewarded advertisements require an active internet connection. You can continue playing offline anytime!', [
+        { label: 'Continue', primary: true, onClick: closeConfirmModal }
       ]);
       if (onDismiss) onDismiss(false);
       return;
@@ -2363,39 +2544,61 @@ const AdManager = {
     this.adInProgress = true;
     const unitId = this.getActiveUnitId('rewarded');
     const plugin = this.getNativePlugin();
+    const isNative = this.isNativeAndroidApp();
 
-    // 1. If native Capacitor AdMob plugin is installed on Android device
+    // 1. REAL NATIVE ANDROID ADMOB EXECUTION
+    // On Android devices, NEVER simulate ads—always use the real Google Mobile Ads SDK via @capacitor-community/admob.
     if (plugin && typeof plugin.prepareRewardVideoAd === 'function') {
       try {
-        await plugin.prepareRewardVideoAd({ adId: unitId, isTesting: this.getConfig().environment !== 'production' });
-        const result = await plugin.showRewardVideoAd();
+        if (!this.sdkReady) {
+          await this.init();
+        }
+        await plugin.prepareRewardVideoAd({
+          adId: unitId,
+          isTesting: this.isTestingMode()
+        });
+        this.suspendGameAudioForAd();
+        // In @capacitor-community/admob v8.4.2, showRewardVideoAd() resolves ONLY inside OnUserEarnedRewardListener
+        // and rejects with "REWARDED_AD_CANCELLED" if the user closes the video before earning the reward.
+        const rewardItem = await plugin.showRewardVideoAd();
+        this.resumeGameAudioAfterAd();
         this.adInProgress = false;
-        if (result) {
-          if (onReward) onReward();
+        if (rewardItem && (rewardItem.amount !== undefined || rewardItem.type !== undefined)) {
+          if (onReward) onReward(rewardItem);
         } else if (onDismiss) {
           onDismiss(false);
         }
         return;
       } catch (err) {
+        this.resumeGameAudioAfterAd();
         this.adInProgress = false;
-        showConfirmModal('Ad Unavailable', 'Could not load a rewarded video at this time. Please try again shortly.', [
-          { label: 'Close', primary: true, onClick: closeConfirmModal }
-        ]);
+        const errCode = (err && (err.code || err.message)) ? String(err.code || err.message) : '';
+        const wasCancelled = errCode.includes('CANCELLED') || errCode.includes('dismissed before earning');
+        if (!wasCancelled) {
+          showConfirmModal(
+            'Ad Not Ready',
+            'A rewarded video could not be loaded right now. No problem—you can continue playing normally!',
+            [{ label: 'Continue', primary: true, onClick: closeConfirmModal }]
+          );
+        }
         if (onDismiss) onDismiss(false);
         return;
       }
     }
 
-    // 2. Development / Browser Official Test Ad Simulator (Verifies full reward callback lifecycle)
-    if (this.getConfig().environment === 'production') {
+    // If running on a native Android device OR in production mode without the native plugin bound, never fake or simulate ads.
+    if (isNative || !this.isTestingMode()) {
       this.adInProgress = false;
-      showConfirmModal('Ad SDK Not Bound', 'Install @capacitor-community/admob in the Android build to display live production ads.', [
-        { label: 'Close', primary: true, onClick: closeConfirmModal }
-      ]);
+      showConfirmModal(
+        'Ad Unavailable',
+        'Rewarded video is temporarily unavailable. You can continue playing normally.',
+        [{ label: 'Continue', primary: true, onClick: closeConfirmModal }]
+      );
       if (onDismiss) onDismiss(false);
       return;
     }
 
+    // 2. Desktop Web Browser Development Test Preview (Only in non-native desktop browser during development)
     let secondsLeft = 3;
     const modal = document.getElementById('confirm-modal');
     const titleEl = document.getElementById('confirm-modal-title');
@@ -2406,14 +2609,14 @@ const AdManager = {
       return;
     }
 
-    titleEl.textContent = `AdMob Test Rewarded Video`;
-    bodyEl.innerHTML = `Placement: <b>${placement}</b><br><small style="color:var(--text-faint)">Test Unit: ${unitId}</small><br><br>Reward unlocks in <b id="ad-sim-timer">${secondsLeft}s</b>...`;
+    titleEl.textContent = `Web Dev Preview — Rewarded Ad`;
+    bodyEl.innerHTML = `Placement: <b>${placement}</b><br><small style="color:var(--text-faint)">Google Test Unit: ${unitId}</small><br><br>On Android, this renders the real native Google AdMob video.<br>Reward callback fires in <b id="ad-sim-timer">${secondsLeft}s</b>...`;
     actionsEl.innerHTML = '';
 
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.className = 'menu-secondary';
-    cancelBtn.textContent = 'Close Early (No Reward)';
+    cancelBtn.textContent = 'Dismiss Early (No Reward)';
     actionsEl.appendChild(cancelBtn);
     modal.style.display = 'flex';
 
@@ -2423,16 +2626,16 @@ const AdManager = {
       if (timerEl) timerEl.textContent = `${Math.max(0, secondsLeft)}s`;
       if (secondsLeft <= 0) {
         clearInterval(interval);
-        bodyEl.innerHTML = `Placement: <b>${placement}</b><br><span style="color:var(--accent);font-weight:800;">✓ Reward Verified!</span>`;
+        bodyEl.innerHTML = `Placement: <b>${placement}</b><br><span style="color:var(--accent);font-weight:800;">✓ onUserEarnedReward Callback Verified!</span>`;
         actionsEl.innerHTML = '';
         const claimBtn = document.createElement('button');
         claimBtn.type = 'button';
         claimBtn.className = 'ad-watch-btn';
-        claimBtn.textContent = 'Claim Reward & Close';
+        claimBtn.textContent = 'Grant Reward & Close';
         claimBtn.onclick = () => {
           modal.style.display = 'none';
           this.adInProgress = false;
-          if (onReward) onReward();
+          if (onReward) onReward({ type: 'coins', amount: 1 });
         };
         actionsEl.appendChild(claimBtn);
       }
@@ -2447,7 +2650,8 @@ const AdManager = {
   },
   async maybeShowInterstitialAfterMatch() {
     if (!profileData || profileData.removeForcedAds) return;
-    if (isGameRunning && !isPaused && !isGameOver) return;
+    // Never show during active gameplay or if another ad is active
+    if ((isGameRunning && !isPaused && !isGameOver) || this.adInProgress) return;
     const cfg = this.getConfig();
     profileData.ads.matchesSinceInterstitial = (profileData.ads.matchesSinceInterstitial || 0) + 1;
     const now = Date.now();
@@ -2455,19 +2659,28 @@ const AdManager = {
     const freqOk = profileData.ads.matchesSinceInterstitial >= (cfg.interstitialEveryMatches || 3);
     saveProfileData();
 
-    if (!freqOk || !cooldownOk || !navigator.onLine) return;
-
-    profileData.ads.matchesSinceInterstitial = 0;
-    profileData.ads.lastInterstitialAt = now;
-    saveProfileData();
+    if (!freqOk || !cooldownOk || !navigator.onLine || !this.canRequestAds) return;
 
     const plugin = this.getNativePlugin();
     const unitId = this.getActiveUnitId('interstitial');
     if (plugin && typeof plugin.prepareInterstitial === 'function') {
       try {
-        await plugin.prepareInterstitial({ adId: unitId, isTesting: cfg.environment !== 'production' });
+        if (!this.sdkReady) await this.init();
+        await plugin.prepareInterstitial({
+          adId: unitId,
+          isTesting: this.isTestingMode()
+        });
+        // Re-verify player hasn't already started a new match while the interstitial was loading
+        if (isGameRunning && !isPaused && !isGameOver) return;
+        profileData.ads.matchesSinceInterstitial = 0;
+        profileData.ads.lastInterstitialAt = Date.now();
+        saveProfileData();
+        this.suspendGameAudioForAd();
         await plugin.showInterstitial();
-      } catch (_) {}
+      } catch (_) {
+        // Non-blocking: if interstitial fails to load or show, gameplay continues seamlessly
+        this.resumeGameAudioAfterAd();
+      }
     }
   }
 };
@@ -2764,6 +2977,7 @@ function openScreen(name) {
   const target = document.getElementById(activeSubscreenId);
   if (target) target.style.display = 'flex';
   AdManager.refreshBannerVisibility();
+  AdManager.syncNativeBannerForScreen(name);
   if (name === 'skins') renderSkinMenu();
   else if (name === 'missions') renderMissionsScreen();
   else if (name === 'rewards') renderDailyRewardsScreen();
@@ -2776,6 +2990,7 @@ function openScreen(name) {
 function closeSubscreen() {
   document.querySelectorAll('.subscreen').forEach(el => { el.style.display = 'none'; });
   activeSubscreenId = null;
+  AdManager.hideNativeBanner();
   if (menuScreenEl) menuScreenEl.style.display = 'flex';
   refreshMenuHeaderUI();
 }
@@ -4414,6 +4629,7 @@ function applyDifficultySpeeds() {
 
 function startGame() {
   initAudio();
+  AdManager.hideNativeBanner();
   menuScreenEl.style.display = 'none';
   document.querySelectorAll('.subscreen').forEach(el => { el.style.display = 'none'; });
   activeSubscreenId = null;
@@ -4438,6 +4654,7 @@ function goHome() {
   isGameOver = false;
   rareOrb = null;
   powerups.length = 0;
+  AdManager.hideNativeBanner();
   if (powerupIndicatorEl) powerupIndicatorEl.style.display = 'none';
   if (rareIndicatorEl) rareIndicatorEl.style.display = 'none';
   const reviveModal = document.getElementById('revive-modal');
@@ -4517,7 +4734,16 @@ function initInput() {
   homeButton.addEventListener('click', (e) => { e.stopPropagation(); goHome(); });
 
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && isGameRunning && !isPaused && !isGameOver) togglePause();
+    if (document.hidden) {
+      if (isGameRunning && !isPaused && !isGameOver) togglePause();
+      if (ambientGain && audioCtx) {
+        try { ambientGain.gain.setValueAtTime(0, audioCtx.currentTime); } catch (_) {}
+      }
+    } else if (!AdManager.adInProgress) {
+      applyAmbientAudioGain();
+      lastLoopFrameTime = performance.now();
+      fixedStepAccumulator = 0;
+    }
   });
 
   window.addEventListener('keydown', (e) => {
