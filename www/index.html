@@ -7,18 +7,51 @@
 <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
 <title>Serpent Run</title>
 <style>
+  /* ============================================================
+     SERPENT RUN — UI v2 design system
+     ============================================================ */
+  :root {
+    color-scheme: dark;
+    --bg-0: #05080f;
+    --bg-1: #0a1020;
+    --panel: rgba(13, 20, 36, 0.78);
+    --panel-solid: #0f172a;
+    --panel-2: rgba(30, 41, 59, 0.6);
+    --line: rgba(148, 163, 184, 0.16);
+    --line-strong: rgba(148, 163, 184, 0.3);
+    --text: #f1f5f9;
+    --text-dim: #94a3b8;
+    --text-faint: #64748b;
+    --accent: #34d399;
+    --accent-2: #22d3ee;
+    --accent-ink: #022c22;
+    --gold: #fbbf24;
+    --danger: #fb7185;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --font: 'Inter', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #020617;
-    color: #e0f2fe;
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-0);
+    color: var(--text);
+    font-family: var(--font);
     user-select: none;
     -webkit-user-select: none;
     touch-action: none;
+    -webkit-tap-highlight-color: transparent;
   }
+  button { font-family: inherit; color: inherit; }
+  button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--accent-2);
+    outline-offset: 2px;
+  }
+
   #game-canvas {
     display: block;
     width: 100%;
@@ -28,66 +61,131 @@
     left: 0;
     touch-action: none;
   }
+
+  /* ---------- HUD (top-left) ---------- */
   #hud {
     position: absolute;
     top: max(12px, env(safe-area-inset-top));
     left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
     z-index: 10;
     pointer-events: none;
     display: none;
-    gap: 10px;
-    font-size: 14px;
-    text-shadow: 0 0 8px rgba(0,255,200,0.4);
     flex-wrap: wrap;
     align-items: center;
+    gap: 8px;
+    max-width: calc(100% - 190px);
   }
   .hud-stat {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(4, 16, 36, 0.7);
-    padding: 6px 14px;
-    border-radius: 20px;
-    border: 1px solid rgba(0, 240, 255, 0.25);
-    backdrop-filter: blur(6px);
+    align-items: baseline;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    font-weight: 600;
+    box-shadow: var(--shadow);
   }
-  .hud-val {
-    font-weight: bold;
-    color: #38bdf8;
+  .hud-stat .hud-val {
+    font-size: 15px;
+    letter-spacing: 0;
+    text-transform: none;
+    font-weight: 800;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
   }
-  #mute-btn {
+  #stat-cycle { align-items: center; }
+  #cycle-icon { color: var(--gold); font-size: 15px; }
+  #stat-length .hud-val, #stat-rank .hud-val { color: var(--accent); }
+  #stat-kills .hud-val { color: var(--danger); }
+
+  #pause-btn, #home-btn, #mute-btn {
     pointer-events: auto;
-    min-height: 44px;
-    background: rgba(4, 16, 36, 0.7);
-    border: 1px solid rgba(0, 240, 255, 0.25);
-    color: #e0f2fe;
-    padding: 6px 12px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 14px;
-    backdrop-filter: blur(6px);
-    transition: all 0.2s;
-  }
-  #pause-btn {
-    pointer-events: auto;
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    min-height: 40px;
+    height: 40px;
+    padding: 0;
     display: grid;
     place-items: center;
-    background: rgba(4, 16, 36, 0.82);
-    border: 1px solid rgba(0, 240, 255, 0.35);
-    color: #e0f2fe;
-    border-radius: 50%;
+    border-radius: 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 700;
     cursor: pointer;
-    font-size: 18px;
-    backdrop-filter: blur(6px);
+    box-shadow: var(--shadow);
+    transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease;
+    touch-action: manipulation;
   }
-  #mute-btn:hover {
-    border-color: #00f5ff;
-    color: #00f5ff;
-  }
+  #pause-btn:hover, #home-btn:hover, #mute-btn:hover { border-color: var(--accent); background: rgba(52, 211, 153, 0.12); }
+  #pause-btn:active, #home-btn:active, #mute-btn:active { transform: scale(0.94); }
 
-  /* Live Leaderboard */
+  /* ---------- Ability dock (bottom-center) ---------- */
+  #ability-dock {
+    position: fixed;
+    left: 50%;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 18px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--shadow);
+    pointer-events: auto;
+  }
+  .ability-btn {
+    position: relative;
+    pointer-events: auto;
+    min-width: 76px;
+    min-height: 56px;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  }
+  .ability-btn small {
+    display: inline-block;
+    margin-top: 3px;
+    padding: 1px 7px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.35);
+    font-size: 11px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-faint);
+  }
+  .ability-btn:disabled { opacity: 0.55; cursor: default; }
+  .ability-btn.ready {
+    border-color: rgba(52, 211, 153, 0.65);
+    background: rgba(16, 185, 129, 0.14);
+    color: #d1fae5;
+    box-shadow: 0 0 18px rgba(52, 211, 153, 0.18);
+  }
+  .ability-btn.ready small { color: var(--accent); }
+  .ability-btn:not(:disabled):active { transform: scale(0.95); }
+
+  /* ---------- Leaderboard (top-right) ---------- */
   #leaderboard {
     position: absolute;
     top: max(12px, env(safe-area-inset-top));
@@ -95,378 +193,410 @@
     z-index: 10;
     pointer-events: none;
     display: none;
-    background: rgba(4, 16, 36, 0.75);
-    border: 1px solid rgba(56, 189, 248, 0.25);
-    border-radius: 14px;
-    padding: 10px 14px;
-    backdrop-filter: blur(8px);
-    min-width: 170px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    width: 172px;
+    padding: 10px 10px 8px;
+    border-radius: var(--radius);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: var(--shadow);
   }
   .lb-title {
-    font-size: 11px;
+    font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: #94a3b8;
+    letter-spacing: 0.16em;
+    color: var(--text-faint);
     margin-bottom: 6px;
-    font-weight: bold;
-    text-align: center;
+    font-weight: 800;
+    text-align: left;
   }
-  .lb-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
+  .lb-list { display: flex; flex-direction: column; gap: 2px; }
   .lb-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 13px;
-    padding: 3px 6px;
-    border-radius: 6px;
+    gap: 8px;
+    font-size: 12px;
+    padding: 4px 6px;
+    border-radius: 8px;
+    color: var(--text-dim);
   }
+  .lb-item:first-child { color: var(--text); }
   .lb-item.is-player {
-    background: rgba(0, 245, 255, 0.18);
-    border: 1px solid rgba(0, 245, 255, 0.4);
-    font-weight: bold;
+    background: rgba(52, 211, 153, 0.14);
+    box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.4);
+    color: #ecfdf5;
+    font-weight: 700;
   }
-  .lb-left {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .lb-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-  }
-  .lb-length {
-    color: #94a3b8;
-    font-size: 12px;
-  }
-  .lb-item.is-player .lb-length {
-    color: #38bdf8;
-  }
+  .lb-left { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .lb-left span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; }
+  .lb-length { color: var(--text-faint); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .lb-item.is-player .lb-length { color: var(--accent); }
+  .lb-gap { text-align: center; color: var(--text-faint); font-size: 10px; line-height: 6px; padding: 0; }
 
-  /* Menu Screen */
-  #menu-screen {
-    position: absolute;
-    inset: 0;
-    background: rgba(2, 6, 23, 0.88);
-    backdrop-filter: blur(10px);
-    z-index: 60;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 24px;
-  }
-  #menu-screen h1 {
-    font-size: 52px;
-    color: #00f5ff;
-    text-shadow: 0 0 30px rgba(0, 245, 255, 0.65), 0 0 10px rgba(255,255,255,0.8);
-    margin-bottom: 6px;
-    letter-spacing: 4px;
-  }
-  .menu-sub {
-    font-size: 16px;
-    color: #94a3b8;
-    margin-bottom: 30px;
-    letter-spacing: 1px;
-  }
-  .diff-selector {
-    margin-bottom: 24px;
-  }
-  .diff-label {
-    display: block;
-    color: #64748b;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    margin-bottom: 10px;
-  }
-  .diff-btns {
-    display: flex;
-    gap: 12px;
-  }
-  .diff-btn {
-    background: rgba(15, 23, 42, 0.7);
-    border: 1px solid rgba(56, 189, 248, 0.3);
-    color: #94a3b8;
-    padding: 10px 24px;
-    border-radius: 24px;
-    font-size: 15px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: inherit;
-  }
-  .diff-btn small { display: block; margin-top: 2px; font-size: 10px; line-height: 1.1; opacity: 0.82; }
-  .diff-btn:hover {
-    border-color: #00f5ff;
-    color: #f8fafc;
-  }
-  .diff-btn.active {
-    background: rgba(0, 245, 255, 0.2);
-    border-color: #00f5ff;
-    color: #00f5ff;
-    box-shadow: 0 0 16px rgba(0, 245, 255, 0.4);
-    font-weight: bold;
-  }
-  .menu-records {
-    color: #94a3b8;
-    font-size: 13px;
-    margin-bottom: 24px;
-  }
-  .menu-records span {
-    color: #facc15;
-    font-weight: bold;
-  }
-  .play-btn {
-    background: linear-gradient(135deg, #00f5ff, #0284c7);
-    color: #020617;
-    border: none;
-    padding: 14px 48px;
-    border-radius: 30px;
-    font-size: 20px;
-    font-weight: bold;
-    cursor: pointer;
-    box-shadow: 0 0 25px rgba(0, 245, 255, 0.5);
-    transition: all 0.2s ease;
-    font-family: inherit;
-    letter-spacing: 1px;
-  }
-  .play-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 35px rgba(0, 245, 255, 0.75);
-  }
-  .menu-hint {
-    color: #64748b;
-    font-size: 13px;
-    margin-top: 30px;
-    line-height: 1.6;
-  }
-  .privacy-link {
-    color: #7dd3fc;
-    font-size: 13px;
-    margin-top: 18px;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-  }
-
-  /* Pause Overlay */
-  #pause-overlay {
-    display: none;
-    position: absolute;
-    inset: 0;
-    background: rgba(2, 6, 23, 0.7);
-    backdrop-filter: blur(6px);
-    z-index: 55;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-  }
-  #pause-overlay h2 {
-    font-size: 38px;
-    color: #38bdf8;
-    text-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
-    margin-bottom: 12px;
-  }
-
-  /* Game Over Overlay */
-  #overlay {
-    display: none;
-    position: absolute;
-    inset: 0;
-    background: rgba(2, 6, 23, 0.82);
-    backdrop-filter: blur(8px);
-    z-index: 50;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 24px;
-  }
-  #overlay h2 {
-    font-size: 42px;
-    color: #f43f5e;
-    text-shadow: 0 0 25px rgba(244, 63, 94, 0.6);
-    margin-bottom: 20px;
-    letter-spacing: 2px;
-  }
-  .score-card {
-    background: rgba(15, 23, 42, 0.85);
-    border: 1px solid rgba(56, 189, 248, 0.3);
-    border-radius: 16px;
-    padding: 20px 32px;
-    margin-bottom: 24px;
-    min-width: 280px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  }
-  .score-row {
-    display: flex;
-    justify-content: space-between;
-    margin: 10px 0;
-    font-size: 16px;
-  }
-  .score-row .label { color: #94a3b8; }
-  .score-row .val { color: #38bdf8; font-weight: bold; }
-  .score-row .best { color: #facc15; font-weight: bold; }
-  .restart-hint {
-    color: #cbd5e1;
-    font-size: 16px;
-    animation: pulseHint 1.8s infinite ease-in-out;
-    cursor: pointer;
-  }
-  @keyframes pulseHint {
-    0%, 100% { opacity: 0.6; transform: scale(0.98); }
-    50% { opacity: 1; transform: scale(1.02); }
-  }
-  @media (max-width: 480px) {
-    #menu-screen { padding: 18px; }
-    #menu-screen h1 { font-size: clamp(30px, 9vw, 42px); letter-spacing: 2px; }
-    .menu-sub { font-size: 14px; margin-bottom: 20px; }
-    .diff-btn { padding: 10px 18px; }
-    .menu-hint { margin-top: 20px; }
-    #leaderboard { top: auto; bottom: max(12px, env(safe-area-inset-bottom)); }
-    #hud { right: max(12px, env(safe-area-inset-right)); gap: 6px; }
-    .hud-stat { padding: 6px 10px; font-size: 13px; }
-  }
-  @media (max-height: 560px) and (orientation: landscape) {
-    #menu-screen { justify-content: flex-start; overflow-y: auto; padding-block: 12px; touch-action: pan-y; }
-    #menu-screen h1 { font-size: 32px; margin-bottom: 2px; }
-    .menu-sub { margin-bottom: 10px; }
-    .diff-selector { margin-bottom: 10px; }
-    .menu-records { margin-bottom: 12px; }
-    .menu-hint { margin-top: 10px; }
-  }
-
-  /* Store-ready, restrained mobile interface */
-  :root { color-scheme: dark; }
-  html, body { background: #111827; color: #f3f4f6; }
-  #hud { text-shadow: none; gap: 8px; }
-  #stat-cycle { display: flex; }
-  #cycle-icon { color: #fcd34d; font-size: 16px; }
-  .hud-stat, #mute-btn, #pause-btn {
-    background: rgba(17, 24, 39, .92); border-color: rgba(255,255,255,.16);
-    color: #f3f4f6; box-shadow: 0 2px 8px rgba(0,0,0,.18); backdrop-filter: none;
-  }
-  .hud-val { color: #a7f3d0; }
-  #pause-btn { border-radius: 12px; }
-  #mute-btn { border-radius: 12px; }
-  #home-btn {
-    pointer-events: auto; width: 44px; height: 44px; display: grid; place-items: center;
-    background: rgba(17,24,39,.92); border: 1px solid rgba(255,255,255,.16); color: #f3f4f6;
-    border-radius: 12px; font-family: inherit; font-size: 20px; font-weight: 600; cursor: pointer;
-  }
-  #leaderboard { background: rgba(17,24,39,.9); border-color: rgba(255,255,255,.14); box-shadow: 0 2px 8px rgba(0,0,0,.15); backdrop-filter: none; }
+  /* ---------- In-game toasts & indicators ---------- */
   #rare-indicator {
     position: absolute; z-index: 14; display: none; pointer-events: none;
     width: 58px; height: 54px; align-items: center; justify-content: center; flex-direction: column;
-    color: #fff7d6; font-size: 25px; line-height: 22px; text-shadow: 0 1px 8px rgba(255,207,92,.8);
+    color: #fff7d6; font-size: 25px; line-height: 22px; text-shadow: 0 1px 8px rgba(255, 207, 92, 0.8);
   }
-  #rare-indicator small { font-size: 10px; font-weight: 700; letter-spacing: .3px; }
-  .lb-item.is-player { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.35); }
-  .lb-item.is-player .lb-length { color: #a7f3d0; }
-  #menu-screen { background: #111827; backdrop-filter: none; }
-  #menu-screen h1 { color: #f9fafb; text-shadow: none; font-size: clamp(34px, 8vw, 50px); letter-spacing: 1px; }
-  .menu-sub { color: #9ca3af; letter-spacing: .2px; }
-  .diff-label { color: #9ca3af; letter-spacing: 1px; }
-  .diff-btn { background: #1f2937; border-color: #374151; color: #d1d5db; border-radius: 12px; min-height: 44px; }
-  .diff-btn.active { background: #064e3b; border-color: #10b981; color: #d1fae5; box-shadow: none; }
-  .play-btn { background: #059669; color: #fff; border-radius: 14px; min-height: 54px; box-shadow: none; letter-spacing: .2px; }
-  .play-btn:hover { transform: none; background: #047857; box-shadow: none; }
-  .menu-secondary {
-    margin-top: 12px; min-height: 44px; padding: 8px 22px; border-radius: 12px;
-    border: 1px solid #374151; background: #1f2937; color: #f3f4f6;
-    font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+  #rare-indicator small { font-size: 10px; font-weight: 700; letter-spacing: 0.3px; }
+  #kill-message {
+    position: absolute; z-index: 10; top: 66px; left: 50%; transform: translateX(-50%);
+    padding: 8px 16px; border-radius: 999px;
+    background: rgba(251, 113, 133, 0.16); border: 1px solid rgba(251, 113, 133, 0.5);
+    color: #ffe4e6; font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none;
+    transition: opacity 0.18s ease; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    white-space: nowrap;
   }
-  #skins-screen {
-    position: absolute; inset: 0; z-index: 70; display: none; flex-direction: column;
-    align-items: center; justify-content: center; gap: 14px; padding: max(20px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom));
-    background: #111827; text-align: center;
+  #powerup-indicator {
+    position: absolute; z-index: 14; display: none; pointer-events: none;
+    left: 50%; top: 106px; transform: translateX(-50%);
+    padding: 8px 16px; border-radius: 999px;
+    background: rgba(251, 191, 36, 0.14); border: 1px solid rgba(251, 191, 36, 0.5);
+    color: #fef3c7; font-size: 13px; font-weight: 800;
+    transition: opacity 0.2s ease; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   }
-  #skins-screen h2 { color: #f9fafb; font-size: 30px; margin: 0; }
-  #settings-screen {
-    position: absolute; inset: 0; z-index: 71; display: none; flex-direction: column;
-    align-items: center; justify-content: center; gap: 16px; padding: 24px;
-    background: #111827; text-align: center;
-  }
-  #settings-screen h2 { color: #f9fafb; font-size: 30px; }
-  .settings-row { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; color: #cbd5e1; }
-  .settings-option { min-height: 42px; padding: 8px 13px; border-radius: 10px; border: 1px solid #475569; background: #1f2937; color: #e2e8f0; font: inherit; cursor: pointer; }
-  .settings-option.active { border-color: #38bdf8; color: #bae6fd; background: #0c4a6e; }
-  #fps-counter { position: absolute; top: 54px; left: 50%; transform: translateX(-50%); z-index: 12; display: none; padding: 4px 7px; border-radius: 6px; background: rgba(2,6,23,.68); color: #e0f2fe; font: 11px ui-monospace, monospace; pointer-events: none; }
-  .skins-subtitle { color: #9ca3af; font-size: 14px; }
-  #skin-list {
-    width: min(100%, 620px); max-height: min(62vh, 540px); overflow-y: auto;
-    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
-    padding: 2px; touch-action: pan-y;
-  }
-  .skin-card {
-    display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0;
-    padding: 10px 12px; text-align: left; border: 1px solid #374151; border-radius: 14px;
-    color: #f3f4f6; background: #1f2937; cursor: pointer; font: inherit;
-  }
-  .skin-card.selected { border-color: #10b981; box-shadow: inset 0 0 0 1px #10b981; }
-  .skin-card.locked { filter: grayscale(.88); opacity: .66; cursor: default; }
-  .skin-name-row { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; }
-  .skin-state { color: #a7f3d0; font-size: 11px; white-space: nowrap; }
-  .skin-card.locked .skin-state { color: #9ca3af; }
-  .skin-progress { min-height: 14px; color: #9ca3af; font-size: 10px; line-height: 1.3; }
-  .skin-preview { display: flex; align-items: center; height: 18px; padding-left: 4px; }
-  .skin-preview i {
-    width: 12px; height: 12px; margin-left: -3px; border-radius: 50%;
-    background: linear-gradient(145deg, var(--skin-light), var(--skin-dark));
-    border: 1px solid rgba(255,255,255,.24); animation: skinWiggle .9s ease-in-out infinite alternate;
-  }
-  .skin-preview i:nth-child(2) { animation-delay: -.12s; }
-  .skin-preview i:nth-child(3) { animation-delay: -.24s; }
-  .skin-preview i:nth-child(4) { animation-delay: -.36s; }
-  .skin-preview i:nth-child(5) { animation-delay: -.48s; }
-  .skin-preview i:nth-child(6) { animation-delay: -.6s; }
-  @keyframes skinWiggle { from { transform: translateY(2px); } to { transform: translateY(-2px); } }
   #skin-unlock-toast {
-    position: absolute; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); z-index: 90;
-    display: none; transform: translateX(-50%); padding: 12px 18px; border-radius: 14px;
-    border: 1px solid #34d399; background: #064e3b; color: #ecfdf5; font-weight: 700;
-    box-shadow: 0 8px 26px rgba(0,0,0,.28); text-align: center; pointer-events: none;
+    position: absolute; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); z-index: 90;
+    display: none; transform: translateX(-50%); padding: 12px 20px; border-radius: 14px;
+    border: 1px solid rgba(52, 211, 153, 0.6);
+    background: linear-gradient(135deg, rgba(6, 78, 59, 0.95), rgba(8, 47, 73, 0.95));
+    color: #ecfdf5; font-weight: 700; font-size: 14px;
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.4); text-align: center; pointer-events: none;
   }
+  #skin-unlock-toast::before { content: '🎉 '; }
+  #fps-counter {
+    position: absolute; top: 60px; left: 50%; transform: translateX(-50%); z-index: 12; display: none;
+    padding: 4px 8px; border-radius: 6px; background: rgba(2, 6, 23, 0.7); color: #cbd5e1;
+    font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; pointer-events: none;
+  }
+
+  /* ---------- Touch joystick ---------- */
   #touch-joystick {
     position: absolute; z-index: 12; display: none; width: 112px; height: 112px;
     transform: translate(-50%, -50%); pointer-events: none;
   }
   .joystick-ring {
-    position: absolute; inset: 8px; border: 2px solid rgba(255,255,255,.45);
-    border-radius: 50%; background: rgba(17,24,39,.18); box-shadow: 0 2px 12px rgba(0,0,0,.16);
+    position: absolute; inset: 8px; border: 2px solid rgba(255, 255, 255, 0.35);
+    border-radius: 50%; background: rgba(15, 23, 42, 0.22);
+    box-shadow: 0 2px 14px rgba(0, 0, 0, 0.2), inset 0 0 18px rgba(52, 211, 153, 0.08);
   }
   #joystick-thumb {
-    position: absolute; left: 50%; top: 50%; width: 28px; height: 28px;
-    margin: -14px 0 0 -14px; border-radius: 50%; background: rgba(243,244,246,.82);
-    border: 2px solid rgba(16,185,129,.95); box-shadow: 0 1px 8px rgba(0,0,0,.3);
+    position: absolute; left: 50%; top: 50%; width: 30px; height: 30px;
+    margin: -15px 0 0 -15px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ecfdf5, #6ee7b7);
+    border: 2px solid rgba(16, 185, 129, 0.95); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
   }
-  .menu-records span { color: #a7f3d0; }
-  .menu-hint { color: #9ca3af; }
-  #kill-message {
-    position: absolute; z-index: 10; top: 76px; left: 50%; transform: translateX(-50%);
-    padding: 7px 12px; border-radius: 999px; background: rgba(2,6,23,.82);
-    color: #fef3c7; font-size: 12px; font-weight: 700; opacity: 0; pointer-events: none;
-    transition: opacity .16s ease;
+
+  /* ---------- Shared full-screen panels ---------- */
+  #menu-screen, #skins-screen, #settings-screen, #pause-overlay, #overlay {
+    position: absolute;
+    inset: 0;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
   }
-  .privacy-link { color: #a7f3d0; }
-  #pause-overlay, #overlay { background: rgba(17,24,39,.96); backdrop-filter: none; }
-  #pause-overlay h2, #overlay h2 { color: #f9fafb; text-shadow: none; }
-  .score-card { background: #1f2937; border-color: #374151; box-shadow: none; }
-  .score-row .val { color: #a7f3d0; }
-  .score-row .best { color: #fcd34d; }
-  .restart-hint { animation: none; }
-  @media (max-width: 480px) {
-    #leaderboard { min-width: 132px; padding: 8px 10px; }
-    #hud { gap: 5px; }
-    .hud-stat { padding: 6px 8px; }
-    #skin-list { gap: 8px; }
-    .skin-card { padding: 9px; }
+  #menu-screen, #skins-screen, #settings-screen {
+    background:
+      radial-gradient(900px 500px at 15% -10%, rgba(34, 211, 238, 0.14), transparent 60%),
+      radial-gradient(800px 520px at 95% 110%, rgba(52, 211, 153, 0.14), transparent 60%),
+      linear-gradient(180deg, var(--bg-1), var(--bg-0));
+  }
+
+  .panel {
+    width: min(100%, 440px);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 18px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--shadow);
+  }
+  .section-label {
+    display: block;
+    text-align: left;
+    color: var(--text-faint);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-bottom: 10px;
+  }
+
+  .btn {
+    min-height: 46px;
+    padding: 10px 22px;
+    border-radius: 12px;
+    border: 1px solid var(--line-strong);
+    background: rgba(30, 41, 59, 0.7);
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease;
+    touch-action: manipulation;
+  }
+  .btn:hover { border-color: var(--accent-2); background: rgba(34, 211, 238, 0.1); }
+  .btn:active { transform: scale(0.97); }
+
+  /* ---------- Menu ---------- */
+  #menu-screen {
+    z-index: 60;
+    display: flex;
+    justify-content: center;
+    padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+    touch-action: pan-y;
+    gap: 0;
+  }
+  #menu-screen::before, #menu-screen::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(70px);
+    opacity: 0.35;
+    animation: drift 14s ease-in-out infinite alternate;
+  }
+  #menu-screen::before { width: 340px; height: 340px; left: -100px; top: 10%; background: #0ea5e9; }
+  #menu-screen::after { width: 300px; height: 300px; right: -90px; bottom: 6%; background: #10b981; animation-delay: -6s; }
+  @keyframes drift { from { transform: translate(0, 0) scale(1); } to { transform: translate(40px, -30px) scale(1.15); } }
+  #menu-screen > * { position: relative; z-index: 1; }
+
+  .logo-mark { width: 84px; height: 84px; margin-bottom: 10px; filter: drop-shadow(0 6px 22px rgba(52, 211, 153, 0.45)); animation: float 4s ease-in-out infinite; }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+  #menu-screen h1 {
+    font-size: clamp(38px, 9vw, 60px);
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    background: linear-gradient(120deg, #a7f3d0 0%, #34d399 40%, #22d3ee 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .menu-sub { color: var(--text-dim); font-size: 15px; margin-bottom: 22px; letter-spacing: 0.02em; }
+
+  .menu-panel { display: flex; flex-direction: column; gap: 16px; }
+  .diff-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .diff-btn {
+    min-height: 58px;
+    padding: 8px 6px;
+    border-radius: 12px;
+    background: rgba(30, 41, 59, 0.55);
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .diff-btn small { display: block; margin-top: 3px; font-size: 11px; font-weight: 600; color: var(--text-faint); }
+  .diff-btn:hover { border-color: var(--line-strong); color: var(--text); }
+  .diff-btn.active {
+    background: linear-gradient(160deg, rgba(16, 185, 129, 0.28), rgba(14, 165, 233, 0.16));
+    border-color: rgba(52, 211, 153, 0.8);
+    color: #ecfdf5;
+    box-shadow: 0 0 20px rgba(52, 211, 153, 0.18);
+  }
+  .diff-btn.active small { color: #a7f3d0; }
+
+  .menu-records {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 10px 14px; border-radius: 12px; background: rgba(2, 6, 23, 0.45);
+    border: 1px solid var(--line); color: var(--text-dim); font-size: 13px; text-align: left;
+  }
+  .menu-records .rec-title { font-weight: 700; color: var(--text); }
+  .menu-records .rec-vals { display: flex; gap: 14px; }
+  .menu-records .rec-vals b { color: var(--gold); font-variant-numeric: tabular-nums; }
+  .menu-records span { color: inherit; font-weight: inherit; }
+  .menu-records .rec-vals span b { margin-left: 4px; }
+
+  .play-btn {
+    min-height: 58px;
+    border: none;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #34d399, #22d3ee);
+    color: var(--accent-ink);
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 10px 28px rgba(34, 211, 238, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    transition: transform 0.14s ease, box-shadow 0.14s ease, filter 0.14s ease;
+    touch-action: manipulation;
+  }
+  .play-btn:hover { transform: translateY(-2px); filter: brightness(1.06); box-shadow: 0 14px 34px rgba(34, 211, 238, 0.4); }
+  .play-btn:active { transform: scale(0.98); }
+  .menu-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .menu-secondary {
+    min-height: 46px; padding: 10px 18px; border-radius: 12px;
+    border: 1px solid var(--line-strong); background: rgba(30, 41, 59, 0.6); color: var(--text);
+    font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; touch-action: manipulation;
+  }
+  .menu-secondary:hover { border-color: var(--accent-2); background: rgba(34, 211, 238, 0.1); }
+  .menu-secondary:active { transform: scale(0.97); }
+
+  .controls-hint { width: min(100%, 440px); margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .hint-card {
+    padding: 10px 6px; border-radius: 12px; background: rgba(15, 23, 42, 0.55);
+    border: 1px solid var(--line); font-size: 11px; color: var(--text-dim); line-height: 1.35;
+  }
+  .hint-card .hint-icon { display: block; font-size: 18px; margin-bottom: 3px; }
+  .hint-card b { display: block; color: var(--text); font-size: 12px; margin-bottom: 1px; }
+  .menu-hint { color: var(--text-faint); font-size: 12px; margin-top: 14px; line-height: 1.6; max-width: 440px; }
+  .privacy-link { color: var(--text-faint); font-size: 12px; margin-top: 10px; text-decoration: underline; text-underline-offset: 3px; }
+  .privacy-link:hover { color: var(--accent); }
+
+  /* ---------- Sub-screens: skins & settings ---------- */
+  #skins-screen, #settings-screen {
+    z-index: 70;
+    display: none;
+    justify-content: center;
+    gap: 14px;
+    padding: max(20px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom));
+  }
+  #skins-screen h2, #settings-screen h2 { font-size: 30px; font-weight: 900; letter-spacing: 0.02em; }
+  .skins-subtitle { color: var(--text-dim); font-size: 14px; }
+  #skin-list {
+    width: min(100%, 640px);
+    max-height: min(62vh, 540px);
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 3px;
+    touch-action: pan-y;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+  }
+  .skin-card {
+    display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 0;
+    padding: 12px; text-align: left; border: 1px solid var(--line); border-radius: 14px;
+    color: var(--text); background: var(--panel); cursor: pointer; font: inherit;
+    transition: transform 0.12s ease, border-color 0.15s ease;
+  }
+  .skin-card:not(.locked):hover { border-color: var(--line-strong); transform: translateY(-1px); }
+  .skin-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 22px rgba(52, 211, 153, 0.18); }
+  .skin-card.locked { filter: grayscale(0.85); opacity: 0.6; cursor: default; }
+  .skin-name-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; }
+  .skin-state {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap;
+    padding: 2px 7px; border-radius: 999px; background: rgba(52, 211, 153, 0.15); color: #a7f3d0;
+  }
+  .skin-card.selected .skin-state { background: var(--accent); color: var(--accent-ink); }
+  .skin-card.locked .skin-state { background: rgba(148, 163, 184, 0.15); color: var(--text-dim); }
+  .skin-progress { min-height: 14px; color: var(--text-faint); font-size: 11px; line-height: 1.3; }
+  .skin-preview { display: flex; align-items: center; height: 22px; padding-left: 4px; }
+  .skin-preview i {
+    width: 14px; height: 14px; margin-left: -3px; border-radius: 50%;
+    background: linear-gradient(145deg, var(--skin-light), var(--skin-dark));
+    border: 1px solid rgba(255, 255, 255, 0.25); animation: skinWiggle 0.9s ease-in-out infinite alternate;
+  }
+  .skin-preview i:nth-child(2) { animation-delay: -0.12s; }
+  .skin-preview i:nth-child(3) { animation-delay: -0.24s; }
+  .skin-preview i:nth-child(4) { animation-delay: -0.36s; }
+  .skin-preview i:nth-child(5) { animation-delay: -0.48s; }
+  .skin-preview i:nth-child(6) { animation-delay: -0.6s; }
+  @keyframes skinWiggle { from { transform: translateY(2px); } to { transform: translateY(-2px); } }
+
+  .settings-panel { display: flex; flex-direction: column; gap: 18px; width: min(100%, 440px); }
+  .settings-row { display: flex; flex-direction: column; align-items: stretch; gap: 10px; color: var(--text); text-align: left; }
+  .settings-row > span { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-faint); }
+  .settings-row .opt-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .settings-option {
+    min-height: 42px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line);
+    background: rgba(30, 41, 59, 0.6); color: var(--text-dim); font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .settings-option:hover { border-color: var(--line-strong); color: var(--text); }
+  .settings-option.active { border-color: var(--accent-2); color: #cffafe; background: rgba(34, 211, 238, 0.16); }
+  .settings-row.inline { flex-direction: row; align-items: center; justify-content: space-between; }
+  .settings-row.inline .settings-option { min-width: 80px; }
+
+  /* ---------- Pause & Game Over ---------- */
+  #pause-overlay, #overlay {
+    display: none;
+    justify-content: center;
+    background: rgba(3, 7, 18, 0.72);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 24px;
+  }
+  #pause-overlay { z-index: 55; }
+  #overlay { z-index: 50; }
+  #pause-overlay h2 { font-size: 38px; font-weight: 900; letter-spacing: 0.08em; margin-bottom: 10px; }
+  #overlay h2 {
+    font-size: clamp(28px, 7vw, 44px); font-weight: 900; letter-spacing: 0.04em; margin-bottom: 4px;
+    background: linear-gradient(120deg, #fecdd3, #fb7185);
+    -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+  }
+  .over-sub { color: var(--text-dim); font-size: 14px; margin-bottom: 18px; }
+  #new-best-badge {
+    display: none; align-items: center; gap: 6px; margin-bottom: 14px; padding: 5px 14px; border-radius: 999px;
+    background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.55);
+    color: #fef3c7; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .score-card {
+    width: min(100%, 360px);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    background: transparent; border: none; box-shadow: none; padding: 0; margin-bottom: 22px; min-width: 0;
+  }
+  .score-row {
+    display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 4px;
+    margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line);
+    text-align: left; font-size: 12px;
+  }
+  .score-row .label { color: var(--text-faint); font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+  .score-row .val { color: var(--text); font-size: 26px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .score-row .best { color: var(--gold); font-size: 26px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .restart-hint {
+    color: var(--text-dim); font-size: 14px; cursor: pointer; padding: 12px 24px; border-radius: 12px;
+    border: 1px solid var(--line-strong); background: rgba(30, 41, 59, 0.55); font-weight: 700;
+  }
+  .restart-hint:hover { border-color: var(--accent); color: var(--text); }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 640px) {
+    #hud { max-width: 100%; gap: 6px; }
+    #hud .hud-stat { padding: 5px 10px; }
+    #hud .hud-stat .hud-val { font-size: 14px; }
+    #stat-cycle { display: none; }
+    #leaderboard {
+      top: auto; bottom: max(86px, calc(env(safe-area-inset-bottom) + 86px)); right: max(10px, env(safe-area-inset-right));
+      width: 128px; padding: 7px 8px; opacity: 0.92;
+    }
+    .lb-item { font-size: 11px; padding: 3px 5px; }
+    #ability-dock { left: max(10px, env(safe-area-inset-left)); transform: none; bottom: max(14px, env(safe-area-inset-bottom)); gap: 6px; padding: 6px; }
+    .ability-btn { min-width: 62px; min-height: 50px; font-size: 11px; padding: 5px 6px; }
+    #kill-message { top: 108px; }
+    #powerup-indicator { top: 144px; }
+    #skin-list { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .skin-card { padding: 10px; }
+    .logo-mark { width: 64px; height: 64px; }
+  }
+  @media (max-width: 400px) {
+    .controls-hint { grid-template-columns: 1fr; }
+    .hint-card { display: flex; align-items: center; gap: 10px; text-align: left; padding: 8px 12px; }
+    .hint-card .hint-icon { margin: 0; }
+    #skin-list { grid-template-columns: 1fr; }
+    .settings-row .opt-group { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-height: 640px) {
+    #menu-screen { justify-content: flex-start; }
+    .logo-mark { display: none; }
+    .menu-sub { margin-bottom: 12px; }
+    .controls-hint, .menu-hint { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
   }
 </style>
 </head>
@@ -480,22 +610,19 @@
     <span id="cycle-icon" aria-hidden="true">☼</span>
     <span id="cycle-name" class="hud-val">Dawn</span>
   </div>
-  <div class="hud-stat">
-    <span>Time:</span>
-    <span id="stat-time" class="hud-val">00:00</span>
-  </div>
-  <div class="hud-stat">
-    <span>Length:</span>
-    <span id="stat-length" class="hud-val">22</span>
-  </div>
-  <div class="hud-stat">
-    <span>Rank:</span>
-    <span id="stat-rank" class="hud-val">#1</span>
-  </div>
-  <div class="hud-stat"><span>Kills:</span><span id="stat-kills" class="hud-val">0</span></div>
-  <button id="pause-btn" type="button" aria-label="Pause game" title="Pause game">Ⅱ</button>
+  <div class="hud-stat" id="stat-time-wrap"><span>Time</span><span id="stat-time" class="hud-val">00:00</span></div>
+  <div class="hud-stat" id="stat-length-wrap"><span>Length</span><span id="stat-length" class="hud-val">22</span></div>
+  <div class="hud-stat" id="stat-rank-wrap"><span>Rank</span><span id="stat-rank" class="hud-val">#1</span></div>
+  <div class="hud-stat" id="stat-kills-wrap"><span>Kills</span><span id="stat-kills" class="hud-val">0</span></div>
+  <button id="pause-btn" type="button" aria-label="Pause game" title="Pause (P)">Ⅱ</button>
   <button id="home-btn" type="button" aria-label="Return to home" title="Home">⌂</button>
-  <button id="mute-btn" type="button" aria-label="Toggle sound" onclick="toggleMute()">🔊</button>
+  <button id="mute-btn" type="button" aria-label="Toggle sound" title="Sound" onclick="toggleMute()">🔊</button>
+
+  <div id="ability-dock">
+    <button class="ability-btn" id="ghost-btn" type="button" onclick="activateAbility('ghost')">👻 Ghost<br><small>1</small></button>
+    <button class="ability-btn" id="magnet-btn" type="button" onclick="activateAbility('magnet')">🧲 Magnet<br><small>2</small></button>
+    <button class="ability-btn" id="dash-btn" type="button" onclick="activateAbility('dash')">⚡ Dash<br><small>3</small></button>
+  </div>
 </div>
 
 <!-- Live Leaderboard -->
@@ -505,34 +632,57 @@
 </div>
 <div id="rare-indicator" aria-hidden="true"><span>↑</span><small>Rare orb</small></div>
 <div id="kill-message" aria-live="polite"></div>
+<div id="powerup-indicator" aria-live="polite"></div>
 <div id="touch-joystick" aria-hidden="true"><div class="joystick-ring"><div id="joystick-thumb"></div></div></div>
 
 <!-- Menu Start Screen -->
 <div id="menu-screen">
+  <svg class="logo-mark" viewBox="0 0 96 96" aria-hidden="true">
+    <defs>
+      <linearGradient id="logoG" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#6ee7b7"/><stop offset="1" stop-color="#22d3ee"/>
+      </linearGradient>
+    </defs>
+    <path d="M18 68 C 18 40, 44 52, 48 34 C 52 16, 78 22, 78 40" fill="none" stroke="url(#logoG)" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="78" cy="40" r="11" fill="url(#logoG)"/>
+    <circle cx="81" cy="36" r="3.2" fill="#022c22"/>
+    <circle cx="82" cy="35" r="1" fill="#fff"/>
+    <path d="M88 42 l8 3 m-8 -3 l7 -4" stroke="#fb7185" stroke-width="2" stroke-linecap="round"/>
+  </svg>
   <h1>SERPENT RUN</h1>
-  <div class="menu-sub">A simple survival challenge</div>
+  <div class="menu-sub">Eat. Grow. Outsmart the swarm.</div>
 
-  <div class="diff-selector">
-    <span class="diff-label">Select Difficulty</span>
-    <div class="diff-btns">
-      <button class="diff-btn" data-diff="easy" onclick="setDifficulty('easy')">Easy<small>30 bots</small></button>
-      <button class="diff-btn active" data-diff="normal" onclick="setDifficulty('normal')">Normal<small>40 bots</small></button>
-      <button class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">Hard<small>50 bots</small></button>
+  <div class="panel menu-panel">
+    <div>
+      <span class="section-label">Difficulty</span>
+      <div class="diff-btns">
+        <button class="diff-btn" data-diff="easy" onclick="setDifficulty('easy')">Easy<small>30 bots</small></button>
+        <button class="diff-btn active" data-diff="normal" onclick="setDifficulty('normal')">Normal<small>40 bots</small></button>
+        <button class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">Hard<small>50 bots</small></button>
+      </div>
+    </div>
+
+    <div class="menu-records">
+      <span class="rec-title">🏆 Best &middot; <span id="diff-name-label">Normal</span></span>
+      <span class="rec-vals">
+        <span>Time<b id="menu-best-time">00:00</b></span>
+        <span>Length<b id="menu-best-len">22</b></span>
+      </span>
+    </div>
+
+    <button class="play-btn" onclick="startGame()">Play</button>
+    <div class="menu-actions">
+      <button class="menu-secondary" onclick="openSkins()">🎨 Skins</button>
+      <button class="menu-secondary" onclick="openSettings()">⚙️ Settings</button>
     </div>
   </div>
 
-  <div class="menu-records">
-    Best Record (<span id="diff-name-label">Normal</span>): Time: <span id="menu-best-time">00:00</span> &bull; Length: <span id="menu-best-len">22</span>
+  <div class="controls-hint">
+    <div class="hint-card"><span class="hint-icon">🖱️</span><div><b>Mouse</b>Move to steer</div></div>
+    <div class="hint-card"><span class="hint-icon">⌨️</span><div><b>Keys</b>A / D, 1-2-3, P</div></div>
+    <div class="hint-card"><span class="hint-icon">👆</span><div><b>Touch</b>Drag to steer</div></div>
   </div>
-
-  <button class="play-btn" onclick="startGame()">Play</button>
-  <button class="menu-secondary" onclick="openSkins()">Skins</button>
-  <button class="menu-secondary" onclick="openSettings()">Settings</button>
-
-  <div class="menu-hint">
-    Touch and drag to steer &bull; Tap pause anytime<br>
-    Collect food, avoid other snakes, and survive
-  </div>
+  <div class="menu-hint">Collect orbs, trap smaller snakes, and avoid running into other bodies.</div>
   <a class="privacy-link" href="privacy-policy.html">Privacy Policy</a>
 </div>
 
@@ -540,50 +690,56 @@
   <h2>Snake skins</h2>
   <div class="skins-subtitle">Choose a look. Every skin plays the same.</div>
   <div id="skin-list"></div>
-  <button class="menu-secondary" type="button" onclick="closeSkins()">Back to home</button>
+  <button class="menu-secondary" type="button" onclick="closeSkins()">← Back</button>
 </div>
 <div id="settings-screen" aria-label="Settings">
   <h2>Settings</h2>
-  <div class="settings-row"><span>Graphics</span>
-    <button class="settings-option" data-quality="auto" onclick="setGraphicsQuality('auto')">Auto</button>
-    <button class="settings-option" data-quality="high" onclick="setGraphicsQuality('high')">High</button>
-    <button class="settings-option" data-quality="medium" onclick="setGraphicsQuality('medium')">Medium</button>
-    <button class="settings-option" data-quality="low" onclick="setGraphicsQuality('low')">Low</button>
+  <div class="panel settings-panel">
+    <div class="settings-row"><span>Graphics quality</span>
+      <div class="opt-group">
+        <button class="settings-option" data-quality="auto" onclick="setGraphicsQuality('auto')">Auto</button>
+        <button class="settings-option" data-quality="high" onclick="setGraphicsQuality('high')">High</button>
+        <button class="settings-option" data-quality="medium" onclick="setGraphicsQuality('medium')">Medium</button>
+        <button class="settings-option" data-quality="low" onclick="setGraphicsQuality('low')">Low</button>
+      </div>
+    </div>
+    <div class="settings-row inline"><span>Show FPS</span><button id="fps-toggle" class="settings-option" onclick="toggleFpsCounter()">Off</button></div>
   </div>
-  <div class="settings-row"><span>Show FPS</span><button id="fps-toggle" class="settings-option" onclick="toggleFpsCounter()">Off</button></div>
-  <button class="menu-secondary" type="button" onclick="closeSettings()">Back to home</button>
+  <button class="menu-secondary" type="button" onclick="closeSettings()">← Back</button>
 </div>
 <div id="skin-unlock-toast" role="status" aria-live="polite"></div>
 <div id="fps-counter" aria-live="off">60 FPS</div>
 
 <!-- Pause Overlay -->
 <div id="pause-overlay">
-  <h2>GAME PAUSED</h2>
-  <div class="restart-hint">Press P or Space to Resume</div>
+  <h2>PAUSED</h2>
+  <div class="restart-hint">Press P or Space, or tap to resume</div>
 </div>
 
 <!-- Game Over Overlay -->
 <div id="overlay">
   <h2>SERPENT DISSOLVED</h2>
+  <div class="over-sub">You were trapped. Shake it off and go again.</div>
+  <div id="new-best-badge">⭐ New personal best</div>
   <div class="score-card">
     <div class="score-row">
-      <span class="label">Survival Time:</span>
+      <span class="label">Survival time</span>
       <span id="final-time" class="val">00:00</span>
     </div>
     <div class="score-row">
-      <span class="label">Best Time (<span id="card-diff-label">Normal</span>):</span>
-      <span id="best-time" class="best">00:00</span>
-    </div>
-    <div class="score-row">
-      <span class="label">Final Length:</span>
+      <span class="label">Final length</span>
       <span id="final-length" class="val">22</span>
     </div>
     <div class="score-row">
-      <span class="label">Best Length:</span>
+      <span class="label">Best time (<span id="card-diff-label">Normal</span>)</span>
+      <span id="best-time" class="best">00:00</span>
+    </div>
+    <div class="score-row">
+      <span class="label">Best length</span>
       <span id="best-length" class="best">22</span>
     </div>
   </div>
-  <div class="restart-hint">Press Enter or Tap to Restart</div>
+  <div class="restart-hint">Press Enter or tap to play again</div>
 </div>
 
 <script src="config.js"></script>
@@ -643,9 +799,31 @@ const RARE_ORB_MIN_INTERVAL_MS = 40000;
 const RARE_ORB_MAX_INTERVAL_MS = 60000;
 const RARE_ORB_LIFETIME_MS = 25000;
 const RARE_ORB_TRAIL_MS = 6000;
+const DANGER_ZONE_RADIUS = 850;
+const DANGER_ZONE_SLOW = 0.78;
+const ABILITY_CONFIG = Object.freeze({ ghost: { duration: 3000, cooldown: 14000 }, magnet: { duration: 5000, cooldown: 12000 }, dash: { duration: 1000, cooldown: 8000 } });
 const TOUCH_DEAD_ZONE = 10;
 const TOUCH_MAX_TURN_RATE = 2.4;
 const BOT_SENSOR_ANGLES = [0, 0.45, -0.45, 0.9, -0.9, 1.4, -1.4];
+
+// Power-up system: collectible items that spawn randomly on the map
+const POWERUP_TYPES = [
+  { id: 'magnet', icon: '🧲', label: 'Magnet!', color: '#f43f5e', glow: 'rgba(244,63,94,.7)', duration: 6000, radius: 700 },
+  { id: 'speed', icon: '⚡', label: 'Speed Boost!', color: '#fbbf24', glow: 'rgba(251,191,36,.7)', duration: 5000, multiplier: 1.6 }
+];
+const POWERUP_SPAWN_MIN_MS = 15000;
+const POWERUP_SPAWN_MAX_MS = 30000;
+const POWERUP_LIFETIME_MS = 20000;
+const MAX_POWERUPS_ON_MAP = 3;
+let powerups = [];
+let nextPowerupSpawnAt = 0;
+let powerupIndicatorEl = null;
+let powerupIndicatorTimer = 0;
+
+// Big snake food production
+const BIG_SNAKE_FOOD_THRESHOLD = 40; // length above which a snake starts producing food
+const BIG_SNAKE_FOOD_INTERVAL_MS = 3000; // how often big snakes produce food (ms)
+let lastBigSnakeFoodAt = 0;
 
 const FOOD_COLORS = [
   { core: '#22d3ee', glow: 'rgba(34, 211, 238, 0.5)' },
@@ -667,12 +845,22 @@ const PALETTE_PLAYER = {
 };
 
 const SKINS = [
-  { id: 'classic', name: 'Classic Green', palette: { ...PALETTE_PLAYER, pattern: 'scales' }, unlock: { type: 'default' } },
-  { id: 'ocean', name: 'Ocean Blue', palette: { head: '#7dd3fc', bodyStart: '#38bdf8', bodyEnd: '#1d4ed8', scale: 'rgba(224,242,254,.45)', glow: 'rgba(56,189,248,.75)', eyeIris: '#0369a1', eyePupil: '#082f49', tongue: '#fb7185', pattern: 'bands' }, unlock: { type: 'time', seconds: 60 } },
-  { id: 'magma', name: 'Magma', palette: { head: '#fdba74', bodyStart: '#f97316', bodyEnd: '#7c2d12', scale: 'rgba(254,215,170,.55)', glow: 'rgba(249,115,22,.82)', eyeIris: '#9a3412', eyePupil: '#431407', tongue: '#fef3c7', pattern: 'embers' }, unlock: { type: 'time', seconds: 180 } },
-  { id: 'aurora', name: 'Aurora', palette: { head: '#e9d5ff', bodyStart: '#a78bfa', bodyEnd: '#0f766e', scale: 'rgba(240,253,250,.58)', glow: 'rgba(167,139,250,.82)', eyeIris: '#6d28d9', eyePupil: '#2e1065', tongue: '#f0abfc', pattern: 'ribbons' }, unlock: { type: 'time', seconds: 300 } },
-  { id: 'ghost', name: 'Ghost', palette: { head: '#f8fafc', bodyStart: '#cbd5e1', bodyEnd: '#64748b', scale: 'rgba(255,255,255,.48)', glow: 'rgba(226,232,240,.8)', eyeIris: '#64748b', eyePupil: '#1e293b', tongue: '#c4b5fd', pattern: 'spots' }, unlock: { type: 'length', length: 60 } },
-  { id: 'golden', name: 'Golden Dragon', palette: { head: '#fef08a', bodyStart: '#facc15', bodyEnd: '#92400e', scale: 'rgba(255,251,191,.7)', glow: 'rgba(250,204,21,.9)', eyeIris: '#a16207', eyePupil: '#422006', tongue: '#fb7185', pattern: 'dragon' }, unlock: { type: 'time', seconds: 600 } }
+  { id: 'classic', name: 'Classic Green', palette: { ...PALETTE_PLAYER, pattern: 'scales', headShape: 'round' }, unlock: { type: 'default' } },
+  { id: 'cobra', name: 'King Cobra', palette: { head: '#c28136', bodyStart: '#8b5a2b', bodyEnd: '#2e1c0c', scale: '#e0c080', glow: 'rgba(212, 143, 56, 0.75)', eyeIris: '#d97706', eyePupil: '#1c1917', tongue: '#1c1917', pattern: 'chevron', headShape: 'cobra', hoodWidth: 1.85 }, unlock: { type: 'default' } },
+  { id: 'python', name: 'Reticulated Python', palette: { head: '#786043', bodyStart: '#54422e', bodyEnd: '#1e1610', scale: '#c4a47c', glow: 'rgba(168, 134, 98, 0.65)', eyeIris: '#b45309', eyePupil: '#0c0a09', tongue: '#1c1917', pattern: 'reticulated', headShape: 'python' }, unlock: { type: 'default' } },
+  { id: 'viper', name: 'Emerald Tree Boa', palette: { head: '#10b981', bodyStart: '#059669', bodyEnd: '#064e3b', scale: '#ffffff', glow: 'rgba(52, 211, 153, 0.75)', eyeIris: '#fde047', eyePupil: '#022c22', tongue: '#f43f5e', pattern: 'lightning', headShape: 'viper' }, unlock: { type: 'time', seconds: 30 } },
+  { id: 'coral', name: 'Coral Snake', palette: { head: '#111827', bodyStart: '#dc2626', bodyEnd: '#111827', scale: '#facc15', glow: 'rgba(239, 68, 68, 0.7)', eyeIris: '#1f2937', eyePupil: '#000000', tongue: '#000000', pattern: 'coral_tricolor', headShape: 'round' }, unlock: { type: 'time', seconds: 60 } },
+  { id: 'rattlesnake', name: 'Diamondback', palette: { head: '#926a42', bodyStart: '#684522', bodyEnd: '#291809', scale: '#fef08a', glow: 'rgba(180, 130, 70, 0.6)', eyeIris: '#78350f', eyePupil: '#0c0a09', tongue: '#1c1917', pattern: 'diamonds', headShape: 'viper' }, unlock: { type: 'length', length: 35 } },
+  { id: 'blackmamba', name: 'Black Mamba', palette: { head: '#334155', bodyStart: '#1e293b', bodyEnd: '#0f172a', scale: '#64748b', glow: 'rgba(100, 116, 139, 0.8)', eyeIris: '#0f172a', eyePupil: '#020617', tongue: '#020617', pattern: 'smooth', headShape: 'coffin' }, unlock: { type: 'length', length: 50 } },
+  { id: 'anaconda', name: 'Green Anaconda', palette: { head: '#3f4f2c', bodyStart: '#2d3a1e', bodyEnd: '#131b0c', scale: '#1c1917', glow: 'rgba(63, 79, 44, 0.7)', eyeIris: '#ca8a04', eyePupil: '#0c0a09', tongue: '#450a0a', pattern: 'ocelli', headShape: 'python' }, unlock: { type: 'time', seconds: 120 } },
+  { id: 'seasnake', name: 'Banded Sea Krait', palette: { head: '#38bdf8', bodyStart: '#0284c7', bodyEnd: '#0f172a', scale: '#38bdf8', glow: 'rgba(56, 189, 248, 0.8)', eyeIris: '#0369a1', eyePupil: '#082f49', tongue: '#38bdf8', pattern: 'krait_rings', headShape: 'paddle' }, unlock: { type: 'time', seconds: 180 } },
+  { id: 'albino', name: 'Albino Python', palette: { head: '#fef08a', bodyStart: '#fed7aa', bodyEnd: '#ffffff', scale: '#ffffff', glow: 'rgba(254, 240, 138, 0.85)', eyeIris: '#ef4444', eyePupil: '#991b1b', tongue: '#f43f5e', pattern: 'clouded', headShape: 'python' }, unlock: { type: 'length', length: 70 } },
+  { id: 'cyber', name: 'Cyber Neon', palette: { head: '#06b6d4', bodyStart: '#3b82f6', bodyEnd: '#8b5cf6', scale: '#a5f3fc', glow: 'rgba(6, 182, 212, 0.95)', eyeIris: '#ec4899', eyePupil: '#082f49', tongue: '#ec4899', pattern: 'neon_grid', headShape: 'arrow' }, unlock: { type: 'time', seconds: 240 } },
+  { id: 'ocean', name: 'Ocean Blue', palette: { head: '#7dd3fc', bodyStart: '#38bdf8', bodyEnd: '#1d4ed8', scale: 'rgba(224,242,254,.45)', glow: 'rgba(56,189,248,.75)', eyeIris: '#0369a1', eyePupil: '#082f49', tongue: '#fb7185', pattern: 'bands', headShape: 'round' }, unlock: { type: 'time', seconds: 90 } },
+  { id: 'magma', name: 'Magma Viper', palette: { head: '#fdba74', bodyStart: '#f97316', bodyEnd: '#7c2d12', scale: 'rgba(254,215,170,.55)', glow: 'rgba(249,115,22,.82)', eyeIris: '#9a3412', eyePupil: '#431407', tongue: '#fef3c7', pattern: 'embers', headShape: 'viper' }, unlock: { type: 'time', seconds: 300 } },
+  { id: 'aurora', name: 'Aurora Spirit', palette: { head: '#e9d5ff', bodyStart: '#a78bfa', bodyEnd: '#0f766e', scale: 'rgba(240,253,250,.58)', glow: 'rgba(167,139,250,.82)', eyeIris: '#6d28d9', eyePupil: '#2e1065', tongue: '#f0abfc', pattern: 'ribbons', headShape: 'round' }, unlock: { type: 'length', length: 85 } },
+  { id: 'ghost', name: 'Ghost Spectre', palette: { head: '#f8fafc', bodyStart: '#cbd5e1', bodyEnd: '#64748b', scale: 'rgba(255,255,255,.48)', glow: 'rgba(226,232,240,.8)', eyeIris: '#64748b', eyePupil: '#1e293b', tongue: '#c4b5fd', pattern: 'spots', headShape: 'round' }, unlock: { type: 'length', length: 100 } },
+  { id: 'golden', name: 'Golden Dragon', palette: { head: '#fef08a', bodyStart: '#facc15', bodyEnd: '#92400e', scale: 'rgba(255,251,191,.7)', glow: 'rgba(250,204,21,.9)', eyeIris: '#a16207', eyePupil: '#422006', tongue: '#fb7185', pattern: 'dragon', headShape: 'dragon' }, unlock: { type: 'time', seconds: 400 } }
 ];
 const SKIN_UNLOCKS_KEY = 'serpentRun_unlockedSkins';
 const SELECTED_SKIN_KEY = 'serpentRun_selectedSkin';
@@ -806,9 +994,10 @@ function updateFrameMetrics(frameNow, frameMs) {
 
 function loadUnlockedSkins() {
   try {
+    const defaults = SKINS.filter(s => s.unlock.type === 'default').map(s => s.id);
     const stored = JSON.parse(safeStorageGet(SKIN_UNLOCKS_KEY) || '[]');
-    return new Set(['classic', ...(Array.isArray(stored) ? stored.filter(id => SKINS.some(skin => skin.id === id)) : [])]);
-  } catch (_) { return new Set(['classic']); }
+    return new Set([...defaults, ...(Array.isArray(stored) ? stored.filter(id => SKINS.some(skin => skin.id === id)) : [])]);
+  } catch (_) { return new Set(['classic', 'cobra', 'python']); }
 }
 
 const unlockedSkinIds = loadUnlockedSkins();
@@ -953,6 +1142,10 @@ const player = {
   glowTrailTimer: 0,
   alive: true,
   protectedUntil: 0,
+  ghostUntil: 0,
+  magnetUntil: 0,
+  dashUntil: 0,
+  abilityReadyAt: { ghost: 0, magnet: 0, dash: 0 },
 };
 const snakeRoster = [player];
 const leaderboardOrder = [player];
@@ -1054,6 +1247,7 @@ function findSpatialBodyCollision(snake, now) {
       const column = wrap(cellX + ox, SPATIAL_COLUMNS);
       for (let slot = spatialHeads[row * SPATIAL_COLUMNS + column]; slot !== -1; slot = spatialNext[slot]) {
         const owner = spatialOwner[slot];
+        if (owner === player && now < player.ghostUntil) continue;
         if (spatialKind[slot] !== 0 || owner === snake || !owner.alive || now < owner.protectedUntil) continue;
         const segment = spatialSegment[slot];
         if (toroidDistSq(snake.x, snake.y, segment.x, segment.y) < spatialRadius[slot] ** 2) return owner;
@@ -1465,14 +1659,15 @@ function spawnFoodOrb(customX, customY, customColor) {
   orb.y = y;
   orb.value = scheme.value ?? FOOD_VALUE;
   orb.isDeathDrop = scheme.isDeathDrop === true || (scheme.value ?? 1) > 1;
+  orb.isDangerFood = scheme.isDangerFood === true;
   orb.gridCell = -1;
   orb.baseRadius = 4.5 + Math.random() * 2;
   orb.color = scheme.core;
   orb.glow = scheme.glow;
   orb.pulseSpeed = 0.04 + Math.random() * 0.04;
   orb.pulsePhase = Math.random() * Math.PI * 2;
-  orb.vx = (Math.random() - 0.5) * 0.25;
-  orb.vy = (Math.random() - 0.5) * 0.25;
+  orb.vx = 0;
+  orb.vy = 0;
   orb.burstAt = 0;
   orb.burstDelay = 0;
   orb.updateOffset = Math.floor(Math.random() * 4);
@@ -1492,6 +1687,14 @@ function initFood() {
   for (let i = 0; i < FOOD_COUNT; i++) {
     const orb = spawnGridFoodOrb();
     if (!orb) break;
+    foodOrbs.push(orb);
+  }
+  // A persistent high-value cluster gives the center of the arena a clear risk/reward.
+  for (let i = 0; i < 42; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const distance = Math.sqrt(Math.random()) * DANGER_ZONE_RADIUS * 0.82;
+    const orb = spawnFoodOrb(WORLD_WIDTH / 2 + Math.cos(angle) * distance, WORLD_HEIGHT / 2 + Math.sin(angle) * distance,
+      { core: '#facc15', glow: 'rgba(250,204,21,.72)', value: 3, isDeathDrop: true, isDangerFood: true });
     foodOrbs.push(orb);
   }
   nextFoodSpawnAt = performance.now() + FOOD_RESPAWN_DELAY_MS;
@@ -1542,6 +1745,17 @@ function updateFood() {
   const halfHeight = height / (2 * cameraZoom) + 100;
   for (const orb of foodOrbs) {
     if (now < orb.burstAt + orb.burstDelay) continue;
+    if (now < player.magnetUntil && player.alive && toroidDistSq(player.x, player.y, orb.x, orb.y) < 650 ** 2) {
+      const dx = toroidDelta(orb.x, player.x, WORLD_WIDTH);
+      const dy = toroidDelta(orb.y, player.y, WORLD_HEIGHT);
+      const distance = Math.max(1, Math.hypot(dx, dy));
+      orb.vx = dx / distance * Math.min(8, 2.2 + distance * 0.008);
+      orb.vy = dy / distance * Math.min(8, 2.2 + distance * 0.008);
+    } else {
+      orb.vx = 0;
+      orb.vy = 0;
+    }
+    if (orb.vx === 0 && orb.vy === 0) continue;
     const far = Math.abs(toroidDelta(cameraX, orb.x, WORLD_WIDTH)) > halfWidth || Math.abs(toroidDelta(cameraY, orb.y, WORLD_HEIGHT)) > halfHeight;
     if (far && animFrame % 4 !== orb.updateOffset) continue;
     const updateStep = far ? 4 : 1;
@@ -1561,6 +1775,130 @@ function updateFood() {
 
 function scheduleNextRareOrb(now = performance.now()) {
   nextRareOrbAt = now + RARE_ORB_MIN_INTERVAL_MS + Math.random() * (RARE_ORB_MAX_INTERVAL_MS - RARE_ORB_MIN_INTERVAL_MS);
+}
+
+// ---- Power-up system ----
+function scheduleNextPowerup(now = performance.now()) {
+  nextPowerupSpawnAt = now + POWERUP_SPAWN_MIN_MS + Math.random() * (POWERUP_SPAWN_MAX_MS - POWERUP_SPAWN_MIN_MS);
+}
+
+function spawnPowerup(now = performance.now()) {
+  if (!isGameRunning || isPaused || isGameOver) return;
+  if (powerups.length >= MAX_POWERUPS_ON_MAP || now < nextPowerupSpawnAt) return;
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const x = Math.random() * WORLD_WIDTH;
+    const y = Math.random() * WORLD_HEIGHT;
+    if (!isFarFromAllSnakes(x, y, 80)) continue;
+    const type = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)];
+    powerups.push({ ...type, x, y, spawnedAt: now, expiresAt: now + POWERUP_LIFETIME_MS });
+    scheduleNextPowerup(now);
+    return;
+  }
+  nextPowerupSpawnAt = now + 2000;
+}
+
+function checkPowerupCollection(now = performance.now()) {
+  const pickupDistSq = (HEAD_RADIUS + 14) ** 2;
+  for (let i = powerups.length - 1; i >= 0; i--) {
+    const pu = powerups[i];
+    if (now >= pu.expiresAt) { powerups.splice(i, 1); continue; }
+    for (const snake of snakeRoster) {
+      if (!snake.alive) continue;
+      if (toroidDistSq(snake.x, snake.y, pu.x, pu.y) >= pickupDistSq) continue;
+      // Apply power-up
+      if (pu.id === 'magnet') {
+        snake.magnetUntil = Math.max(snake.magnetUntil || 0, now + pu.duration);
+      } else if (pu.id === 'speed') {
+        snake.speedBoostUntil = now + pu.duration;
+        snake.speedBoostMultiplier = pu.multiplier;
+      }
+      spawnFoodBurst(pu.x, pu.y, pu.color, 8);
+      if (snake.isPlayer) {
+        sfxRareOrbEat();
+        showPowerupIndicator(pu.icon + ' ' + pu.label);
+      }
+      powerups.splice(i, 1);
+      break;
+    }
+  }
+}
+
+function showPowerupIndicator(text) {
+  if (!powerupIndicatorEl) return;
+  powerupIndicatorEl.textContent = text;
+  powerupIndicatorEl.style.display = 'block';
+  powerupIndicatorEl.style.opacity = '1';
+  clearTimeout(powerupIndicatorTimer);
+  powerupIndicatorTimer = setTimeout(() => {
+    if (powerupIndicatorEl) { powerupIndicatorEl.style.opacity = '0'; setTimeout(() => { if (powerupIndicatorEl) powerupIndicatorEl.style.display = 'none'; }, 250); }
+  }, 2000);
+}
+
+function renderPowerups() {
+  const now = performance.now();
+  const bounds = cameraViewBounds(24);
+  for (const pu of powerups) {
+    const age = now - pu.spawnedAt;
+    const remaining = pu.expiresAt - now;
+    const blink = remaining < 4000 ? (Math.sin(now * 0.015) > 0 ? 1 : 0.3) : 1;
+    const bob = Math.sin(now * 0.004 + age * 0.001) * 4;
+    const baseX = cameraX + toroidDelta(cameraX, pu.x, WORLD_WIDTH);
+    const baseY = cameraY + toroidDelta(cameraY, pu.y, WORLD_HEIGHT);
+    for (let wx = -1; wx <= 1; wx++) {
+      const x = baseX + wx * WORLD_WIDTH;
+      if (x + 20 < bounds.left || x - 20 > bounds.right) continue;
+      for (let wy = -1; wy <= 1; wy++) {
+        const y = baseY + wy * WORLD_HEIGHT + bob;
+        if (y + 20 < bounds.top || y - 20 > bounds.bottom) continue;
+        ctx.save();
+        ctx.globalAlpha = blink;
+        // Glow
+        drawCachedGlow(pu.glow, x, y, 16, 0.7);
+        // Background circle
+        ctx.fillStyle = pu.color;
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        // White inner ring
+        ctx.strokeStyle = 'rgba(255,255,255,.65)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.stroke();
+        // Icon
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 11px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(pu.icon, x, y + 1);
+        ctx.restore();
+      }
+    }
+  }
+}
+
+// ---- Big snake food production ----
+function bigSnakeFoodProduction(now = performance.now()) {
+  if (now - lastBigSnakeFoodAt < BIG_SNAKE_FOOD_INTERVAL_MS) return;
+  lastBigSnakeFoodAt = now;
+  for (const snake of snakeRoster) {
+    if (!snake.alive || snake.length < BIG_SNAKE_FOOD_THRESHOLD) continue;
+    // The bigger the snake, the more food it produces
+    const extraFood = Math.min(3, Math.floor((snake.length - BIG_SNAKE_FOOD_THRESHOLD) / 25) + 1);
+    for (let f = 0; f < extraFood; f++) {
+      // Spawn food near the snake's tail area
+      const tailIdx = Math.min(snake.segments.length - 1, Math.floor(snake.segments.length * 0.6) + Math.floor(Math.random() * Math.floor(snake.segments.length * 0.4)));
+      const tail = snake.segments[tailIdx];
+      if (!tail) continue;
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 20 + Math.random() * 40;
+      const fx = wrap(tail.x + Math.cos(angle) * dist, WORLD_WIDTH);
+      const fy = wrap(tail.y + Math.sin(angle) * dist, WORLD_HEIGHT);
+      const orb = spawnFoodOrb(fx, fy);
+      orb.isDeathDrop = false;
+      foodOrbs.push(orb);
+    }
+  }
 }
 
 function isClearRareOrbSpot(x, y) {
@@ -1938,14 +2276,19 @@ function updateBotAI(bot) {
 function advanceSnake(snake) {
   if (!snake.alive) return;
 
-  const moveX = Math.cos(snake.angle) * snake.speed;
-  const moveY = Math.sin(snake.angle) * snake.speed;
+  const now = performance.now();
+  const inDangerZone = toroidDistSq(snake.x, snake.y, WORLD_WIDTH / 2, WORLD_HEIGHT / 2) < DANGER_ZONE_RADIUS ** 2;
+  const isSpeedBoosted = snake.speedBoostUntil && now < snake.speedBoostUntil;
+  const speedBoostMul = isSpeedBoosted ? (snake.speedBoostMultiplier || 1.6) : 1;
+  const isDashing = now < snake.dashUntil;
+  const speedScale = (inDangerZone ? DANGER_ZONE_SLOW : 1) * (isDashing ? 1.85 : 1) * speedBoostMul;
+  const moveX = Math.cos(snake.angle) * snake.speed * speedScale;
+  const moveY = Math.sin(snake.angle) * snake.speed * speedScale;
   snake.trailWorldX += moveX;
   snake.trailWorldY += moveY;
   snake.x = wrap(snake.x + moveX, WORLD_WIDTH);
   snake.y = wrap(snake.y + moveY, WORLD_HEIGHT);
 
-  const now = performance.now();
   if (now < snake.glowTrailUntil) {
     if (now - snake.lastTrailSampleAt >= 32) {
       snake.glowTrailSamples.push({ x: snake.trailWorldX, y: snake.trailWorldY, time: now });
@@ -2003,7 +2346,7 @@ function advanceSnake(snake) {
   }
 }
 
-function dissolveSnakeIntoFood(snake) {
+function dissolveSnakeIntoFood(snake, rewardMultiplier = 1) {
   const orbValue = snake.length > 50 ? 4 : 2;
   let totalReward = 0;
   let existingDeathDrops = 0;
@@ -2014,13 +2357,12 @@ function dissolveSnakeIntoFood(snake) {
     const foodScheme = {
       core: snake.palette.head,
       glow: snake.palette.glow,
-      value: orbValue
+      value: orbValue * rewardMultiplier,
+      isDeathDrop: true
     };
     const orb = spawnFoodOrb(seg.x, seg.y, foodScheme);
     orb.burstAt = performance.now();
     orb.burstDelay = Math.min(700, (i / 2) * 16);
-    orb.vx += (Math.random() - 0.5) * 1.2;
-    orb.vy += (Math.random() - 0.5) * 1.2;
     foodOrbs.push(orb);
     totalReward += orbValue;
     if (i % 8 === 0) spawnFoodBurst(seg.x, seg.y, snake.palette.head, 1);
@@ -2042,23 +2384,80 @@ function showKillMessage(bot, reward) {
 
 function killBot(bot, killer = null) {
   if (!bot.alive) return;
+  const bounty = isKingSnake(bot);
   bot.alive = false;
   bot.respawnTimer = RESPAWN_DELAY_FRAMES;
-  const reward = dissolveSnakeIntoFood(bot);
+  const reward = dissolveSnakeIntoFood(bot, bounty ? 2 : 1);
   if (killer === player) showKillMessage(bot, reward);
   sfxBotDeath();
 }
 
+function getKingSnake() {
+  let king = null;
+  for (const snake of snakeRoster) if (snake.alive && (!king || snake.length > king.length)) king = snake;
+  return king;
+}
+
+function isKingSnake(snake) {
+  return snake === getKingSnake();
+}
+
+function activateAbility(name) {
+  if (!isGameRunning || isPaused || isGameOver || !player.alive) return;
+  const now = performance.now();
+  if (now < player.abilityReadyAt[name]) return;
+  const ability = ABILITY_CONFIG[name];
+  if (!ability) return;
+  player.abilityReadyAt[name] = now + ability.cooldown;
+  player[`${name}Until`] = now + ability.duration;
+  if (name === 'dash') {
+    for (const enemy of snakeRoster) {
+      if (enemy === player || !enemy.alive) continue;
+      const dx = toroidDelta(player.x, enemy.x, WORLD_WIDTH);
+      const dy = toroidDelta(player.y, enemy.y, WORLD_HEIGHT);
+      const distance = Math.hypot(dx, dy);
+      if (distance > 240) continue;
+      const push = (240 - distance) * 0.16;
+      enemy.x = wrap(enemy.x + dx / Math.max(1, distance) * push, WORLD_WIDTH);
+      enemy.y = wrap(enemy.y + dy / Math.max(1, distance) * push, WORLD_HEIGHT);
+      enemy.angle = Math.atan2(dy, dx);
+      enemy.targetAngle = enemy.angle;
+    }
+  }
+  updateAbilityButtons(now);
+}
+
+function updateAbilityButtons(now = performance.now()) {
+  for (const name of Object.keys(ABILITY_CONFIG)) {
+    const button = document.getElementById(`${name}-btn`);
+    if (!button) continue;
+    const remaining = Math.max(0, player.abilityReadyAt[name] - now);
+    const active = now < player[`${name}Until`];
+    const labels = { ghost: '👻 Ghost', magnet: '🧲 Magnet', dash: '⚡ Dash' };
+    button.classList.toggle('ready', remaining === 0);
+    button.disabled = remaining > 0 || !isGameRunning || isPaused || isGameOver;
+    button.innerHTML = `${labels[name]}<br><small>${active ? `${((player[`${name}Until`] - now) / 1000).toFixed(1)}s` : remaining ? `${Math.ceil(remaining / 1000)}s` : name === 'ghost' ? '1' : name === 'magnet' ? '2' : '3'}</small>`;
+  }
+}
+
 function handlePlayerDeath() {
   if (!player.alive || isGameOver) return;
+  const bounty = isKingSnake(player);
   player.alive = false;
   isGameOver = true;
   shakeIntensity = 18;
 
-  dissolveSnakeIntoFood(player);
+  dissolveSnakeIntoFood(player, bounty ? 2 : 1);
   sfxPlayerDeath();
 
+  const prevBestTime = getBestTime(currentDifficulty);
+  const prevBestLength = getBestLength(currentDifficulty);
   saveBestRecords(currentDifficulty, survivalSeconds, player.length);
+  const newBestBadge = document.getElementById('new-best-badge');
+  if (newBestBadge) {
+    const isNewBest = (survivalSeconds > prevBestTime && survivalSeconds > 0) || player.length > prevBestLength;
+    newBestBadge.style.display = isNewBest ? 'inline-flex' : 'none';
+  }
   const bestT = getBestTime(currentDifficulty);
   const bestL = getBestLength(currentDifficulty);
 
@@ -2080,10 +2479,10 @@ function checkAllCollisions() {
   // Head-to-head collisions resolve by length. Spawn protection applies to both snakes.
   for (let a = 0; a < allSnakes.length; a++) {
     const first = allSnakes[a];
-    if (!first.alive || now < first.protectedUntil) continue;
+    if (!first.alive || now < first.protectedUntil || (first.isPlayer && now < player.ghostUntil)) continue;
     for (let b = a + 1; b < allSnakes.length; b++) {
       const second = allSnakes[b];
-      if (!second.alive || now < second.protectedUntil) continue;
+      if (!second.alive || now < second.protectedUntil || (second.isPlayer && now < player.ghostUntil)) continue;
       if (toroidDistSq(first.x, first.y, second.x, second.y) >= headHitRadius * headHitRadius) continue;
       const sizeDiff = Math.abs(first.length - second.length);
       if (sizeDiff <= 1) {
@@ -2098,7 +2497,7 @@ function checkAllCollisions() {
   }
 
   for (const snake of allSnakes) {
-    if (!snake.alive || now < snake.protectedUntil) continue;
+    if (!snake.alive || now < snake.protectedUntil || (snake.isPlayer && now < player.ghostUntil)) continue;
     const other = findSpatialBodyCollision(snake, now);
     if (!other) continue;
     if (snake.isPlayer) handlePlayerDeath();
@@ -2178,23 +2577,29 @@ function updateHUDAndLeaderboard() {
   if (now - lastHudRefreshAt < 250) return;
   lastHudRefreshAt = now;
 
-  const allSnakes = leaderboardOrder;
+  const allSnakes = leaderboardOrder.filter(s => s.alive);
   allSnakes.sort((a, b) => b.length - a.length);
 
   const playerRank = allSnakes.findIndex(s => s.isPlayer) + 1;
   if (statRankEl) statRankEl.textContent = `#${playerRank}`;
 
   if (lbListEl) {
-    lbListEl.innerHTML = allSnakes.map((s, idx) => `
+    const LB_SHOWN = 8;
+    const lbRow = (s, idx) => `
       <div class="lb-item ${s.isPlayer ? 'is-player' : ''}">
         <div class="lb-left">
           <span class="lb-dot" style="background:${s.palette.head}; box-shadow: 0 0 6px ${s.palette.glow}"></span>
-          <span>${idx + 1}. ${s.name}</span>
+          <span>${idx + 1}. ${idx === 0 ? '👑 ' : ''}${s.name}</span>
         </div>
         <span class="lb-length">${s.length}</span>
-      </div>
-    `).join('');
+      </div>`;
+    let lbHtml = allSnakes.slice(0, LB_SHOWN).map(lbRow).join('');
+    if (playerRank > LB_SHOWN) {
+      lbHtml += '<div class="lb-gap">···</div>' + lbRow(player, playerRank - 1);
+    }
+    lbListEl.innerHTML = lbHtml;
   }
+  updateAbilityButtons(now);
 }
 
 function update(stepMs = FIXED_STEP_MS) {
@@ -2204,6 +2609,9 @@ function update(stepMs = FIXED_STEP_MS) {
   animFrame++;
   buildSpatialHash();
   maybeSpawnRareOrb();
+  spawnPowerup();
+  checkPowerupCollection();
+  bigSnakeFoodProduction();
 
   if (player.alive) {
     if (joystick.active) {
@@ -2299,6 +2707,8 @@ function startGame() {
   initSnake();
   initBots();
   scheduleNextRareOrb();
+  scheduleNextPowerup();
+  powerups.length = 0;
   applyDifficultySpeeds();
   ensureGameLoop();
 }
@@ -2308,6 +2718,8 @@ function goHome() {
   isPaused = false;
   isGameOver = false;
   rareOrb = null;
+  powerups.length = 0;
+  if (powerupIndicatorEl) powerupIndicatorEl.style.display = 'none';
   if (rareIndicatorEl) rareIndicatorEl.style.display = 'none';
   keys.left = false;
   keys.right = false;
@@ -2390,6 +2802,10 @@ function initInput() {
       if (e.key === 'Enter') restartGame();
       return;
     }
+
+    if (e.key === '1') activateAbility('ghost');
+    if (e.key === '2') activateAbility('magnet');
+    if (e.key === '3') activateAbility('dash');
 
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
     if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
@@ -2501,6 +2917,8 @@ function initSnake() {
   player.glowTrailSamples = [];
   player.lastTrailSampleAt = 0;
   rareOrb = null;
+  powerups.length = 0;
+  if (powerupIndicatorEl) powerupIndicatorEl.style.display = 'none';
   if (rareIndicatorEl) rareIndicatorEl.style.display = 'none';
   player.angle = -Math.PI / 2;
   player.targetAngle = -Math.PI / 2;
@@ -2511,6 +2929,10 @@ function initSnake() {
   player.segments = [];
   player.alive = true;
   player.protectedUntil = performance.now() + 2000;
+  player.ghostUntil = 0;
+  player.magnetUntil = 0;
+  player.dashUntil = 0;
+  player.abilityReadyAt = { ghost: 0, magnet: 0, dash: 0 };
   playerKillCount = 0;
   floatingTexts.length = 0;
   if (statKillsEl) statKillsEl.textContent = '0';
@@ -2541,6 +2963,8 @@ function restartGame() {
   initSnake();
   initBots();
   scheduleNextRareOrb();
+  scheduleNextPowerup();
+  powerups.length = 0;
   applyDifficultySpeeds();
   ensureGameLoop();
 }
@@ -2623,6 +3047,31 @@ function renderBackground() {
     }
     ctx.globalAlpha = 1;
   }
+}
+
+function renderDangerZone() {
+  const baseX = cameraX + toroidDelta(cameraX, WORLD_WIDTH / 2, WORLD_WIDTH);
+  const baseY = cameraY + toroidDelta(cameraY, WORLD_HEIGHT / 2, WORLD_HEIGHT);
+  const bounds = cameraViewBounds(DANGER_ZONE_RADIUS + 10);
+  ctx.save();
+  for (let wx = -1; wx <= 1; wx++) for (let wy = -1; wy <= 1; wy++) {
+    const x = baseX + wx * WORLD_WIDTH;
+    const y = baseY + wy * WORLD_HEIGHT;
+    if (x + DANGER_ZONE_RADIUS < bounds.left || x - DANGER_ZONE_RADIUS > bounds.right || y + DANGER_ZONE_RADIUS < bounds.top || y - DANGER_ZONE_RADIUS > bounds.bottom) continue;
+    const gradient = ctx.createRadialGradient(x, y, DANGER_ZONE_RADIUS * 0.25, x, y, DANGER_ZONE_RADIUS);
+    gradient.addColorStop(0, 'rgba(250,204,21,.10)');
+    gradient.addColorStop(1, 'rgba(245,158,11,.015)');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(x, y, DANGER_ZONE_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(250,204,21,.28)';
+    ctx.lineWidth = 5;
+    ctx.setLineDash([22, 18]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.restore();
 }
 
 function renderFood() {
@@ -2839,6 +3288,131 @@ function drawSkinPattern(cx, cy, radius, angle, palette, index) {
     drawDiamondScale(cx, cy, radius * 0.72, angle, palette.scale);
     return;
   }
+  if (pattern === 'chevron' && index % 2 === 0 && radius > 3.5) {
+    // King cobra light chevron / V-shaped crossband mark
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.strokeStyle = palette.scale;
+    ctx.lineWidth = Math.max(1.2, radius * 0.35);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-radius * 0.6, -radius * 0.75);
+    ctx.lineTo(radius * 0.45, 0);
+    ctx.lineTo(-radius * 0.6, radius * 0.75);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  if (pattern === 'reticulated' && index % 3 === 0 && radius > 3.5) {
+    // Reticulated python intricate mesh net pattern
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.strokeStyle = palette.scale;
+    ctx.lineWidth = Math.max(1, radius * 0.22);
+    ctx.strokeRect(-radius * 0.55, -radius * 0.55, radius * 1.1, radius * 1.1);
+    ctx.fillStyle = '#0f0c08';
+    ctx.fillRect(-radius * 0.22, -radius * 0.22, radius * 0.44, radius * 0.44);
+    ctx.restore();
+    return;
+  }
+  if (pattern === 'lightning' && index % 2 === 0 && radius > 3.5) {
+    // Emerald tree boa vivid white dorsal lightning zigzag bars
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle + Math.PI / 2);
+    ctx.strokeStyle = palette.scale;
+    ctx.lineWidth = Math.max(1.5, radius * 0.32);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-radius * 0.8, -radius * 0.3);
+    ctx.lineTo(-radius * 0.2, radius * 0.3);
+    ctx.lineTo(radius * 0.2, -radius * 0.3);
+    ctx.lineTo(radius * 0.8, radius * 0.3);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  if (pattern === 'coral_tricolor') {
+    // Coral snake bold alternating red, yellow, black rings
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle + Math.PI / 2);
+    const ringColor = (index % 4 === 0) ? '#facc15' : (index % 2 === 0) ? '#111827' : '#dc2626';
+    ctx.fillStyle = ringColor;
+    ctx.fillRect(-radius * 0.95, -Math.max(1.2, radius * 0.45), radius * 1.9, Math.max(2.4, radius * 0.9));
+    ctx.restore();
+    return;
+  }
+  if (pattern === 'diamonds' && index % 2 === 0 && radius > 3.5) {
+    // Diamondback rattlesnake dark-centered diamond with pale halo
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.strokeStyle = palette.scale;
+    ctx.lineWidth = Math.max(1.2, radius * 0.28);
+    ctx.beginPath();
+    ctx.moveTo(0, -radius * 0.85);
+    ctx.lineTo(radius * 0.75, 0);
+    ctx.lineTo(0, radius * 0.85);
+    ctx.lineTo(-radius * 0.75, 0);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fillStyle = '#1c1917';
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+  if (pattern === 'ocelli' && index % 3 === 0 && radius > 3.5) {
+    // Anaconda dark circular blotches with golden-brown halo
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.fillStyle = '#18181b';
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * 0.55, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ca8a04';
+    ctx.lineWidth = Math.max(1, radius * 0.2);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  if (pattern === 'krait_rings' && index % 3 === 0) {
+    // Sea krait high-contrast alternating bands
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle + Math.PI / 2);
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(-radius * 0.9, -Math.max(1, radius * 0.35), radius * 1.8, Math.max(2, radius * 0.7));
+    ctx.restore();
+    return;
+  }
+  if (pattern === 'clouded' && index % 3 === 0 && radius > 3.5) {
+    // Albino python soft clouded pattern
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.fillStyle = 'rgba(254, 240, 138, 0.75)';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, radius * 0.7, radius * 0.45, angle, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+  if (pattern === 'neon_grid' && index % 2 === 0) {
+    // Cyber neon digital energy line
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle + Math.PI / 2);
+    ctx.strokeStyle = palette.scale;
+    ctx.lineWidth = Math.max(1.5, radius * 0.3);
+    ctx.beginPath();
+    ctx.moveTo(-radius * 0.7, 0);
+    ctx.lineTo(radius * 0.7, 0);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
   if (pattern === 'ribbons' && index % 3 === 0 && radius > 4) {
     drawDiamondScale(cx, cy, radius * 0.62, angle + Math.PI / 2, palette.scale);
     return;
@@ -2894,6 +3468,18 @@ function drawNameTag(name, x, y, color) {
   ctx.restore();
 }
 
+function drawCrownOnKing(snake) {
+  const crownScale = Math.max(22, Math.min(48, Math.round(width * 0.028 / Math.max(0.4, cameraZoom))));
+  ctx.save();
+  ctx.font = `${crownScale}px system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.shadowColor = 'rgba(250, 204, 21, 0.85)';
+  ctx.shadowBlur = 10;
+  ctx.fillText('👑', snake.x, snake.y - 32);
+  ctx.restore();
+}
+
 function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   if (!snake.alive) return;
   const segs = snake.segments;
@@ -2901,6 +3487,7 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
 
   ctx.save();
   ctx.translate(offsetX, offsetY);
+  if (snake.isPlayer && performance.now() < snake.ghostUntil) ctx.globalAlpha = 0.38;
 
   const pal = snake.palette;
 
@@ -2988,10 +3575,114 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   ctx.translate(snake.x, snake.y);
   ctx.rotate(snake.angle);
 
-  ctx.beginPath();
-  ctx.ellipse(2, 0, HEAD_RADIUS + 1, HEAD_RADIUS - 1.5, 0, 0, Math.PI * 2);
-  ctx.fillStyle = pal.head;
-  ctx.fill();
+  const headShape = pal.headShape || 'round';
+
+  if (headShape === 'cobra') {
+    // Distinctive flared cobra hood behind head
+    const hoodSpread = HEAD_RADIUS * (pal.hoodWidth || 1.85);
+    ctx.beginPath();
+    ctx.moveTo(HEAD_RADIUS * 0.7, 0);
+    ctx.quadraticCurveTo(HEAD_RADIUS * 0.1, hoodSpread, -HEAD_RADIUS * 1.5, hoodSpread * 0.75);
+    ctx.quadraticCurveTo(-HEAD_RADIUS * 2.1, hoodSpread * 0.3, -HEAD_RADIUS * 2.2, 0);
+    ctx.quadraticCurveTo(-HEAD_RADIUS * 2.1, -hoodSpread * 0.3, -HEAD_RADIUS * 1.5, -hoodSpread * 0.75);
+    ctx.quadraticCurveTo(HEAD_RADIUS * 0.1, -hoodSpread, HEAD_RADIUS * 0.7, 0);
+    ctx.closePath();
+    ctx.fillStyle = pal.head;
+    ctx.fill();
+    ctx.strokeStyle = pal.scale;
+    ctx.lineWidth = 1.3;
+    ctx.stroke();
+
+    // Cobra monocle/spectacle dorsal mark on the back of the hood
+    ctx.beginPath();
+    ctx.arc(-HEAD_RADIUS * 1.1, -hoodSpread * 0.35, HEAD_RADIUS * 0.38, 0, Math.PI * 2);
+    ctx.arc(-HEAD_RADIUS * 1.1, hoodSpread * 0.35, HEAD_RADIUS * 0.38, 0, Math.PI * 2);
+    ctx.fillStyle = '#fef08a';
+    ctx.fill();
+    ctx.fillStyle = '#1c1917';
+    ctx.beginPath();
+    ctx.arc(-HEAD_RADIUS * 1.1, -hoodSpread * 0.35, HEAD_RADIUS * 0.18, 0, Math.PI * 2);
+    ctx.arc(-HEAD_RADIUS * 1.1, hoodSpread * 0.35, HEAD_RADIUS * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Central crown / head plate
+    ctx.beginPath();
+    ctx.ellipse(3, 0, HEAD_RADIUS * 1.15, HEAD_RADIUS * 0.85, 0, 0, Math.PI * 2);
+    ctx.fillStyle = pal.head;
+    ctx.fill();
+  } else if (headShape === 'viper') {
+    // Triangular, broad-angled arrow viper head with distinct snout
+    ctx.beginPath();
+    ctx.moveTo(HEAD_RADIUS * 1.6, 0);
+    ctx.lineTo(-HEAD_RADIUS * 0.7, HEAD_RADIUS * 1.45);
+    ctx.quadraticCurveTo(-HEAD_RADIUS * 1.4, HEAD_RADIUS * 0.5, -HEAD_RADIUS * 1.1, 0);
+    ctx.quadraticCurveTo(-HEAD_RADIUS * 1.4, -HEAD_RADIUS * 0.5, -HEAD_RADIUS * 0.7, -HEAD_RADIUS * 1.45);
+    ctx.closePath();
+    ctx.fillStyle = pal.head;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  } else if (headShape === 'python') {
+    // Powerful, blunt, broad muscular python head with sensory pits
+    ctx.beginPath();
+    ctx.moveTo(HEAD_RADIUS * 1.4, -HEAD_RADIUS * 0.4);
+    ctx.quadraticCurveTo(HEAD_RADIUS * 1.6, 0, HEAD_RADIUS * 1.4, HEAD_RADIUS * 0.4);
+    ctx.lineTo(HEAD_RADIUS * 0.2, HEAD_RADIUS * 1.15);
+    ctx.quadraticCurveTo(-HEAD_RADIUS * 1.2, HEAD_RADIUS * 1.1, -HEAD_RADIUS * 1.3, 0);
+    ctx.quadraticCurveTo(-HEAD_RADIUS * 1.2, -HEAD_RADIUS * 1.1, HEAD_RADIUS * 0.2, -HEAD_RADIUS * 1.15);
+    ctx.closePath();
+    ctx.fillStyle = pal.head;
+    ctx.fill();
+
+    // Labial sensory heat pits along jaw
+    ctx.fillStyle = '#1c1917';
+    for (let pSide = -1; pSide <= 1; pSide += 2) {
+      for (let pit = 0; pit < 3; pit++) {
+        ctx.beginPath();
+        ctx.arc(HEAD_RADIUS * (0.4 + pit * 0.35), pSide * HEAD_RADIUS * 0.68, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  } else if (headShape === 'coffin') {
+    // Distinctive coffin-shaped elongated head of the Black Mamba
+    ctx.beginPath();
+    ctx.moveTo(HEAD_RADIUS * 1.6, -HEAD_RADIUS * 0.35);
+    ctx.lineTo(HEAD_RADIUS * 1.6, HEAD_RADIUS * 0.35);
+    ctx.lineTo(HEAD_RADIUS * 0.3, HEAD_RADIUS * 0.95);
+    ctx.lineTo(-HEAD_RADIUS * 1.3, HEAD_RADIUS * 0.85);
+    ctx.lineTo(-HEAD_RADIUS * 1.3, -HEAD_RADIUS * 0.85);
+    ctx.lineTo(HEAD_RADIUS * 0.3, -HEAD_RADIUS * 0.95);
+    ctx.closePath();
+    ctx.fillStyle = pal.head;
+    ctx.fill();
+  } else if (headShape === 'paddle') {
+    // Flattened, hydrodynamic streamlined sea snake head
+    ctx.beginPath();
+    ctx.ellipse(3, 0, HEAD_RADIUS * 1.45, HEAD_RADIUS * 0.72, 0, 0, Math.PI * 2);
+    ctx.fillStyle = pal.head;
+    ctx.fill();
+  } else if (headShape === 'dragon') {
+    // Horned dragon head with crown spikes
+    ctx.beginPath();
+    ctx.moveTo(HEAD_RADIUS * 1.5, 0);
+    ctx.lineTo(HEAD_RADIUS * 0.4, HEAD_RADIUS * 1.1);
+    ctx.lineTo(-HEAD_RADIUS * 1.3, HEAD_RADIUS * 1.35);
+    ctx.lineTo(-HEAD_RADIUS * 0.8, HEAD_RADIUS * 0.35);
+    ctx.lineTo(-HEAD_RADIUS * 1.5, 0);
+    ctx.lineTo(-HEAD_RADIUS * 0.8, -HEAD_RADIUS * 0.35);
+    ctx.lineTo(-HEAD_RADIUS * 1.3, -HEAD_RADIUS * 1.35);
+    ctx.lineTo(HEAD_RADIUS * 0.4, -HEAD_RADIUS * 1.1);
+    ctx.closePath();
+    ctx.fillStyle = pal.head;
+    ctx.fill();
+  } else {
+    // Classic rounded head
+    ctx.beginPath();
+    ctx.ellipse(2, 0, HEAD_RADIUS + 1, HEAD_RADIUS - 1.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = pal.head;
+    ctx.fill();
+  }
   if (protectedNow) {
     ctx.globalAlpha = protectionAlpha;
     ctx.strokeStyle = '#e0f2fe';
@@ -3038,7 +3729,11 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
 
   ctx.restore();
 
-  const tagName = snake.isPlayer ? snake.name : `${snake.personality.icon} ${snake.name}`;
+  const isKing = isKingSnake(snake);
+  if (isKing) {
+    drawCrownOnKing(snake);
+  }
+  const tagName = `${isKing ? '👑 ' : ''}${snake.isPlayer ? snake.name : `${snake.personality.icon} ${snake.name}`}`;
   drawNameTag(tagName, snake.x, snake.y, pal.head);
 
   ctx.restore();
@@ -3082,7 +3777,9 @@ function render() {
   }
 
   renderBackground();
+  renderDangerZone();
   renderFood();
+  renderPowerups();
   renderFloatingTexts();
   renderRareOrb();
   renderParticles();
@@ -3113,6 +3810,16 @@ function renderMinimap() {
   ctx.fillStyle = 'rgba(2, 12, 25, 0.78)';
   ctx.fill();
   ctx.clip();
+  const zoneDx = toroidDelta(player.x, WORLD_WIDTH / 2, WORLD_WIDTH) / WORLD_WIDTH * (mapRadius * 2);
+  const zoneDy = toroidDelta(player.y, WORLD_HEIGHT / 2, WORLD_HEIGHT) / WORLD_HEIGHT * (mapRadius * 2);
+  const zoneMapRadius = DANGER_ZONE_RADIUS / WORLD_WIDTH * (mapRadius * 2);
+  ctx.fillStyle = 'rgba(250,204,21,.10)';
+  ctx.strokeStyle = 'rgba(250,204,21,.55)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cx + zoneDx, cy + zoneDy, zoneMapRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
   ctx.strokeStyle = 'rgba(148, 210, 225, 0.13)';
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -3123,6 +3830,8 @@ function renderMinimap() {
   ctx.stroke();
 
   for (const bot of bots) if (bot.alive) drawMinimapDot(bot.x, bot.y, bot.palette.head, 2.5, cx, cy, mapRadius);
+  const king = getKingSnake();
+  if (king && !king.isPlayer) drawMinimapDot(king.x, king.y, '#facc15', 5, cx, cy, mapRadius);
   if (rareOrb) drawMinimapDot(rareOrb.x, rareOrb.y, '#ffe6a5', 3, cx, cy, mapRadius);
   const boss = window.activeBoss;
   if (boss && boss.active) drawMinimapDot(boss.x, boss.y, '#fb7185', 4, cx, cy, mapRadius);
@@ -3130,6 +3839,12 @@ function renderMinimap() {
   ctx.beginPath();
   ctx.arc(cx, cy, 4, 0, Math.PI * 2);
   ctx.fill();
+  if (king === player) {
+    ctx.fillStyle = '#facc15';
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('👑', cx, cy - 8);
+  }
   ctx.strokeStyle = 'rgba(224, 242, 254, 0.65)';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
@@ -3211,6 +3926,8 @@ window.addEventListener('DOMContentLoaded', () => {
   settingsScreenEl = document.getElementById('settings-screen');
   fpsCounterEl = document.getElementById('fps-counter');
   fpsToggleEl = document.getElementById('fps-toggle');
+
+  powerupIndicatorEl = document.getElementById('powerup-indicator');
 
   isMuted = localStorage.getItem('neonSerpents_muted') === '1';
   if (muteBtnEl) muteBtnEl.textContent = isMuted ? '🔇' : '🔊';

@@ -6,10 +6,14 @@ A lightweight snake survival game for Android and the browser. Steer through a w
 
 - A smoothly changing three-minute underwater day and night cycle. It changes the scenery only, so game rules stay consistent.
 - An 8000 × 8000 wraparound world with a smooth following camera, a view scaled by screen area, and a circular minimap.
-- Sparse, evenly spaced normal food with a slow respawn rate; food density and growth value are adjustable in `src/game/config.js`.
+- Sparse, evenly spaced, stationary normal food with a slow respawn rate; food density and growth value are adjustable in `src/game/config.js`.
+- **Dynamic Food Production by Big Snakes:** Snakes over length 40 periodically shed extra food orbs behind their tails—the longer the snake, the more food it produces.
+- **Random Map Power-Ups:** Collectible Magnet (`🧲`) and Speed Boost (`⚡`) power-ups spawn randomly across the map with glowing animations and HUD alerts.
 - 30, 40, or 50 rival snakes in Easy, Normal, or Hard, with Hunter, Encircler, Opportunist, and Scavenger behaviors. Difficulty also changes movement speed.
 - Rare glow orbs that grant a short cosmetic trail and three extra segments, plus scattered food rewards when a snake is defeated.
-- Six collectible player skins with survival-time and length unlocks. Skin progress and selection are saved locally; bot colors stay independent.
+- Three rechargeable abilities: Ghost (brief collision immunity), Resource Magnet (pulls nearby food in), and Dash (a short speed burst that knocks nearby heads away).
+- **Crowned King Snake & Layout:** The #1 longest snake wears a large, screen-responsive glowing crown (`👑`) above its head and appears highlighted on the bottom-right minimap, while a compact live scorecard sits cleanly in the top-right corner; defeating the leader drops double loot. The center danger zone slows snakes and holds a cluster of high-value food.
+- **16 Collectible Player Skins with Custom Anatomy:** Species-inspired and fantasy skins featuring unique head shapes (`cobra` flared hood with spectacle mark, `python` muscular jaw with labial heat pits, `viper` triangular head, `coffin` Black Mamba head, `paddle` sea krait head, `dragon` horned head, and `round`) and scale patterns (`chevron`, `reticulated`, `lightning`, `coral_tricolor`, `diamonds`, `ocelli`, `krait_rings`, `clouded`, `neon_grid`, etc.). Skin progress and selection are saved locally; bot colors stay independent.
 - Wrapped arena movement, touch drag steering, keyboard and mouse controls, pause, and a home button.
 - Adjustable Auto, High, Medium, and Low graphics settings with an optional FPS counter. Auto lowers detail when frame timing stays slow.
 - Mobile-focused rendering with a fixed 60 Hz update step, cached glow/background layers, visible-area culling, and a spatial index for nearby collisions, food, and bot sensors.
@@ -50,6 +54,7 @@ Run on a connected device from Android Studio. `npm run android:debug` creates a
 - **Pause:** tap the pause control.
 - **Home:** tap the home icon or use Android Back during a game.
 - **Keyboard:** mouse, A/D or arrow keys to steer; P or Space to pause; Enter to restart after a game ends.
+- **Abilities:** press 1 for Ghost, 2 for Resource Magnet, and 3 for Dash, or tap the HUD buttons.
 
 Choose Easy, Normal, or Hard from the home screen. The game works offline after installation.
 
