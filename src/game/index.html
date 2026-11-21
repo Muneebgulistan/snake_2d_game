@@ -123,7 +123,7 @@
   #stat-level-wrap .hud-val { color: var(--accent-2); }
   #stat-coins-wrap .hud-val { color: var(--gold); }
 
-  #pause-btn, #home-btn, #mute-btn {
+  #pause-btn, #home-btn, #mute-btn, #hud-settings-btn {
     pointer-events: auto;
     width: 42px;
     min-height: 42px;
@@ -144,8 +144,8 @@
     transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease;
     touch-action: manipulation;
   }
-  #pause-btn:hover, #home-btn:hover, #mute-btn:hover { border-color: var(--accent); background: rgba(0, 245, 160, 0.14); }
-  #pause-btn:active, #home-btn:active, #mute-btn:active { transform: scale(0.94); }
+  #pause-btn:hover, #home-btn:hover, #mute-btn:hover, #hud-settings-btn:hover { border-color: var(--accent); background: rgba(0, 245, 160, 0.14); }
+  #pause-btn:active, #home-btn:active, #mute-btn:active, #hud-settings-btn:active { transform: scale(0.94); }
 
   /* ---------- Ability dock (bottom-center) ---------- */
   #ability-dock {
@@ -202,7 +202,7 @@
   .ability-btn.ready small { color: var(--accent); }
   .ability-btn:not(:disabled):active { transform: scale(0.95); }
 
-  /* ---------- Leaderboard (top-right) ---------- */
+  /* ---------- Leaderboard (top-right, collapsible) ---------- */
   #leaderboard {
     position: absolute;
     top: max(12px, env(safe-area-inset-top));
@@ -210,23 +210,61 @@
     z-index: 10;
     pointer-events: none;
     display: none;
-    width: 172px;
-    padding: 10px 10px 8px;
+    width: 164px;
+    padding: 8px 9px 7px;
     border-radius: var(--radius);
     background: var(--panel);
     border: 1px solid var(--line);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     box-shadow: var(--shadow);
+    transition: width 0.15s ease, padding 0.15s ease, opacity 0.15s ease;
   }
-  .lb-title {
+  #leaderboard.collapsed {
+    padding: 5px 8px;
+  }
+  #leaderboard.collapsed .lb-list {
+    display: none !important;
+  }
+  #leaderboard.collapsed .lb-header-btn {
+    margin-bottom: 0;
+  }
+  .lb-header-btn {
+    pointer-events: auto;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    padding: 1px 0;
+    font-family: inherit;
     font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.13em;
     color: var(--text-faint);
-    margin-bottom: 6px;
+    margin-bottom: 5px;
     font-weight: 800;
     text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .lb-header-btn:hover { color: var(--accent-2); }
+  .lb-toggle-chevron {
+    display: inline-grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 5px;
+    background: rgba(38, 54, 79, 0.55);
+    color: var(--accent-2);
+    font-size: 10px;
+    line-height: 1;
+    transition: transform 0.16s ease;
+  }
+  #leaderboard.collapsed .lb-toggle-chevron {
+    transform: rotate(-90deg);
   }
   .lb-list { display: flex; flex-direction: column; gap: 2px; }
   .lb-item {
@@ -1105,49 +1143,63 @@
 
   /* ---------- Responsive Mobile & Tablet UI System ---------- */
   @media (max-width: 768px) {
-    /* Mobile Gameplay HUD: Pin action buttons to top-right, compact stats on top-left */
+    /* Mobile Gameplay HUD: Pin 4 action buttons to top-right with crisp spacing, compact stats on top-left */
     #hud {
-      max-width: calc(100% - 154px);
-      gap: 5px;
+      max-width: calc(100% - 194px);
+      gap: 4px;
       top: max(10px, env(safe-area-inset-top));
       left: max(10px, env(safe-area-inset-left));
     }
-    .hud-stats-group { gap: 5px; }
+    .hud-stats-group { gap: 4px; }
     .hud-actions-group {
       position: fixed;
       top: max(10px, env(safe-area-inset-top));
       right: max(10px, env(safe-area-inset-right));
-      gap: 6px;
+      gap: 7px;
       z-index: 15;
     }
-    #hud .hud-stat { padding: 5px 9px; font-size: 10px; gap: 4px; }
-    #hud .hud-stat .hud-val { font-size: 13px; }
+    #hud .hud-stat { padding: 4px 8px; font-size: 9.5px; gap: 4px; }
+    #hud .hud-stat .hud-val { font-size: 12px; }
     #stat-cycle { display: none; }
-    #pause-btn, #home-btn, #mute-btn { width: 42px; height: 42px; min-height: 42px; border-radius: 12px; }
+    #pause-btn, #home-btn, #mute-btn, #hud-settings-btn {
+      width: 38px;
+      height: 38px;
+      min-height: 38px;
+      border-radius: 11px;
+      font-size: 15px;
+    }
     #leaderboard {
-      top: max(60px, calc(env(safe-area-inset-top) + 56px));
+      top: max(56px, calc(env(safe-area-inset-top) + 46px));
       bottom: auto;
       right: max(10px, env(safe-area-inset-right));
-      width: 142px;
-      padding: 6px 8px;
-      opacity: 0.92;
+      width: 124px;
+      padding: 5px 7px;
+      border-radius: 11px;
+      opacity: 0.90;
     }
-    .lb-title { font-size: 9px; margin-bottom: 4px; }
-    .lb-item { font-size: 11px; padding: 3px 5px; }
+    #leaderboard.collapsed {
+      width: 114px;
+      padding: 4px 7px;
+      opacity: 0.86;
+    }
+    .lb-header-btn { font-size: 8.5px; letter-spacing: 0.1em; margin-bottom: 3px; }
+    .lb-toggle-chevron { width: 15px; height: 15px; font-size: 9px; }
+    .lb-item { font-size: 10.5px; padding: 2px 4px; gap: 5px; }
+    .lb-dot { width: 6px; height: 6px; }
     #ability-dock {
       left: max(12px, env(safe-area-inset-left));
       transform: none;
       bottom: max(14px, env(safe-area-inset-bottom));
       gap: 7px;
-      padding: 7px;
-      border-radius: 16px;
+      padding: 6px;
+      border-radius: 15px;
     }
-    .ability-btn { min-width: 68px; min-height: 52px; font-size: 11px; padding: 6px 8px; border-radius: 12px; }
-    #kill-message { top: 96px; font-size: 12px; padding: 6px 14px; }
-    #powerup-indicator { top: 132px; font-size: 12px; padding: 6px 14px; }
+    .ability-btn { min-width: 66px; min-height: 50px; font-size: 11px; padding: 5px 8px; border-radius: 12px; }
+    #kill-message { top: 94px; font-size: 12px; padding: 6px 14px; }
+    #powerup-indicator { top: 128px; font-size: 12px; padding: 6px 14px; }
     #fps-counter {
       top: auto;
-      bottom: max(78px, calc(env(safe-area-inset-bottom) + 76px));
+      bottom: max(76px, calc(env(safe-area-inset-bottom) + 74px));
       left: max(12px, env(safe-area-inset-left));
       transform: none;
     }
@@ -1271,9 +1323,13 @@
     .nav-card-btn { min-height: 46px; font-size: 10px; padding: 5px 4px; }
     #menu-removeads-btn { grid-column: span 2; min-height: 36px !important; }
     #leaderboard {
-      top: max(54px, calc(env(safe-area-inset-top) + 50px));
-      width: 132px;
-      padding: 5px 7px;
+      top: max(54px, calc(env(safe-area-inset-top) + 46px));
+      width: 122px;
+      padding: 4px 7px;
+    }
+    #leaderboard.collapsed {
+      width: 112px;
+      padding: 4px 7px;
     }
     .lb-item { font-size: 10px; padding: 2px 4px; }
     #ability-dock { bottom: max(8px, env(safe-area-inset-bottom)); padding: 5px; gap: 6px; }
@@ -1308,6 +1364,7 @@
     <button id="pause-btn" type="button" aria-label="Pause game" title="Pause (P)">Ⅱ</button>
     <button id="home-btn" type="button" aria-label="Return to home" title="Home">⌂</button>
     <button id="mute-btn" type="button" aria-label="Toggle sound" title="Sound" onclick="toggleMute()">🔊</button>
+    <button id="hud-settings-btn" type="button" aria-label="In-game settings" title="Settings" onclick="openIngameSettings()">⚙</button>
   </div>
 
   <div id="ability-dock">
@@ -1317,9 +1374,12 @@
   </div>
 </div>
 
-<!-- Live Leaderboard -->
+<!-- Live Collapsible Leaderboard -->
 <div id="leaderboard">
-  <div class="lb-title">Leaderboard</div>
+  <button type="button" class="lb-header-btn" id="lb-toggle-btn" aria-expanded="true" title="Toggle Leaderboard" onclick="toggleLeaderboardCollapse()">
+    <span>Leaderboard</span>
+    <span class="lb-toggle-chevron" id="lb-toggle-icon">▾</span>
+  </button>
   <div class="lb-list" id="lb-list"></div>
 </div>
 <div id="rare-indicator" aria-hidden="true"><span>↑</span><small>Rare orb</small></div>
@@ -2347,11 +2407,12 @@ function buildSpatialHash() {
     if (!snake.alive) continue;
     insertSpatialItem(snake.x, snake.y, snake, null, -1, 1, HEAD_RADIUS);
     const length = snake.segments.length;
-    for (let i = 1; i < length; i++) {
+    // Stride-2 body insertion halves spatial hash insertions & collision loop checks with identical collision coverage
+    for (let i = 1; i < length; i += 2) {
       const segment = snake.segments[i];
       const progress = i / length;
       const bodyRadius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));
-      insertSpatialItem(segment.x, segment.y, snake, segment, i, 0, (HEAD_RADIUS + bodyRadius) * 0.7);
+      insertSpatialItem(segment.x, segment.y, snake, segment, i, 0, (HEAD_RADIUS + bodyRadius) * 0.72);
     }
   }
   for (const orb of foodOrbs) {
@@ -3073,12 +3134,24 @@ function ensureWeeklyMissionsForWeek() {
   saveProfileData();
 }
 
+let saveProfileDirty = false;
+let lastIngameSaveAt = 0;
+
+function flushDeferredProfileSave(force = false) {
+  if (!saveProfileDirty) return;
+  const now = performance.now();
+  if (force || !isGameRunning || isPaused || isGameOver || now - lastIngameSaveAt >= 3000) {
+    saveProfileDirty = false;
+    lastIngameSaveAt = now;
+    saveProfileData();
+  }
+}
+
 function recordMissionProgress(type, value, isAbsoluteMax = false) {
-  ensureDailyMissionsForToday();
-  ensureWeeklyMissionsForWeek();
   let updated = false;
 
   const updateList = (items, pool, badgeLabel) => {
+    if (!items) return;
     for (const item of items) {
       if (item.claimed) continue;
       const def = pool.find(m => m.id === item.id);
@@ -3095,12 +3168,17 @@ function recordMissionProgress(type, value, isAbsoluteMax = false) {
     }
   };
 
-  updateList(profileData.dailyMissions.items, MISSION_POOL, 'DAILY MISSION');
-  updateList(profileData.weeklyMissions.items, WEEKLY_MISSION_POOL, 'WEEKLY MISSION');
+  updateList(profileData.dailyMissions && profileData.dailyMissions.items, MISSION_POOL, 'DAILY MISSION');
+  updateList(profileData.weeklyMissions && profileData.weeklyMissions.items, WEEKLY_MISSION_POOL, 'WEEKLY MISSION');
 
   if (updated) {
-    saveProfileData();
-    refreshNavBadges();
+    if (isGameRunning && !isPaused && !isGameOver) {
+      saveProfileDirty = true;
+      flushDeferredProfileSave(false);
+    } else {
+      saveProfileData();
+      refreshNavBadges();
+    }
   }
 }
 
@@ -3661,7 +3739,9 @@ function screenToWorld(screenX, screenY) {
 function updateCamera() {
   cameraX = wrap(cameraX + toroidDelta(cameraX, player.x, WORLD_WIDTH) * CAMERA_LERP, WORLD_WIDTH);
   cameraY = wrap(cameraY + toroidDelta(cameraY, player.y, WORLD_HEIGHT) * CAMERA_LERP, WORLD_HEIGHT);
-  const baseZoom = Math.sqrt((width * height) / (REFERENCE_VIEW_WIDTH * REFERENCE_VIEW_HEIGHT));
+  const isMobViewport = width <= 768 || isMobileDevice;
+  const mobilePortraitBoost = (isMobViewport && width < height) ? 1.16 : (isMobViewport ? 1.08 : 1.0);
+  const baseZoom = Math.sqrt((width * height) / (REFERENCE_VIEW_WIDTH * REFERENCE_VIEW_HEIGHT)) * mobilePortraitBoost;
   const growthZoomOut = Math.min(CAMERA_ZOOM_OUT_MAX, Math.max(0, (player.length - INITIAL_SEGMENTS) / 80 * CAMERA_ZOOM_OUT_MAX));
   const targetZoom = baseZoom / (1 + growthZoomOut);
   cameraZoom += (targetZoom - cameraZoom) * 0.08;
@@ -3802,17 +3882,17 @@ function persistUnlockedSkins() {
   safeStorageSet(SKIN_UNLOCKS_KEY, JSON.stringify([...unlockedSkinIds]));
 }
 
-function getSkinUnlockProgress(skin) {
-  syncDerivedProfileStats();
+function getSkinUnlockProgress(skin, skipSync = false) {
+  if (!skipSync) syncDerivedProfileStats();
   const u = skin.unlock || { type: 'default' };
   const s = (profileData && profileData.stats) ? profileData.stats : {};
-  const bestTime = Math.max(s.bestSurvivalTime || 0, getOverallBestTime(), isGameRunning ? survivalSeconds : 0);
-  const bestLength = Math.max(s.highestLength || INITIAL_SEGMENTS, getOverallBestLength(), isGameRunning ? player.length : INITIAL_SEGMENTS);
-  const hardTime = Math.max(s.hardSurvivalTime || 0, getBestTime('hard'), (isGameRunning && currentDifficulty === 'hard') ? survivalSeconds : 0);
+  const bestTime = Math.max(s.bestSurvivalTime || 0, isGameRunning ? survivalSeconds : 0);
+  const bestLength = Math.max(s.highestLength || INITIAL_SEGMENTS, isGameRunning ? player.length : INITIAL_SEGMENTS);
+  const hardTime = Math.max(s.hardSurvivalTime || 0, (isGameRunning && currentDifficulty === 'hard') ? survivalSeconds : 0);
   const totalKills = (s.totalKills || 0);
   const kingKills = (s.kingKills || 0);
   const lvl = (profileData && profileData.level) ? profileData.level : 1;
-  const achDone = ACHIEVEMENTS_LIST.filter(a => (s[a.stat] || 0) >= a.target).length;
+  const achDone = s._cachedAchDone !== undefined ? s._cachedAchDone : ACHIEVEMENTS_LIST.filter(a => (s[a.stat] || 0) >= a.target).length;
   const missionsDone = (s.dailyMissionsCompleted || 0) + (s.weeklyMissionsCompleted || 0) + (s.eliteMissionsCompleted || 0);
 
   if (u.type === 'default') {
@@ -4061,13 +4141,54 @@ function trySkinWithAd(skinId) {
 }
 
 let activeSubscreenId = null;
+let settingsOpenedFromGame = false;
+let leaderboardCollapsed = false;
+
+function toggleLeaderboardCollapse() {
+  if (!lbEl) lbEl = document.getElementById('leaderboard');
+  if (!lbEl) return;
+  leaderboardCollapsed = !leaderboardCollapsed;
+  lbEl.classList.toggle('collapsed', leaderboardCollapsed);
+  const btn = document.getElementById('lb-toggle-btn');
+  if (btn) btn.setAttribute('aria-expanded', leaderboardCollapsed ? 'false' : 'true');
+  safeStorageSet('serpentRun_lbCollapsed', leaderboardCollapsed ? '1' : '0');
+}
+
+function openIngameSettings() {
+  if (!isGameRunning || isGameOver) {
+    openScreen('settings');
+    return;
+  }
+  settingsOpenedFromGame = true;
+  if (!isPaused) {
+    isPaused = true;
+    pauseStartTime = performance.now();
+  }
+  if (pauseOverlayEl) pauseOverlayEl.style.display = 'none';
+  document.querySelectorAll('.subscreen').forEach(el => { el.style.display = 'none'; });
+  activeSubscreenId = 'settings-screen';
+  const target = document.getElementById(activeSubscreenId);
+  if (target) {
+    target.style.display = 'flex';
+    const backBtn = target.querySelector('.back-pill');
+    if (backBtn) backBtn.textContent = '← Resume Game';
+  }
+  updateSettingsUI();
+}
 
 function openScreen(name) {
+  settingsOpenedFromGame = false;
   if (menuScreenEl) menuScreenEl.style.display = 'none';
   document.querySelectorAll('.subscreen').forEach(el => { el.style.display = 'none'; });
   activeSubscreenId = `${name}-screen`;
   const target = document.getElementById(activeSubscreenId);
-  if (target) target.style.display = 'flex';
+  if (target) {
+    target.style.display = 'flex';
+    if (name === 'settings') {
+      const backBtn = target.querySelector('.back-pill');
+      if (backBtn) backBtn.textContent = '← Menu';
+    }
+  }
   AdManager.refreshBannerVisibility();
   AdManager.syncNativeBannerForScreen(name);
   if (name === 'skins') {
@@ -4086,6 +4207,19 @@ function closeSubscreen() {
   document.querySelectorAll('.subscreen').forEach(el => { el.style.display = 'none'; });
   activeSubscreenId = null;
   AdManager.hideNativeBanner();
+  if (settingsOpenedFromGame && isGameRunning && !isGameOver) {
+    settingsOpenedFromGame = false;
+    if (isPaused) {
+      isPaused = false;
+      totalPausedDuration += performance.now() - pauseStartTime;
+      lastLoopFrameTime = performance.now();
+      fixedStepAccumulator = 0;
+      if (pauseOverlayEl) pauseOverlayEl.style.display = 'none';
+      ensureGameLoop();
+    }
+    return;
+  }
+  settingsOpenedFromGame = false;
   if (menuScreenEl) menuScreenEl.style.display = 'flex';
   refreshMenuHeaderUI();
 }
@@ -4754,10 +4888,14 @@ function showSkinUnlockToast(skin) {
 }
 
 function checkSkinUnlocks() {
+  syncDerivedProfileStats();
+  if (profileData && profileData.stats) {
+    profileData.stats._cachedAchDone = ACHIEVEMENTS_LIST.filter(a => (profileData.stats[a.stat] || 0) >= a.target).length;
+  }
   let changed = false;
   for (const skin of SKINS) {
     if (unlockedSkinIds.has(skin.id) || (skin.unlock && skin.unlock.type === 'default')) continue;
-    const prog = getSkinUnlockProgress(skin);
+    const prog = getSkinUnlockProgress(skin, true);
     if (!prog.earned) continue;
     unlockedSkinIds.add(skin.id);
     changed = true;
@@ -4995,38 +5133,28 @@ function renderPowerups() {
     const remaining = pu.expiresAt - now;
     const blink = remaining < 4000 ? (Math.sin(now * 0.015) > 0 ? 1 : 0.3) : 1;
     const bob = Math.sin(now * 0.004 + age * 0.001) * 4;
-    const baseX = cameraX + toroidDelta(cameraX, pu.x, WORLD_WIDTH);
-    const baseY = cameraY + toroidDelta(cameraY, pu.y, WORLD_HEIGHT);
-    for (let wx = -1; wx <= 1; wx++) {
-      const x = baseX + wx * WORLD_WIDTH;
-      if (x + 20 < bounds.left || x - 20 > bounds.right) continue;
-      for (let wy = -1; wy <= 1; wy++) {
-        const y = baseY + wy * WORLD_HEIGHT + bob;
-        if (y + 20 < bounds.top || y - 20 > bounds.bottom) continue;
-        ctx.save();
-        ctx.globalAlpha = blink;
-        // Glow
-        drawCachedGlow(pu.glow, x, y, 16, 0.7);
-        // Background circle
-        ctx.fillStyle = pu.color;
-        ctx.beginPath();
-        ctx.arc(x, y, 10, 0, Math.PI * 2);
-        ctx.fill();
-        // White inner ring
-        ctx.strokeStyle = 'rgba(255,255,255,.65)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(x, y, 10, 0, Math.PI * 2);
-        ctx.stroke();
-        // Icon
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 11px system-ui, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(pu.icon, x, y + 1);
-        ctx.restore();
-      }
-    }
+    const x = cameraX + toroidDelta(cameraX, pu.x, WORLD_WIDTH);
+    if (x + 20 < bounds.left || x - 20 > bounds.right) continue;
+    const y = cameraY + toroidDelta(cameraY, pu.y, WORLD_HEIGHT) + bob;
+    if (y + 20 < bounds.top || y - 20 > bounds.bottom) continue;
+    ctx.save();
+    ctx.globalAlpha = blink;
+    drawCachedGlow(pu.glow, x, y, 16, 0.7);
+    ctx.fillStyle = pu.color;
+    ctx.beginPath();
+    ctx.arc(x, y, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.65)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(x, y, 10, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(pu.icon, x, y + 1);
+    ctx.restore();
   }
 }
 
@@ -5572,9 +5700,15 @@ function killBot(bot, killer = null) {
   sfxBotDeath();
 }
 
+let cachedKingSnake = null;
+let cachedKingFrame = -1;
+
 function getKingSnake() {
+  if (cachedKingFrame === animFrame && cachedKingSnake && cachedKingSnake.alive) return cachedKingSnake;
   let king = null;
   for (const snake of snakeRoster) if (snake.alive && (!king || snake.length > king.length)) king = snake;
+  cachedKingSnake = king;
+  cachedKingFrame = animFrame;
   return king;
 }
 
@@ -5979,9 +6113,10 @@ function updateHUDAndLeaderboard() {
       recordMissionProgress('single_survive', survivalSeconds, true);
     }
   }
-  checkSkinUnlocks();
   if (now - lastHudRefreshAt < 250) return;
   lastHudRefreshAt = now;
+  checkSkinUnlocks();
+  flushDeferredProfileSave(false);
 
   const allSnakes = leaderboardOrder.filter(s => s.alive);
   allSnakes.sort((a, b) => b.length - a.length);
@@ -6152,6 +6287,7 @@ function goHome() {
   lbEl.style.display = 'none';
   document.querySelectorAll('.subscreen').forEach(el => { el.style.display = 'none'; });
   activeSubscreenId = null;
+  settingsOpenedFromGame = false;
   menuScreenEl.style.display = 'flex';
   updateMenuRecordsDisplay();
   refreshMenuHeaderUI();
@@ -6244,6 +6380,8 @@ function initInput() {
   const pauseButton = document.getElementById('pause-btn');
   const homeButton = document.getElementById('home-btn');
   const muteButton = document.getElementById('mute-btn');
+  const hudSettingsButton = document.getElementById('hud-settings-btn');
+  const lbToggleButton = document.getElementById('lb-toggle-btn');
   const abilityDock = document.getElementById('ability-dock');
   pauseButton.addEventListener('pointerdown', (e) => e.stopPropagation());
   pauseButton.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
@@ -6257,6 +6395,14 @@ function initInput() {
   if (muteButton) {
     muteButton.addEventListener('pointerdown', (e) => e.stopPropagation());
     muteButton.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+  }
+  if (hudSettingsButton) {
+    hudSettingsButton.addEventListener('pointerdown', (e) => e.stopPropagation());
+    hudSettingsButton.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+  }
+  if (lbToggleButton) {
+    lbToggleButton.addEventListener('pointerdown', (e) => e.stopPropagation());
+    lbToggleButton.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
   }
   if (abilityDock) {
     abilityDock.addEventListener('pointerdown', (e) => e.stopPropagation());
@@ -6549,81 +6695,72 @@ function renderBackground() {
   const planktonAlpha = graphicsQuality === 'low' ? 0 : currentCycle.plankton * (graphicsQuality === 'medium' ? 0.65 : 1);
   if (planktonAlpha > 0.005) {
     const bounds = cameraViewBounds(4);
+    ctx.fillStyle = '#9cf8df';
     for (const dot of plankton) {
+      const x = cameraX + toroidDelta(cameraX, dot.x, WORLD_WIDTH);
+      if (x + dot.size < bounds.left || x - dot.size > bounds.right) continue;
+      const y = cameraY + toroidDelta(cameraY, dot.y, WORLD_HEIGHT);
+      if (y + dot.size < bounds.top || y - dot.size > bounds.bottom) continue;
       const twinkle = 0.72 + Math.sin(animFrame * 0.035 + dot.phase) * 0.28;
       ctx.globalAlpha = planktonAlpha * twinkle;
-      ctx.fillStyle = '#9cf8df';
-      const baseX = cameraX + toroidDelta(cameraX, dot.x, WORLD_WIDTH);
-      const baseY = cameraY + toroidDelta(cameraY, dot.y, WORLD_HEIGHT);
-      for (let wx = -1; wx <= 1; wx++) {
-        const x = baseX + wx * WORLD_WIDTH;
-        if (x + dot.size < bounds.left || x - dot.size > bounds.right) continue;
-        for (let wy = -1; wy <= 1; wy++) {
-          const y = baseY + wy * WORLD_HEIGHT;
-          if (y + dot.size < bounds.top || y - dot.size > bounds.bottom) continue;
-          ctx.beginPath();
-          ctx.arc(x, y, dot.size, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
+      ctx.beginPath();
+      ctx.arc(x, y, dot.size, 0, Math.PI * 2);
+      ctx.fill();
     }
     ctx.globalAlpha = 1;
   }
 }
 
 function renderDangerZone() {
-  const baseX = cameraX + toroidDelta(cameraX, WORLD_WIDTH / 2, WORLD_WIDTH);
-  const baseY = cameraY + toroidDelta(cameraY, WORLD_HEIGHT / 2, WORLD_HEIGHT);
+  const x = cameraX + toroidDelta(cameraX, WORLD_WIDTH / 2, WORLD_WIDTH);
+  const y = cameraY + toroidDelta(cameraY, WORLD_HEIGHT / 2, WORLD_HEIGHT);
   const bounds = cameraViewBounds(DANGER_ZONE_RADIUS + 10);
+  if (x + DANGER_ZONE_RADIUS < bounds.left || x - DANGER_ZONE_RADIUS > bounds.right || y + DANGER_ZONE_RADIUS < bounds.top || y - DANGER_ZONE_RADIUS > bounds.bottom) return;
   ctx.save();
-  for (let wx = -1; wx <= 1; wx++) for (let wy = -1; wy <= 1; wy++) {
-    const x = baseX + wx * WORLD_WIDTH;
-    const y = baseY + wy * WORLD_HEIGHT;
-    if (x + DANGER_ZONE_RADIUS < bounds.left || x - DANGER_ZONE_RADIUS > bounds.right || y + DANGER_ZONE_RADIUS < bounds.top || y - DANGER_ZONE_RADIUS > bounds.bottom) continue;
+  if (graphicsQuality === 'low') {
+    ctx.fillStyle = 'rgba(250, 204, 21, 0.055)';
+  } else {
     const gradient = ctx.createRadialGradient(x, y, DANGER_ZONE_RADIUS * 0.25, x, y, DANGER_ZONE_RADIUS);
     gradient.addColorStop(0, 'rgba(250,204,21,.10)');
     gradient.addColorStop(1, 'rgba(245,158,11,.015)');
     ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(x, y, DANGER_ZONE_RADIUS, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(250,204,21,.28)';
-    ctx.lineWidth = 5;
-    ctx.setLineDash([22, 18]);
-    ctx.stroke();
-    ctx.setLineDash([]);
   }
+  ctx.beginPath();
+  ctx.arc(x, y, DANGER_ZONE_RADIUS, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(250,204,21,.28)';
+  ctx.lineWidth = 5;
+  ctx.setLineDash([22, 18]);
+  ctx.stroke();
+  ctx.setLineDash([]);
   ctx.restore();
 }
 
 function renderFood() {
   const now = performance.now();
   const bounds = cameraViewBounds(24);
+  const showFoodGlow = graphicsQuality !== 'low';
+  const glowAlpha = graphicsQuality === 'medium' ? 0.65 : 0.92;
+  const glowScale = 1.05 + currentCycle.nightFactor * 0.65;
   for (const orb of foodOrbs) {
     const birthProgress = orb.burstAt ? Math.min(1, Math.max(0, (now - orb.burstAt - orb.burstDelay) / 220)) : 1;
     if (birthProgress <= 0) continue;
     const radius = Math.max(1, orb.baseRadius * 0.72 * (orb.burstAt ? birthProgress : 1));
+    const x = cameraX + toroidDelta(cameraX, orb.x, WORLD_WIDTH);
+    if (x + radius < bounds.left || x - radius > bounds.right) continue;
+    const y = cameraY + toroidDelta(cameraY, orb.y, WORLD_HEIGHT);
+    if (y + radius < bounds.top || y - radius > bounds.bottom) continue;
     ctx.globalAlpha = orb.burstAt ? birthProgress : 1;
-    const baseX = cameraX + toroidDelta(cameraX, orb.x, WORLD_WIDTH);
-    const baseY = cameraY + toroidDelta(cameraY, orb.y, WORLD_HEIGHT);
-    for (let wx = -1; wx <= 1; wx++) {
-      const x = baseX + wx * WORLD_WIDTH;
-      if (x + radius < bounds.left || x - radius > bounds.right) continue;
-      for (let wy = -1; wy <= 1; wy++) {
-        const y = baseY + wy * WORLD_HEIGHT;
-        if (y + radius < bounds.top || y - radius > bounds.bottom) continue;
-        if (graphicsQuality !== 'low') drawCachedGlow(orb.glow, x, y, radius * (1.05 + currentCycle.nightFactor * 0.65), graphicsQuality === 'medium' ? 0.65 : 0.92);
-        ctx.fillStyle = orb.color;
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fill();
-        if (graphicsQuality !== 'low' && radius >= 4.5) {
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.42)';
-          ctx.beginPath();
-          ctx.arc(x - radius * 0.24, y - radius * 0.24, radius * 0.32, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
+    if (showFoodGlow) drawCachedGlow(orb.glow, x, y, radius * glowScale, glowAlpha);
+    ctx.fillStyle = orb.color;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    if (radius >= 4.2) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.38)';
+      ctx.beginPath();
+      ctx.arc(x - radius * 0.24, y - radius * 0.24, radius * 0.30, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
   ctx.globalAlpha = 1;
@@ -6642,6 +6779,10 @@ function renderFloatingTexts() {
       if (floatingTextPool.length < 64) floatingTextPool.push(item);
       continue;
     }
+    const x = cameraX + toroidDelta(cameraX, item.x, WORLD_WIDTH);
+    if (x + 24 < bounds.left || x - 24 > bounds.right) continue;
+    const y = cameraY + toroidDelta(cameraY, item.y - age * 0.035, WORLD_HEIGHT);
+    if (y + 24 < bounds.top || y - 24 > bounds.bottom) continue;
     const fade = 1 - age / 900;
     ctx.save();
     ctx.globalAlpha = fade;
@@ -6650,18 +6791,8 @@ function renderFloatingTexts() {
     ctx.textAlign = 'center';
     ctx.lineWidth = 2.5;
     ctx.strokeStyle = 'rgba(15,23,42,.86)';
-    const baseX = cameraX + toroidDelta(cameraX, item.x, WORLD_WIDTH);
-    const baseY = cameraY + toroidDelta(cameraY, item.y - age * 0.035, WORLD_HEIGHT);
-    for (let wx = -1; wx <= 1; wx++) {
-      const x = baseX + wx * WORLD_WIDTH;
-      if (x + 24 < bounds.left || x - 24 > bounds.right) continue;
-      for (let wy = -1; wy <= 1; wy++) {
-        const y = baseY + wy * WORLD_HEIGHT;
-        if (y + 24 < bounds.top || y - 24 > bounds.bottom) continue;
-        ctx.strokeText(item.text, x, y);
-        ctx.fillText(item.text, x, y);
-      }
-    }
+    ctx.strokeText(item.text, x, y);
+    ctx.fillText(item.text, x, y);
     ctx.restore();
   }
 }
@@ -6685,18 +6816,13 @@ function renderRareOrb() {
   const shimmer = 0.82 + Math.sin(now * 0.009) * 0.18;
   const rotation = now * 0.0012;
   const bounds = cameraViewBounds(26);
-  const baseX = cameraX + toroidDelta(cameraX, rareOrb.x, WORLD_WIDTH);
-  const baseY = cameraY + toroidDelta(cameraY, rareOrb.y, WORLD_HEIGHT);
-  for (let wx = -1; wx <= 1; wx++) {
-    const x = baseX + wx * WORLD_WIDTH;
-    if (x + 26 < bounds.left || x - 26 > bounds.right) continue;
-    for (let wy = -1; wy <= 1; wy++) {
-      const y = baseY + wy * WORLD_HEIGHT;
-      if (y + 26 < bounds.top || y - 26 > bounds.bottom) continue;
+  const x = cameraX + toroidDelta(cameraX, rareOrb.x, WORLD_WIDTH);
+  const y = cameraY + toroidDelta(cameraY, rareOrb.y, WORLD_HEIGHT);
+  if (x + 26 >= bounds.left && x - 26 <= bounds.right && y + 26 >= bounds.top && y - 26 <= bounds.bottom) {
     ctx.save();
     ctx.translate(x, y);
     ctx.globalAlpha = shimmer;
-    drawCachedGlow('rgba(255, 224, 145, 0.95)', 0, 0, (10 + currentCycle.nightFactor * 4) * FOOD_SIZE_SCALE, graphicsQuality === 'low' ? 0.35 : 0.95);
+    drawCachedGlow('rgba(255, 224, 145, 0.95)', 0, 0, (10 + currentCycle.nightFactor * 4) * FOOD_SIZE_SCALE, graphicsQuality === 'low' ? 0.45 : 0.95);
     ctx.fillStyle = '#fff8df';
     ctx.beginPath();
     ctx.arc(0, 0, 6.5 * FOOD_SIZE_SCALE, 0, Math.PI * 2);
@@ -6717,7 +6843,6 @@ function renderRareOrb() {
       ctx.fill();
     }
     ctx.restore();
-    }
   }
 
   if (rareIndicatorEl && animFrame % 4 === 0) {
@@ -6775,22 +6900,16 @@ function drawGlowTrail(snake) {
 function renderParticles() {
   const bounds = cameraViewBounds(12);
   for (const p of particles) {
+    const x = cameraX + toroidDelta(cameraX, p.x, WORLD_WIDTH);
+    if (x + p.size < bounds.left || x - p.size > bounds.right) continue;
+    const y = cameraY + toroidDelta(cameraY, p.y, WORLD_HEIGHT);
+    if (y + p.size < bounds.top || y - p.size > bounds.bottom) continue;
     ctx.globalAlpha = p.alpha;
     ctx.fillStyle = p.color;
-    const baseX = cameraX + toroidDelta(cameraX, p.x, WORLD_WIDTH);
-    const baseY = cameraY + toroidDelta(cameraY, p.y, WORLD_HEIGHT);
-    for (let wx = -1; wx <= 1; wx++) {
-      const x = baseX + wx * WORLD_WIDTH;
-      if (x + p.size < bounds.left || x - p.size > bounds.right) continue;
-      for (let wy = -1; wy <= 1; wy++) {
-        const y = baseY + wy * WORLD_HEIGHT;
-        if (y + p.size < bounds.top || y - p.size > bounds.bottom) continue;
-        if (graphicsQuality === 'high') drawCachedGlow(p.color, x, y, p.size * 1.5, p.alpha * 0.35);
-        ctx.beginPath();
-        ctx.arc(x, y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
+    if (graphicsQuality === 'high') drawCachedGlow(p.color, x, y, p.size * 1.5, p.alpha * 0.35);
+    ctx.beginPath();
+    ctx.arc(x, y, p.size, 0, Math.PI * 2);
+    ctx.fill();
   }
   ctx.globalAlpha = 1;
 }
@@ -7035,22 +7154,34 @@ function drawSkinPattern(cx, cy, radius, angle, palette, index) {
   }
 }
 
-function drawNameTag(name, x, y, color) {
+const nameTagWidthCache = new Map();
+
+function drawNameTag(name, x, y, color, headVisualScale = 1) {
   ctx.save();
   ctx.font = 'bold 11px system-ui, sans-serif';
-  const textWidth = ctx.measureText(name).width;
+  let textWidth = nameTagWidthCache.get(name);
+  if (textWidth === undefined) {
+    textWidth = ctx.measureText(name).width;
+    if (nameTagWidthCache.size > 160) nameTagWidthCache.clear();
+    nameTagWidthCache.set(name, textWidth);
+  }
   const paddingX = 8;
   const tagHeight = 18;
   const tagWidth = textWidth + paddingX * 2;
-  const tagY = y - 26;
+  const tagY = y - Math.round(26 * headVisualScale);
 
   ctx.fillStyle = 'rgba(8, 13, 24, 0.78)';
   ctx.strokeStyle = color;
   ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.roundRect(x - tagWidth / 2, tagY, tagWidth, tagHeight, 9);
-  ctx.fill();
-  ctx.stroke();
+  if (graphicsQuality === 'low') {
+    ctx.fillRect(x - tagWidth / 2, tagY, tagWidth, tagHeight);
+    ctx.strokeRect(x - tagWidth / 2, tagY, tagWidth, tagHeight);
+  } else {
+    ctx.beginPath();
+    ctx.roundRect(x - tagWidth / 2, tagY, tagWidth, tagHeight, 9);
+    ctx.fill();
+    ctx.stroke();
+  }
 
   ctx.fillStyle = '#F5F7FF';
   ctx.textAlign = 'center';
@@ -7059,15 +7190,15 @@ function drawNameTag(name, x, y, color) {
   ctx.restore();
 }
 
-function drawCrownOnKing(snake) {
+function drawCrownOnKing(snake, headVisualScale = 1) {
   const crownScale = Math.max(22, Math.min(48, Math.round(width * 0.028 / Math.max(0.4, cameraZoom))));
+  const crownY = snake.y - Math.round(32 * headVisualScale);
+  drawCachedGlow('rgba(255, 176, 32, 0.78)', snake.x, crownY - crownScale * 0.4, crownScale * 0.42, 0.75);
   ctx.save();
   ctx.font = `${crownScale}px system-ui, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
-  ctx.shadowColor = 'rgba(255, 176, 32, 0.85)';
-  ctx.shadowBlur = 10;
-  ctx.fillText('👑', snake.x, snake.y - 32);
+  ctx.fillText('👑', snake.x, crownY);
   ctx.restore();
 }
 
@@ -7075,6 +7206,12 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   if (!snake.alive) return;
   const segs = snake.segments;
   if (segs.length === 0) return;
+
+  const isMobViewport = width <= 768 || isMobileDevice;
+  const bodyVisualScale = isMobViewport ? 1.30 : 1.0;
+  const headVisualScale = isMobViewport ? 1.18 : 1.0;
+  const bodyTaper = isMobViewport ? 0.58 : 0.72;
+  const minSegRadius = isMobViewport ? 4.8 : 3.5;
 
   ctx.save();
   ctx.translate(offsetX, offsetY);
@@ -7084,21 +7221,21 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
 
   // Tongue
   if (snake.tongueProgress > 0) {
-    const tLen = snake.tongueProgress * 16;
-    const hx = snake.x + Math.cos(snake.angle) * HEAD_RADIUS;
-    const hy = snake.y + Math.sin(snake.angle) * HEAD_RADIUS;
+    const tLen = snake.tongueProgress * 16 * headVisualScale;
+    const hx = snake.x + Math.cos(snake.angle) * (HEAD_RADIUS * headVisualScale);
+    const hy = snake.y + Math.sin(snake.angle) * (HEAD_RADIUS * headVisualScale);
     const tx = hx + Math.cos(snake.angle) * tLen;
     const ty = hy + Math.sin(snake.angle) * tLen;
 
     const forkAngle = 0.45;
-    const forkLen = 5 * snake.tongueProgress;
+    const forkLen = 5 * snake.tongueProgress * headVisualScale;
     const f1x = tx + Math.cos(snake.angle + forkAngle) * forkLen;
     const f1y = ty + Math.sin(snake.angle + forkAngle) * forkLen;
     const f2x = tx + Math.cos(snake.angle - forkAngle) * forkLen;
     const f2y = ty + Math.sin(snake.angle - forkAngle) * forkLen;
 
     ctx.strokeStyle = pal.tongue;
-    ctx.lineWidth = 1.8;
+    ctx.lineWidth = 1.8 * headVisualScale;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(hx, hy);
@@ -7113,19 +7250,20 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   const protectedNow = performance.now() < snake.protectedUntil;
   const protectionAlpha = 0.42 + Math.sin(performance.now() * 0.035) * 0.34;
   const far = toroidDistSq(player.x, player.y, snake.x, snake.y) > (Math.min(width, height) / cameraZoom * 0.42) ** 2;
-  const segmentStride = graphicsQuality === 'low' ? (far ? 6 : 3) : (far ? 3 : 1);
-  const bandCount = graphicsQuality === 'low' ? (far ? 1 : 2) : (far ? 2 : 4);
+  const segmentStride = graphicsQuality === 'low' ? (far ? 5 : 2) : (far ? 3 : 1);
+  const bandCount = graphicsQuality === 'low' ? (far ? 1 : 2) : (far ? 2 : 3);
   const nightGlow = currentCycle.nightFactor * (graphicsQuality === 'low' ? 0.25 : (graphicsQuality === 'medium' ? 0.62 : 1));
   const hasAmbientAura = Boolean(pal.trailEffect) && graphicsQuality !== 'low';
-  if (!far && (nightGlow > 0.08 || hasAmbientAura)) {
-    const auraStride = hasAmbientAura ? 16 : 24;
-    const auraAlpha = Math.max(nightGlow * 0.48, hasAmbientAura ? 0.26 : 0);
+  const mobileBaseGlow = isMobViewport ? 0.22 : 0;
+  if (!far && (nightGlow > 0.08 || hasAmbientAura || mobileBaseGlow > 0)) {
+    const auraStride = hasAmbientAura ? 16 : 20;
+    const auraAlpha = Math.max(nightGlow * 0.48, hasAmbientAura ? 0.26 : 0, mobileBaseGlow);
     for (let i = 0; i < segs.length; i += auraStride) {
       const seg = segs[i];
       const perp = seg.angle + Math.PI / 2;
       const x = snake.x + toroidDelta(snake.x, seg.x, WORLD_WIDTH) + Math.cos(perp) * seg.lateralOffset;
       const y = snake.y + toroidDelta(snake.y, seg.y, WORLD_HEIGHT) + Math.sin(perp) * seg.lateralOffset;
-      drawCachedGlow(pal.glow, x, y, Math.max(3, HEAD_RADIUS * (1 - i / segs.length * 0.72)), auraAlpha);
+      drawCachedGlow(pal.glow, x, y, Math.max(minSegRadius, HEAD_RADIUS * bodyVisualScale * (1 - i / segs.length * bodyTaper)), auraAlpha);
     }
   }
   for (let band = 0; band < bandCount; band++) {
@@ -7140,7 +7278,7 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
       const progress = i / segs.length;
       if (Math.min(bandCount - 1, Math.floor(progress * bandCount)) !== band) continue;
       const seg = segs[i];
-      const radius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));
+      const radius = Math.max(minSegRadius, HEAD_RADIUS * bodyVisualScale * (1 - progress * bodyTaper));
       const perp = seg.angle + Math.PI / 2;
       const x = snake.x + toroidDelta(snake.x, seg.x, WORLD_WIDTH) + Math.cos(perp) * seg.lateralOffset;
       const y = snake.y + toroidDelta(snake.y, seg.y, WORLD_HEIGHT) + Math.sin(perp) * seg.lateralOffset;
@@ -7150,12 +7288,29 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     ctx.fill();
     if (protectedNow) { ctx.stroke(); ctx.globalAlpha = 1; }
   }
+  // Subtle dorsal luminance highlight on mobile for high readability against dark arena
+  if (isMobViewport && !far) {
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
+    const spineStride = graphicsQuality === 'low' ? 4 : 2;
+    for (let i = segs.length - 1; i >= 0; i -= spineStride) {
+      const progress = i / segs.length;
+      const seg = segs[i];
+      const radius = Math.max(minSegRadius, HEAD_RADIUS * bodyVisualScale * (1 - progress * bodyTaper)) * 0.42;
+      const perp = seg.angle + Math.PI / 2;
+      const x = snake.x + toroidDelta(snake.x, seg.x, WORLD_WIDTH) + Math.cos(perp) * seg.lateralOffset;
+      const y = snake.y + toroidDelta(snake.y, seg.y, WORLD_HEIGHT) + Math.sin(perp) * seg.lateralOffset;
+      ctx.moveTo(x + radius, y);
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+    }
+    ctx.fill();
+  }
   if (!far) {
-    const detailStride = graphicsQuality === 'low' ? 8 : 3;
+    const detailStride = graphicsQuality === 'low' ? (snake.isPlayer ? 6 : 10) : 3;
     for (let i = 0; i < segs.length; i += detailStride) {
       const seg = segs[i];
       const progress = i / segs.length;
-      const radius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));
+      const radius = Math.max(minSegRadius, HEAD_RADIUS * bodyVisualScale * (1 - progress * bodyTaper));
       const perp = seg.angle + Math.PI / 2;
       const x = snake.x + toroidDelta(snake.x, seg.x, WORLD_WIDTH) + Math.cos(perp) * seg.lateralOffset;
       const y = snake.y + toroidDelta(snake.y, seg.y, WORLD_HEIGHT) + Math.sin(perp) * seg.lateralOffset;
@@ -7169,6 +7324,7 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
       ctx.save();
       ctx.translate(wx, wy);
       ctx.rotate(wSeg.angle);
+      ctx.scale(bodyVisualScale, bodyVisualScale);
       ctx.fillStyle = 'rgba(224, 242, 254, 0.55)';
       const flap = Math.sin(animFrame * 0.45) * 0.22;
       ctx.beginPath();
@@ -7180,10 +7336,12 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   }
 
   // Head
-  drawCachedGlow(pal.glow, snake.x, snake.y, HEAD_RADIUS * (1.5 + Math.max(nightGlow, hasAmbientAura ? 0.45 : 0)), Math.max(nightGlow * 0.75, hasAmbientAura ? 0.4 : 0));
+  const headGlowAlpha = Math.max(nightGlow * 0.75, hasAmbientAura ? 0.42 : 0, isMobViewport ? 0.36 : 0.16);
+  drawCachedGlow(pal.glow, snake.x, snake.y, HEAD_RADIUS * headVisualScale * (1.55 + Math.max(nightGlow, hasAmbientAura ? 0.45 : 0)), headGlowAlpha);
   ctx.save();
   ctx.translate(snake.x, snake.y);
   ctx.rotate(snake.angle);
+  if (headVisualScale !== 1) ctx.scale(headVisualScale, headVisualScale);
 
   const headShape = pal.headShape || 'round';
 
@@ -7380,10 +7538,12 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
 
   const isKing = isKingSnake(snake);
   if (isKing) {
-    drawCrownOnKing(snake);
+    drawCrownOnKing(snake, headVisualScale);
   }
-  const tagName = `${isKing ? '👑 ' : ''}${snake.isPlayer ? snake.name : `${snake.personality.icon} ${snake.name}`}`;
-  drawNameTag(tagName, snake.x, snake.y, pal.head);
+  if (snake.isPlayer || isKing || !far || graphicsQuality === 'high') {
+    const tagName = `${isKing ? '👑 ' : ''}${snake.isPlayer ? snake.name : `${snake.personality.icon} ${snake.name}`}`;
+    drawNameTag(tagName, snake.x, snake.y, pal.head, headVisualScale);
+  }
 
   ctx.restore();
 }
@@ -7448,11 +7608,16 @@ function render() {
 }
 
 function renderMinimap() {
-  const size = height <= 500 ? 84 : Math.min(126, Math.max(92, Math.min(width, height) * 0.23));
+  const isMobViewport = width <= 768 || isMobileDevice;
+  const size = height <= 500
+    ? 78
+    : isMobViewport
+      ? Math.min(98, Math.max(80, Math.min(width, height) * 0.21))
+      : Math.min(126, Math.max(92, Math.min(width, height) * 0.23));
   const radius = size / 2;
-  const cx = width - radius - 12;
-  const cy = height - radius - 14;
-  const mapRadius = radius - 7;
+  const cx = width - radius - (isMobViewport ? 10 : 12);
+  const cy = height - radius - (isMobViewport ? 14 : 14);
+  const mapRadius = radius - 6;
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
@@ -7581,6 +7746,12 @@ window.addEventListener('DOMContentLoaded', () => {
   isMuted = localStorage.getItem('neonSerpents_muted') === '1';
   loadProfileData();
   if (muteBtnEl) muteBtnEl.textContent = isMuted ? '🔇' : '🔊';
+  if (safeStorageGet('serpentRun_lbCollapsed') === '1' && lbEl) {
+    leaderboardCollapsed = true;
+    lbEl.classList.add('collapsed');
+    const lbBtn = document.getElementById('lb-toggle-btn');
+    if (lbBtn) lbBtn.setAttribute('aria-expanded', 'false');
+  }
 
   onResize();
   initializeGraphicsSettings();
