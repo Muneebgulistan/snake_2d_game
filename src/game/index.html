@@ -1876,8 +1876,8 @@ const FOOD_COUNT = Math.max(1, Math.round(42 * FOOD_DENSITY * (WORLD_WIDTH * WOR
 const MAX_VISIBLE_FOOD = 19; // +25% from 15
 const FOOD_RESPAWN_DELAY_MS = 720; // 25% faster respawn throughput (900 / 1.25)
 const DANGER_ZONE_FOOD_COUNT = 53; // +25% from 42
-const FOOD_PICKUP_RADIUS = HEAD_RADIUS + 11 * FOOD_SIZE_SCALE;
-const RARE_ORB_PICKUP_RADIUS = HEAD_RADIUS + 14 * FOOD_SIZE_SCALE;
+const FOOD_PICKUP_RADIUS = HEAD_RADIUS + 13 * FOOD_SIZE_SCALE;
+const RARE_ORB_PICKUP_RADIUS = HEAD_RADIUS + 16 * FOOD_SIZE_SCALE;
 const FOOD_GRID_COLUMNS = Math.ceil(Math.sqrt(FOOD_COUNT));
 const FOOD_GRID_ROWS = Math.ceil(FOOD_COUNT / FOOD_GRID_COLUMNS);
 const foodGridTaken = new Uint8Array(FOOD_COUNT);
@@ -2400,25 +2400,43 @@ function insertSpatialItem(x, y, owner, segment, segmentIndex, kind, radius) {
   spatialHeads[cell] = slot;
 }
 
+function getSnakeBodyGrowthScale(len) {
+  const excess = Math.max(0, (len || INITIAL_SEGMENTS) - 18);
+  return Math.min(1.82, 1.12 + 0.66 * (1 - Math.exp(-excess / 160)));
+}
+
+function getSnakeHeadGrowthScale(len) {
+  const bodyMul = getSnakeBodyGrowthScale(len);
+  return 1.0 + (bodyMul - 1.0) * 0.85;
+}
+
+function getSnakeAgilityFactor(len) {
+  const excess = Math.max(0, (len || INITIAL_SEGMENTS) - INITIAL_SEGMENTS);
+  return Math.max(0.76, 1.0 - 0.24 * (1 - Math.exp(-excess / 190)));
+}
+
 function buildSpatialHash() {
   spatialHeads.fill(-1);
   spatialItemCount = 0;
   for (const snake of snakeRoster) {
     if (!snake.alive) continue;
-    insertSpatialItem(snake.x, snake.y, snake, null, -1, 1, HEAD_RADIUS);
+    const headGrowth = getSnakeHeadGrowthScale(snake.length);
+    const bodyGrowth = getSnakeBodyGrowthScale(snake.length);
+    insertSpatialItem(snake.x, snake.y, snake, null, -1, 1, HEAD_RADIUS * headGrowth);
     const length = snake.segments.length;
     // Stride-2 body insertion halves spatial hash insertions & collision loop checks while always including the tail segment
     for (let i = 1; i < length; i += 2) {
       const segment = snake.segments[i];
       const progress = i / length;
-      const bodyRadius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));
-      insertSpatialItem(segment.x, segment.y, snake, segment, i, 0, Math.max(8.8, (HEAD_RADIUS + bodyRadius) * 0.78));
+      const taperCurve = Math.pow(progress, 1.38);
+      const bodyRadius = Math.max(3.8, HEAD_RADIUS * bodyGrowth * (1 - taperCurve * 0.56));
+      insertSpatialItem(segment.x, segment.y, snake, segment, i, 0, Math.max(9.0, (HEAD_RADIUS * headGrowth + bodyRadius) * 0.76));
     }
     if (length > 2 && (length - 1) % 2 === 0) {
       const tailIdx = length - 1;
       const tailSeg = snake.segments[tailIdx];
-      const tailRadius = Math.max(3.5, HEAD_RADIUS * 0.28);
-      insertSpatialItem(tailSeg.x, tailSeg.y, snake, tailSeg, tailIdx, 0, Math.max(8.8, (HEAD_RADIUS + tailRadius) * 0.78));
+      const tailRadius = Math.max(3.8, HEAD_RADIUS * bodyGrowth * 0.44);
+      insertSpatialItem(tailSeg.x, tailSeg.y, snake, tailSeg, tailIdx, 0, Math.max(9.0, (HEAD_RADIUS * headGrowth + tailRadius) * 0.76));
     }
   }
   for (const orb of foodOrbs) {
@@ -3753,9 +3771,10 @@ function updateCamera() {
   cameraX = wrap(cameraX + toroidDelta(cameraX, player.x, WORLD_WIDTH) * CAMERA_LERP, WORLD_WIDTH);
   cameraY = wrap(cameraY + toroidDelta(cameraY, player.y, WORLD_HEIGHT) * CAMERA_LERP, WORLD_HEIGHT);
   const isMobViewport = width <= 768 || isMobileDevice;
-  const mobilePortraitBoost = (isMobViewport && width < height) ? 1.16 : (isMobViewport ? 1.08 : 1.0);
+  const mobilePortraitBoost = (isMobViewport && width < height) ? 1.30 : (isMobViewport ? 1.14 : 1.0);
   const baseZoom = Math.sqrt((width * height) / (REFERENCE_VIEW_WIDTH * REFERENCE_VIEW_HEIGHT)) * mobilePortraitBoost;
-  const growthZoomOut = Math.min(CAMERA_ZOOM_OUT_MAX, Math.max(0, (player.length - INITIAL_SEGMENTS) / 80 * CAMERA_ZOOM_OUT_MAX));
+  const maxZoomOut = isMobViewport ? Math.min(0.18, CAMERA_ZOOM_OUT_MAX) : CAMERA_ZOOM_OUT_MAX;
+  const growthZoomOut = Math.min(maxZoomOut, Math.max(0, (player.length - INITIAL_SEGMENTS) / 140 * maxZoomOut));
   const targetZoom = baseZoom / (1 + growthZoomOut);
   cameraZoom += (targetZoom - cameraZoom) * 0.08;
 }
@@ -5319,13 +5338,15 @@ function findSafeSpawnCoords() {
 function createBot(config, index) {
   const pos = findSafeSpawnCoords();
   const initialAngle = Math.random() * Math.PI * 2;
-  const initialLength = INITIAL_SEGMENTS - 5 + Math.floor(Math.random() * 12);
+  // Seed tiered rival sizes so the arena has immediate medium & large contenders
+  const sizeTierBonus = index === 0 ? 45 : index < 4 ? 22 : index < 10 ? 10 : 0;
+  const initialLength = INITIAL_SEGMENTS - 3 + Math.floor(Math.random() * 12) + sizeTierBonus;
   const segments = [];
 
   for (let i = 0; i < initialLength; i++) {
     segments.push({
-      x: pos.x,
-      y: pos.y + i * SEGMENT_SPACING,
+      x: wrap(pos.x - Math.cos(initialAngle) * i * SEGMENT_SPACING, WORLD_WIDTH),
+      y: wrap(pos.y - Math.sin(initialAngle) * i * SEGMENT_SPACING, WORLD_HEIGHT),
       angle: initialAngle,
       lateralOffset: 0
     });
@@ -5339,8 +5360,8 @@ function createBot(config, index) {
     y: pos.y,
     angle: initialAngle,
     targetAngle: initialAngle,
-    speed: getActiveSpeed() * (0.95 + Math.random() * 0.1),
-    turnRate: TURN_RATE * (0.9 + Math.random() * 0.2),
+    speed: getActiveSpeed() * (0.96 + Math.random() * 0.1),
+    turnRate: TURN_RATE * (0.94 + Math.random() * 0.2),
     length: initialLength,
     segments,
     palette: config.palette,
@@ -5357,13 +5378,16 @@ function createBot(config, index) {
     protectedUntil: performance.now() + 2000,
     respawnTimer: 0,
     sameTurnCount: 0, // Anti-spin watchdog
+    dashUntil: 0,
+    speedBoostUntil: 0,
+    botDashReadyAt: performance.now() + 4000 + Math.random() * 5000,
     personality: {
       ...BOT_PERSONALITIES[index % BOT_PERSONALITIES.length],
-      aggressiveness: 0.2 + Math.random() * 0.5,
-      lookAheadDist: 68 + Math.random() * 24,
+      aggressiveness: 0.35 + Math.random() * 0.55,
+      lookAheadDist: 78 + Math.random() * 34,
       orbitAngle: Math.random() * Math.PI * 2,
       orbitRadius: 150,
-      reactionMs: 45 + Math.random() * 22,
+      reactionMs: 32 + Math.random() * 20,
       nextDecisionAt: 0,
       cachedDesiredAngle: initialAngle
     }
@@ -5396,8 +5420,11 @@ function respawnBot(bot) {
   bot.lastTrailSampleAt = 0;
   bot.angle = Math.random() * Math.PI * 2;
   bot.targetAngle = bot.angle;
-  bot.speed = getActiveSpeed() * (0.95 + Math.random() * 0.1);
-  bot.length = INITIAL_SEGMENTS - 5 + Math.floor(Math.random() * 8);
+  bot.speed = getActiveSpeed() * (0.96 + Math.random() * 0.1);
+  // Progressive difficulty scaling: respawning bots scale up with survival time & player size
+  const timeProgression = Math.min(1, survivalSeconds / 180);
+  const progressiveBonus = Math.round(timeProgression * (currentDifficulty === 'hard' ? 42 : currentDifficulty === 'normal' ? 28 : 16) + Math.max(0, player.length - INITIAL_SEGMENTS) * 0.18);
+  bot.length = INITIAL_SEGMENTS - 3 + Math.floor(Math.random() * 12) + Math.min(85, progressiveBonus);
   bot.segments = [];
   bot.growQueue = 0;
   bot.glowTrailTimer = 0;
@@ -5405,18 +5432,28 @@ function respawnBot(bot) {
   bot.protectedUntil = performance.now() + 2000;
   bot.respawnTimer = 0;
   bot.sameTurnCount = 0;
+  bot.dashUntil = 0;
+  bot.botDashReadyAt = performance.now() + 3500 + Math.random() * 4500;
   bot.personality.nextDecisionAt = 0;
   bot.personality.cachedDesiredAngle = bot.angle;
   bot.personality.orbitRadius = 150;
 
   for (let i = 0; i < bot.length; i++) {
     bot.segments.push({
-      x: pos.x,
-      y: pos.y + i * SEGMENT_SPACING,
+      x: wrap(pos.x - Math.cos(bot.angle) * i * SEGMENT_SPACING, WORLD_WIDTH),
+      y: wrap(pos.y - Math.sin(bot.angle) * i * SEGMENT_SPACING, WORLD_HEIGHT),
       angle: bot.angle,
       lateralOffset: 0
     });
   }
+}
+
+function getMatchDifficultyPhase() {
+  // 0.0 at start (manageable early game) -> 0.5 at 90s / len 90 (mid-game aggression) -> 1.0 at 210s / len 220 (late-game tactical pressure)
+  const timeFactor = Math.min(1, survivalSeconds / 180);
+  const sizeFactor = Math.min(1, Math.max(0, player.length - INITIAL_SEGMENTS) / 180);
+  const diffBias = currentDifficulty === 'hard' ? 0.25 : currentDifficulty === 'normal' ? 0.10 : 0.0;
+  return Math.min(1, Math.max(timeFactor * 0.65 + sizeFactor * 0.35 + diffBias, 0));
 }
 
 function updateBotAI(bot) {
@@ -5425,9 +5462,11 @@ function updateBotAI(bot) {
   const allSnakes = snakeRoster;
   const brain = bot.personality;
   const now = performance.now();
+  const phase = getMatchDifficultyPhase();
+  const isEliteBot = bot.length >= 48 || isKingSnake(bot);
 
-  const farFromView = Math.abs(toroidDelta(cameraX, bot.x, WORLD_WIDTH)) > width / (2 * cameraZoom) + 140 ||
-    Math.abs(toroidDelta(cameraY, bot.y, WORLD_HEIGHT)) > height / (2 * cameraZoom) + 140;
+  const farFromView = Math.abs(toroidDelta(cameraX, bot.x, WORLD_WIDTH)) > width / (2 * cameraZoom) + 180 ||
+    Math.abs(toroidDelta(cameraY, bot.y, WORLD_HEIGHT)) > height / (2 * cameraZoom) + 180;
   if (farFromView) {
     if (animFrame % 4 === bot.aiOffset) {
       let target = rareOrb;
@@ -5439,7 +5478,7 @@ function updateBotAI(bot) {
       if (target) bot.targetAngle = Math.atan2(toroidDelta(bot.y, target.y, WORLD_HEIGHT), toroidDelta(bot.x, target.x, WORLD_WIDTH));
     }
     const farTurn = angleDifference(bot.angle, bot.targetAngle);
-    bot.angle += Math.sign(farTurn) * Math.min(Math.abs(farTurn), bot.turnRate * 0.7);
+    bot.angle += Math.sign(farTurn) * Math.min(Math.abs(farTurn), bot.turnRate * 0.72);
     return;
   }
 
@@ -5451,17 +5490,19 @@ function updateBotAI(bot) {
     let nearestDropDistSq = Infinity;
     for (const orb of foodOrbs) {
       const dSq = toroidDistSq(bot.x, bot.y, orb.x, orb.y);
-      if (dSq < nearestFoodDistSq) { nearestFoodDistSq = dSq; nearestFood = orb; }
+      // Higher value orbs get distance priority so bots actively contest high-value food & death drops
+      const weightedDistSq = orb.value > 1 ? dSq / (orb.value * 1.45) : dSq;
+      if (weightedDistSq < nearestFoodDistSq) { nearestFoodDistSq = weightedDistSq; nearestFood = orb; }
       if (orb.value > 1 && dSq < nearestDropDistSq) { nearestDropDistSq = dSq; nearestDrop = orb; }
     }
 
-    let target = nearestFood;
+    let target = nearestDrop && nearestDropDistSq < 420 * 420 ? nearestDrop : nearestFood;
     if (brain.style === 'scavenger' && nearestDrop) target = nearestDrop;
     let targetDistSq = target ? toroidDistSq(bot.x, bot.y, target.x, target.y) : Infinity;
     let rareTarget = false;
     if (rareOrb) {
       const rareDistanceSq = toroidDistSq(bot.x, bot.y, rareOrb.x, rareOrb.y);
-      if (rareDistanceSq < targetDistSq * 1.8 || rareDistanceSq < 560 * 560) {
+      if (rareDistanceSq < targetDistSq * 2.1 || rareDistanceSq < 680 * 680) {
         target = rareOrb;
         rareTarget = true;
       }
@@ -5474,45 +5515,84 @@ function updateBotAI(bot) {
 
     let closestEnemy = null;
     let closestEnemyDistSq = Infinity;
+    let threateningEnemy = null;
+    let threateningDistSq = Infinity;
     for (const enemy of allSnakes) {
-      if (enemy === bot || !enemy.alive || enemy.length >= bot.length) continue;
+      if (enemy === bot || !enemy.alive) continue;
       const dSq = toroidDistSq(bot.x, bot.y, enemy.x, enemy.y);
-      if (dSq < closestEnemyDistSq) { closestEnemyDistSq = dSq; closestEnemy = enemy; }
+      if (enemy.length < bot.length + 12 && dSq < closestEnemyDistSq) {
+        closestEnemyDistSq = dSq;
+        closestEnemy = enemy;
+      }
+      if (enemy.length >= bot.length + 10 && dSq < threateningDistSq) {
+        threateningDistSq = dSq;
+        threateningEnemy = enemy;
+      }
     }
 
-    const predictIntercept = (enemy, leadFrames = 60, offset = 36) => {
+    const predictIntercept = (enemy, leadFrames = 56, offset = 46) => {
       const x = wrap(enemy.x + Math.cos(enemy.angle) * enemy.speed * leadFrames + Math.cos(enemy.angle) * offset, WORLD_WIDTH);
       const y = wrap(enemy.y + Math.sin(enemy.angle) * enemy.speed * leadFrames + Math.sin(enemy.angle) * offset, WORLD_HEIGHT);
       return Math.atan2(toroidDelta(bot.y, y, WORLD_HEIGHT), toroidDelta(bot.x, x, WORLD_WIDTH));
     };
 
-    if (!rareTarget && brain.style === 'hunter' && (player.alive || closestEnemy)) {
-      const playerDistanceSq = player.alive ? toroidDistSq(bot.x, bot.y, player.x, player.y) : Infinity;
-      const huntTarget = closestEnemy && closestEnemy !== player && closestEnemyDistSq < playerDistanceSq * 0.7
-        ? closestEnemy : (player.alive ? player : closestEnemy);
-      desiredAngle = predictIntercept(huntTarget);
+    const playerDistSq = player.alive ? toroidDistSq(bot.x, bot.y, player.x, player.y) : Infinity;
+    const engageRadiusSq = (320 + phase * 260) ** 2;
+
+    // 1. Smart Evasion when threatened by a much larger snake at close range
+    if (threateningEnemy && threateningDistSq < (135 + phase * 40) ** 2 && bot.length < 40) {
+      const awayX = toroidDelta(threateningEnemy.x, bot.x, WORLD_WIDTH);
+      const awayY = toroidDelta(threateningEnemy.y, bot.y, WORLD_HEIGHT);
+      desiredAngle = Math.atan2(awayY, awayX) + Math.sin(animFrame * 0.08 + bot.aiOffset) * 0.35;
+    }
+    // 2. Route-Cutting & Interception against Player or nearby rivals (scales up with match phase & elite status)
+    else if (!rareTarget && (brain.style === 'hunter' || (isEliteBot && phase > 0.25)) && (player.alive || closestEnemy)) {
+      const preferPlayer = player.alive && playerDistSq < engageRadiusSq && (brain.aggressiveness + phase * 0.45 > 0.48);
+      const huntTarget = preferPlayer ? player : (closestEnemy || (player.alive ? player : null));
+      if (huntTarget) {
+        // Cut across the target's future path to force a body collision trap
+        const distToTarget = Math.sqrt(toroidDistSq(bot.x, bot.y, huntTarget.x, huntTarget.y));
+        const lead = Math.min(78, Math.max(24, distToTarget / Math.max(2.5, bot.speed) * (0.75 + phase * 0.45)));
+        desiredAngle = predictIntercept(huntTarget, lead, 42 + phase * 28);
+        // Tactical AI Dash burst when in position to cut across the player's nose
+        if (huntTarget === player && distToTarget > 75 && distToTarget < 235 && now >= (bot.botDashReadyAt || 0) && (phase > 0.28 || isEliteBot)) {
+          const angleToFront = Math.abs(angleDifference(bot.angle, desiredAngle));
+          if (angleToFront < 0.45) {
+            bot.dashUntil = now + 680;
+            bot.botDashReadyAt = now + (currentDifficulty === 'hard' ? 6500 : 8500) + Math.random() * 3000;
+          }
+        }
+      }
     } else if (!rareTarget && brain.style === 'encircler') {
-      let nearby = null;
-      let nearbyDistSq = Infinity;
-      for (const candidate of allSnakes) {
-        if (candidate === bot || !candidate.alive) continue;
-        const dSq = toroidDistSq(bot.x, bot.y, candidate.x, candidate.y);
-        if (dSq < nearbyDistSq) { nearby = candidate; nearbyDistSq = dSq; }
+      let nearby = (player.alive && playerDistSq < engageRadiusSq) ? player : null;
+      let nearbyDistSq = nearby ? playerDistSq : Infinity;
+      if (!nearby) {
+        for (const candidate of allSnakes) {
+          if (candidate === bot || !candidate.alive) continue;
+          const dSq = toroidDistSq(bot.x, bot.y, candidate.x, candidate.y);
+          if (dSq < nearbyDistSq) { nearby = candidate; nearbyDistSq = dSq; }
+        }
       }
       if (nearby) {
-        brain.orbitAngle += bot.name < nearby.name ? 0.075 : -0.075;
-        brain.orbitRadius = Math.max(62, brain.orbitRadius - 0.08);
-        const orbitX = wrap(nearby.x + Math.cos(brain.orbitAngle) * brain.orbitRadius, WORLD_WIDTH);
-        const orbitY = wrap(nearby.y + Math.sin(brain.orbitAngle) * brain.orbitRadius, WORLD_HEIGHT);
+        brain.orbitAngle += (bot.name < nearby.name ? 1 : -1) * (0.075 + phase * 0.035);
+        brain.orbitRadius = Math.max(54, brain.orbitRadius - (0.09 + phase * 0.08));
+        const leadX = wrap(nearby.x + Math.cos(nearby.angle) * nearby.speed * (14 + phase * 18), WORLD_WIDTH);
+        const leadY = wrap(nearby.y + Math.sin(nearby.angle) * nearby.speed * (14 + phase * 18), WORLD_HEIGHT);
+        const orbitX = wrap(leadX + Math.cos(brain.orbitAngle) * brain.orbitRadius, WORLD_WIDTH);
+        const orbitY = wrap(leadY + Math.sin(brain.orbitAngle) * brain.orbitRadius, WORLD_HEIGHT);
         desiredAngle = Math.atan2(toroidDelta(bot.y, orbitY, WORLD_HEIGHT), toroidDelta(bot.x, orbitX, WORLD_WIDTH));
       }
-    } else if (!rareTarget && brain.style === 'opportunist' && closestEnemy && closestEnemyDistSq < 210 * 210) {
-      desiredAngle = predictIntercept(closestEnemy, 45, 28);
+    } else if (!rareTarget && brain.style === 'opportunist') {
+      if (player.alive && playerDistSq < (250 + phase * 140) ** 2) {
+        desiredAngle = predictIntercept(player, 44 + phase * 22, 38);
+      } else if (closestEnemy && closestEnemyDistSq < (240 + phase * 110) ** 2) {
+        desiredAngle = predictIntercept(closestEnemy, 45, 32);
+      }
     } else if (!rareTarget && brain.style === 'scavenger' && !nearestDrop) {
       let nearbyA = null;
       let nearbyB = null;
-      let nearADist = 210 * 210;
-      let nearBDist = 210 * 210;
+      let nearADist = 260 * 260;
+      let nearBDist = 260 * 260;
       for (const candidate of allSnakes) {
         if (candidate === bot || !candidate.alive) continue;
         const dSq = toroidDistSq(bot.x, bot.y, candidate.x, candidate.y);
@@ -5526,16 +5606,17 @@ function updateBotAI(bot) {
       }
     }
 
-    // Small errors and reaction lag keep the bots beatable.
-    if (Math.random() < 0.025) desiredAngle += (Math.random() < 0.5 ? -1 : 1) * (0.25 + Math.random() * 0.5);
+    // Less error in mid/late game so AI feels sharp and competitive
+    const errorChance = Math.max(0.006, 0.024 - phase * 0.016);
+    if (Math.random() < errorChance) desiredAngle += (Math.random() < 0.5 ? -1 : 1) * (0.18 + Math.random() * 0.35);
     brain.cachedDesiredAngle = desiredAngle;
-    brain.nextDecisionAt = now + brain.reactionMs;
+    brain.nextDecisionAt = now + brain.reactionMs * (1 - phase * 0.25);
   }
 
   const desiredAngle = brain.cachedDesiredAngle;
 
   // Whisker sensors check wrapped distances to bodies ahead (staggered on even/odd frames when many bots are nearby).
-  const lookDist = bot.personality.lookAheadDist;
+  const lookDist = bot.personality.lookAheadDist * (1 + phase * 0.18);
   let bestDanger = 0;
   let avoidTurn = 0;
 
@@ -5545,10 +5626,10 @@ function updateBotAI(bot) {
       const probeX = wrap(bot.x + Math.cos(checkAngle) * lookDist, WORLD_WIDTH);
       const probeY = wrap(bot.y + Math.sin(checkAngle) * lookDist, WORLD_HEIGHT);
 
-      const probeDanger = spatialDangerAt(probeX, probeY, HEAD_RADIUS + 10, bot);
+      const probeDanger = spatialDangerAt(probeX, probeY, HEAD_RADIUS * getSnakeHeadGrowthScale(bot.length) + 12, bot);
 
       if (probeDanger > 0) {
-        avoidTurn += (sa === 0 ? (Math.random() > 0.5 ? 1.5 : -1.5) : -Math.sign(sa) * 1.8);
+        avoidTurn += (sa === 0 ? (Math.random() > 0.5 ? 1.55 : -1.55) : -Math.sign(sa) * 1.85);
         bestDanger += probeDanger;
       }
     }
@@ -5573,7 +5654,8 @@ function updateBotAI(bot) {
     bot.sameTurnCount = Math.max(0, bot.sameTurnCount - 2);
   }
 
-  bot.angle += Math.sign(diff) * Math.min(Math.abs(diff), bot.turnRate);
+  const agilityMul = getSnakeAgilityFactor(bot.length);
+  bot.angle += Math.sign(diff) * Math.min(Math.abs(diff), bot.turnRate * agilityMul);
 }
 
 // ============================================================
@@ -5623,8 +5705,8 @@ function advanceSnake(snake) {
   if (snake.growQueue > 0 && snake.segments.length > 0) {
     const tail = snake.segments[snake.segments.length - 1];
     snake.segments.push({
-      x: tail.x,
-      y: tail.y,
+      x: wrap(tail.x - Math.cos(tail.angle) * SEGMENT_SPACING, WORLD_WIDTH),
+      y: wrap(tail.y - Math.sin(tail.angle) * SEGMENT_SPACING, WORLD_HEIGHT),
       angle: tail.angle,
       lateralOffset: 0
     });
@@ -5633,6 +5715,7 @@ function advanceSnake(snake) {
 
   let prevX = snake.x;
   let prevY = snake.y;
+  let prevAngle = snake.angle;
 
   for (let i = 0; i < snake.segments.length; i++) {
     const seg = snake.segments[i];
@@ -5640,19 +5723,27 @@ function advanceSnake(snake) {
     const dy = toroidDelta(seg.y, prevY, WORLD_HEIGHT);
     const dist = Math.hypot(dx, dy);
 
-    if (dist > SEGMENT_SPACING) {
-      const segAngle = Math.atan2(dy, dx);
+    if (dist > 0.001) {
+      const targetSegAngle = Math.atan2(dy, dx);
+      const angleDiff = angleDifference(seg.angle, targetSegAngle);
+      // Smooth angular blending prevents sharp-turn kinks while keeping exact SEGMENT_SPACING distance
+      const segAngle = dist > SEGMENT_SPACING ? (seg.angle + angleDiff * 0.72) : targetSegAngle;
       seg.angle = segAngle;
-      seg.x = wrap(prevX - Math.cos(segAngle) * SEGMENT_SPACING, WORLD_WIDTH);
-      seg.y = wrap(prevY - Math.sin(segAngle) * SEGMENT_SPACING, WORLD_HEIGHT);
+      if (dist > SEGMENT_SPACING) {
+        seg.x = wrap(prevX - Math.cos(targetSegAngle) * SEGMENT_SPACING, WORLD_WIDTH);
+        seg.y = wrap(prevY - Math.sin(targetSegAngle) * SEGMENT_SPACING, WORLD_HEIGHT);
+      }
+    } else {
+      seg.angle = prevAngle;
     }
 
     const waveProgress = i / snake.segments.length;
-    const waveAmp = Math.sin(waveProgress * Math.PI) * 4.5;
+    const waveAmp = Math.sin(waveProgress * Math.PI) * 3.8;
     seg.lateralOffset = Math.sin(animFrame * 0.14 - i * 0.32) * waveAmp;
 
     prevX = seg.x;
     prevY = seg.y;
+    prevAngle = seg.angle;
   }
 }
 
@@ -5993,10 +6084,12 @@ function checkAllCollisions() {
   for (let a = 0; a < allSnakes.length; a++) {
     const first = allSnakes[a];
     if (!first.alive || now < first.protectedUntil || (first.isPlayer && now < player.ghostUntil)) continue;
+    const firstHeadR = HEAD_RADIUS * getSnakeHeadGrowthScale(first.length);
     for (let b = a + 1; b < allSnakes.length; b++) {
       const second = allSnakes[b];
       if (!second.alive || now < second.protectedUntil || (second.isPlayer && now < player.ghostUntil)) continue;
-      if (toroidDistSq(first.x, first.y, second.x, second.y) >= headHitRadius * headHitRadius) continue;
+      const pairHitRadius = (firstHeadR + HEAD_RADIUS * getSnakeHeadGrowthScale(second.length)) * 0.72;
+      if (toroidDistSq(first.x, first.y, second.x, second.y) >= pairHitRadius * pairHitRadius) continue;
       const sizeDiff = Math.abs(first.length - second.length);
       if (sizeDiff <= 1) {
         if (first.isPlayer) handlePlayerDeath(); else killBot(first, null);
@@ -6020,12 +6113,17 @@ function checkAllCollisions() {
 
 function checkFoodConsumptionAll() {
   const allSnakes = snakeRoster;
-  const eatDistSq = FOOD_PICKUP_RADIUS * FOOD_PICKUP_RADIUS;
-  const rareEatDistSq = RARE_ORB_PICKUP_RADIUS * RARE_ORB_PICKUP_RADIUS;
+  const isMobViewport = width <= 768 || isMobileDevice;
+  const mobilePickupBonus = isMobViewport ? 1.15 : 1.0;
+  const baseEatRadius = FOOD_PICKUP_RADIUS * mobilePickupBonus;
+  const baseRareEatRadius = RARE_ORB_PICKUP_RADIUS * mobilePickupBonus;
   const now = performance.now();
 
   for (const snake of allSnakes) {
     if (!snake.alive) continue;
+    const headGrowthBonus = (getSnakeHeadGrowthScale(snake.length) - 1.0) * HEAD_RADIUS;
+    const eatDistSq = (baseEatRadius + headGrowthBonus) ** 2;
+    const rareEatDistSq = (baseRareEatRadius + headGrowthBonus) ** 2;
     const cellX = Math.floor(wrap(snake.x, WORLD_WIDTH) / SPATIAL_CELL_SIZE);
     const cellY = Math.floor(wrap(snake.y, WORLD_HEIGHT) / SPATIAL_CELL_SIZE);
     for (let oy = -1; oy <= 1; oy++) {
@@ -6185,23 +6283,25 @@ function update(stepMs = FIXED_STEP_MS) {
   bigSnakeFoodProduction();
 
   if (player.alive) {
+    const playerAgility = getSnakeAgilityFactor(player.length);
+    const effectiveTurnRate = player.turnRate * playerAgility;
     if (joystick.active) {
       if (joystick.hasDirection) {
         const sensMul = (profileData && profileData.settings ? (profileData.settings.joystickSensitivity || 100) : 100) / 100;
         const isSwipe = profileData && profileData.settings && profileData.settings.controlStyle === 'swipe';
         player.targetAngle = Math.atan2(joystick.dy, joystick.dx);
         const diff = angleDifference(player.angle, player.targetAngle);
-        const maxTurn = (isSwipe ? TOUCH_MAX_TURN_RATE * 1.45 : TOUCH_MAX_TURN_RATE) * sensMul * frameSeconds;
+        const maxTurn = (isSwipe ? TOUCH_MAX_TURN_RATE * 1.45 : TOUCH_MAX_TURN_RATE) * sensMul * playerAgility * frameSeconds;
         player.angle += Math.sign(diff) * Math.min(Math.abs(diff), maxTurn);
       } else {
         player.targetAngle = player.angle;
       }
     } else {
       if (keys.left) {
-        player.targetAngle -= player.turnRate;
+        player.targetAngle -= effectiveTurnRate;
         mouse.active = false;
       } else if (keys.right) {
-        player.targetAngle += player.turnRate;
+        player.targetAngle += effectiveTurnRate;
         mouse.active = false;
       } else if (mouse.active) {
         const target = screenToWorld(mouse.x, mouse.y);
@@ -6212,7 +6312,7 @@ function update(stepMs = FIXED_STEP_MS) {
         }
       }
       const diff = angleDifference(player.angle, player.targetAngle);
-      player.angle += Math.sign(diff) * Math.min(Math.abs(diff), player.turnRate);
+      player.angle += Math.sign(diff) * Math.min(Math.abs(diff), effectiveTurnRate);
     }
   }
 
@@ -6643,6 +6743,24 @@ function initSnake() {
     });
   }
 
+  // Optional URL stage parameter (?testLen=100) for visual thickness progression QA at lengths 20, 50, 100, 200, 350, 500
+  try {
+    const qLen = parseInt(new URLSearchParams(window.location.search).get('testLen') || '0', 10);
+    if (qLen >= 10 && qLen <= 800) {
+      player.length = qLen;
+      player.segments = [];
+      let sx = player.x;
+      let sy = player.y;
+      let sa = player.angle;
+      for (let i = 0; i < qLen; i++) {
+        player.segments.push({ x: sx, y: sy, angle: sa, lateralOffset: 0 });
+        sa += Math.sin(i * 0.055) * 0.085;
+        sx = wrap(sx - Math.cos(sa) * SEGMENT_SPACING, WORLD_WIDTH);
+        sy = wrap(sy - Math.sin(sa) * SEGMENT_SPACING, WORLD_HEIGHT);
+      }
+    }
+  } catch (_) {}
+
   gameStartTime = performance.now();
   totalPausedDuration = 0;
   isGameOver = false;
@@ -6767,14 +6885,20 @@ function renderDangerZone() {
 
 function renderFood() {
   const now = performance.now();
-  const bounds = cameraViewBounds(24);
-  const showFoodGlow = graphicsQuality !== 'low';
-  const glowAlpha = graphicsQuality === 'medium' ? 0.65 : 0.92;
-  const glowScale = 1.05 + currentCycle.nightFactor * 0.65;
+  const bounds = cameraViewBounds(34);
+  const isMobViewport = width <= 768 || isMobileDevice;
+  const mobileFoodScale = isMobViewport ? 1.48 : 1.05;
+  const zoomComp = isMobViewport && cameraZoom < 0.72 ? Math.min(1.22, 0.74 / Math.max(0.45, cameraZoom)) : 1.0;
+  const visualScale = 0.78 * mobileFoodScale * zoomComp;
+  const showFoodGlow = graphicsQuality !== 'low' || isMobViewport;
+  const glowAlpha = graphicsQuality === 'low' ? 0.52 : (graphicsQuality === 'medium' ? 0.72 : 0.94);
+  const glowScale = (isMobViewport ? 1.18 : 1.05) + currentCycle.nightFactor * 0.65;
   for (const orb of foodOrbs) {
     const birthProgress = orb.burstAt ? Math.min(1, Math.max(0, (now - orb.burstAt - orb.burstDelay) / 220)) : 1;
     if (birthProgress <= 0) continue;
-    const radius = Math.max(1, orb.baseRadius * 0.72 * (orb.burstAt ? birthProgress : 1));
+    const bonusScale = orb.isDangerFood ? 1.24 : (orb.value > 1 ? 1.16 : 1.0);
+    const pulse = 1 + Math.sin(animFrame * (orb.pulseSpeed || 0.05) + (orb.pulsePhase || 0)) * 0.07;
+    const radius = Math.max(2.2, orb.baseRadius * visualScale * bonusScale * pulse * (orb.burstAt ? birthProgress : 1));
     const x = cameraX + toroidDelta(cameraX, orb.x, WORLD_WIDTH);
     if (x + radius < bounds.left || x - radius > bounds.right) continue;
     const y = cameraY + toroidDelta(cameraY, orb.y, WORLD_HEIGHT);
@@ -6785,10 +6909,10 @@ function renderFood() {
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fill();
-    if (radius >= 4.2) {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.38)';
+    if (radius >= 4.0) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.48)';
       ctx.beginPath();
-      ctx.arc(x - radius * 0.24, y - radius * 0.24, radius * 0.30, 0, Math.PI * 2);
+      ctx.arc(x - radius * 0.25, y - radius * 0.25, radius * 0.34, 0, Math.PI * 2);
       ctx.fill();
     }
   }
@@ -6842,33 +6966,35 @@ function renderRareOrb() {
   }
 
   const now = performance.now();
-  const shimmer = 0.82 + Math.sin(now * 0.009) * 0.18;
-  const rotation = now * 0.0012;
-  const bounds = cameraViewBounds(26);
+  const shimmer = 0.85 + Math.sin(now * 0.009) * 0.15;
+  const rotation = now * 0.0014;
+  const isMobViewport = width <= 768 || isMobileDevice;
+  const rareScale = FOOD_SIZE_SCALE * (isMobViewport ? 1.50 : 1.18);
+  const bounds = cameraViewBounds(38);
   const x = cameraX + toroidDelta(cameraX, rareOrb.x, WORLD_WIDTH);
   const y = cameraY + toroidDelta(cameraY, rareOrb.y, WORLD_HEIGHT);
-  if (x + 26 >= bounds.left && x - 26 <= bounds.right && y + 26 >= bounds.top && y - 26 <= bounds.bottom) {
+  if (x + 38 >= bounds.left && x - 38 <= bounds.right && y + 38 >= bounds.top && y - 38 <= bounds.bottom) {
     ctx.save();
     ctx.translate(x, y);
     ctx.globalAlpha = shimmer;
-    drawCachedGlow('rgba(255, 224, 145, 0.95)', 0, 0, (10 + currentCycle.nightFactor * 4) * FOOD_SIZE_SCALE, graphicsQuality === 'low' ? 0.45 : 0.95);
+    drawCachedGlow('rgba(255, 224, 145, 0.98)', 0, 0, (12 + currentCycle.nightFactor * 4) * rareScale, graphicsQuality === 'low' ? 0.65 : 0.98);
     ctx.fillStyle = '#fff8df';
     ctx.beginPath();
-    ctx.arc(0, 0, 6.5 * FOOD_SIZE_SCALE, 0, Math.PI * 2);
+    ctx.arc(0, 0, 7.2 * rareScale, 0, Math.PI * 2);
     ctx.fill();
     ctx.rotate(rotation);
     ctx.strokeStyle = '#ffe5a4';
-    ctx.lineWidth = 2.2;
+    ctx.lineWidth = 2.4;
     ctx.setLineDash([8, 4.5]);
     ctx.beginPath();
-    ctx.ellipse(0, 0, 14 * FOOD_SIZE_SCALE, 9 * FOOD_SIZE_SCALE, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 14.5 * rareScale, 9.5 * rareScale, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = '#ffffff';
     for (let i = 0; i < 3; i++) {
       const a = rotation * 1.7 + i * Math.PI * 2 / 3;
       ctx.beginPath();
-      ctx.arc(Math.cos(a) * 17 * FOOD_SIZE_SCALE, Math.sin(a) * 12 * FOOD_SIZE_SCALE, 1.4 * FOOD_SIZE_SCALE, 0, Math.PI * 2);
+      ctx.arc(Math.cos(a) * 17 * rareScale, Math.sin(a) * 12 * rareScale, 1.6 * rareScale, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
@@ -7237,10 +7363,19 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   if (segs.length === 0) return;
 
   const isMobViewport = width <= 768 || isMobileDevice;
-  const bodyVisualScale = isMobViewport ? 1.30 : 1.0;
-  const headVisualScale = isMobViewport ? 1.18 : 1.0;
-  const bodyTaper = isMobViewport ? 0.58 : 0.72;
-  const minSegRadius = isMobViewport ? 4.8 : 3.5;
+  const bodyGrowthMul = getSnakeBodyGrowthScale(snake.length);
+  const headGrowthMul = getSnakeHeadGrowthScale(snake.length);
+  const mobileBodyBase = isMobViewport ? 1.42 : 1.0;
+  const mobileHeadBase = isMobViewport ? 1.28 : 1.0;
+  const bodyVisualScale = mobileBodyBase * bodyGrowthMul;
+  const headVisualScale = mobileHeadBase * headGrowthMul;
+  // Gentle non-linear tail taper keeps the body full and tapers smoothly at the tail end
+  const bodyTaper = isMobViewport ? 0.46 : 0.56;
+  const minSegRadius = (isMobViewport ? 5.6 : 4.2) * Math.min(1.45, 0.85 + (bodyGrowthMul - 1) * 0.7);
+  const getSegRadius = (progress) => {
+    const taperCurve = Math.pow(progress, 1.42);
+    return Math.max(minSegRadius, HEAD_RADIUS * bodyVisualScale * (1 - taperCurve * bodyTaper));
+  };
 
   ctx.save();
   ctx.translate(offsetX, offsetY);
@@ -7278,24 +7413,44 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   // Body segments
   const protectedNow = performance.now() < snake.protectedUntil;
   const protectionAlpha = 0.42 + Math.sin(performance.now() * 0.035) * 0.34;
-  const far = toroidDistSq(player.x, player.y, snake.x, snake.y) > (Math.min(width, height) / cameraZoom * 0.42) ** 2;
-  const longBodyMul = segs.length > 180 ? 2 : 1;
-  const segmentStride = (graphicsQuality === 'low' ? (far ? 5 : 2) : (far ? 3 : 1)) * longBodyMul;
+  const far = !snake.isPlayer && toroidDistSq(player.x, player.y, snake.x, snake.y) > (Math.min(width, height) / cameraZoom * 0.46) ** 2;
+  // Never skip segments on the player snake or near snakes where stride * 6px > radius * 1.15, preventing bead gaps & tail termination
+  const baseStride = snake.isPlayer ? 1 : (graphicsQuality === 'low' ? (far ? 3 : 1) : (far ? 2 : 1));
+  const maxSafeStride = Math.max(1, Math.floor((minSegRadius * 1.15) / SEGMENT_SPACING));
+  const segmentStride = Math.min(baseStride, maxSafeStride);
   const bandCount = graphicsQuality === 'low' ? (far ? 1 : 2) : (far ? 2 : 3);
   const nightGlow = currentCycle.nightFactor * (graphicsQuality === 'low' ? 0.25 : (graphicsQuality === 'medium' ? 0.62 : 1));
   const hasAmbientAura = Boolean(pal.trailEffect) && graphicsQuality !== 'low';
-  const mobileBaseGlow = isMobViewport ? 0.22 : 0;
+  const mobileBaseGlow = isMobViewport ? (snake.isPlayer ? 0.34 : 0.20) : (snake.isPlayer ? 0.18 : 0);
   if (!far && (nightGlow > 0.08 || hasAmbientAura || mobileBaseGlow > 0)) {
-    const auraStride = hasAmbientAura ? 16 : 20;
-    const auraAlpha = Math.max(nightGlow * 0.48, hasAmbientAura ? 0.26 : 0, mobileBaseGlow);
+    const auraStride = hasAmbientAura ? 14 : 18;
+    const auraAlpha = Math.max(nightGlow * 0.48, hasAmbientAura ? 0.28 : 0, mobileBaseGlow);
     for (let i = 0; i < segs.length; i += auraStride) {
       const seg = segs[i];
       const perp = seg.angle + Math.PI / 2;
       const x = snake.x + toroidDelta(snake.x, seg.x, WORLD_WIDTH) + Math.cos(perp) * seg.lateralOffset;
       const y = snake.y + toroidDelta(snake.y, seg.y, WORLD_HEIGHT) + Math.sin(perp) * seg.lateralOffset;
-      drawCachedGlow(pal.glow, x, y, Math.max(minSegRadius, HEAD_RADIUS * bodyVisualScale * (1 - i / segs.length * bodyTaper)), auraAlpha);
+      drawCachedGlow(pal.glow, x, y, getSegRadius(i / segs.length) * 1.08, auraAlpha);
     }
   }
+
+  // Player-distinctive outer rim pass on mobile & desktop so the player snake stands out unmistakably in dense swarms
+  if (snake.isPlayer && !far) {
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+    const rimStride = graphicsQuality === 'low' ? 2 : 1;
+    for (let i = segs.length - 1; i >= 0; i -= rimStride) {
+      const seg = segs[i];
+      const radius = getSegRadius(i / segs.length) + (isMobViewport ? 1.35 : 1.0);
+      const perp = seg.angle + Math.PI / 2;
+      const x = snake.x + toroidDelta(snake.x, seg.x, WORLD_WIDTH) + Math.cos(perp) * seg.lateralOffset;
+      const y = snake.y + toroidDelta(snake.y, seg.y, WORLD_HEIGHT) + Math.sin(perp) * seg.lateralOffset;
+      ctx.moveTo(x + radius, y);
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+    }
+    ctx.fill();
+  }
+
   for (let band = 0; band < bandCount; band++) {
     ctx.beginPath();
     ctx.fillStyle = interpolateColor(pal.bodyStart, pal.bodyEnd, (band + 0.5) / bandCount);
@@ -7308,25 +7463,35 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
       const progress = i / segs.length;
       if (Math.min(bandCount - 1, Math.floor(progress * bandCount)) !== band) continue;
       const seg = segs[i];
-      const radius = Math.max(minSegRadius, HEAD_RADIUS * bodyVisualScale * (1 - progress * bodyTaper));
+      const radius = getSegRadius(progress);
       const perp = seg.angle + Math.PI / 2;
       const x = snake.x + toroidDelta(snake.x, seg.x, WORLD_WIDTH) + Math.cos(perp) * seg.lateralOffset;
       const y = snake.y + toroidDelta(snake.y, seg.y, WORLD_HEIGHT) + Math.sin(perp) * seg.lateralOffset;
       ctx.moveTo(x + radius, y);
       ctx.arc(x, y, radius, 0, Math.PI * 2);
     }
+    // Always draw the exact tail tip segment on the final band so the tail never terminates early when segmentStride > 1
+    if (band === bandCount - 1 && segs.length > 1 && (segs.length - 1) % segmentStride !== 0) {
+      const tailSeg = segs[segs.length - 1];
+      const tailR = getSegRadius(1);
+      const perp = tailSeg.angle + Math.PI / 2;
+      const tx = snake.x + toroidDelta(snake.x, tailSeg.x, WORLD_WIDTH) + Math.cos(perp) * tailSeg.lateralOffset;
+      const ty = snake.y + toroidDelta(snake.y, tailSeg.y, WORLD_HEIGHT) + Math.sin(perp) * tailSeg.lateralOffset;
+      ctx.moveTo(tx + tailR, ty);
+      ctx.arc(tx, ty, tailR, 0, Math.PI * 2);
+    }
     ctx.fill();
     if (protectedNow) { ctx.stroke(); ctx.globalAlpha = 1; }
   }
-  // Subtle dorsal luminance highlight on mobile for high readability against dark arena
-  if (isMobViewport && !far) {
+  // Subtle dorsal luminance highlight for high readability against dark arena
+  if ((isMobViewport || snake.isPlayer) && !far) {
     ctx.beginPath();
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
-    const spineStride = graphicsQuality === 'low' ? 4 : 2;
+    ctx.fillStyle = snake.isPlayer ? 'rgba(255, 255, 255, 0.18)' : 'rgba(255, 255, 255, 0.12)';
+    const spineStride = graphicsQuality === 'low' ? 3 : 2;
     for (let i = segs.length - 1; i >= 0; i -= spineStride) {
       const progress = i / segs.length;
       const seg = segs[i];
-      const radius = Math.max(minSegRadius, HEAD_RADIUS * bodyVisualScale * (1 - progress * bodyTaper)) * 0.42;
+      const radius = getSegRadius(progress) * 0.44;
       const perp = seg.angle + Math.PI / 2;
       const x = snake.x + toroidDelta(snake.x, seg.x, WORLD_WIDTH) + Math.cos(perp) * seg.lateralOffset;
       const y = snake.y + toroidDelta(snake.y, seg.y, WORLD_HEIGHT) + Math.sin(perp) * seg.lateralOffset;
@@ -7336,11 +7501,11 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
     ctx.fill();
   }
   if (!far) {
-    const detailStride = graphicsQuality === 'low' ? (snake.isPlayer ? 6 : 10) : 3;
+    const detailStride = graphicsQuality === 'low' ? (snake.isPlayer ? 5 : 9) : 3;
     for (let i = 0; i < segs.length; i += detailStride) {
       const seg = segs[i];
       const progress = i / segs.length;
-      const radius = Math.max(minSegRadius, HEAD_RADIUS * bodyVisualScale * (1 - progress * bodyTaper));
+      const radius = getSegRadius(progress);
       const perp = seg.angle + Math.PI / 2;
       const x = snake.x + toroidDelta(snake.x, seg.x, WORLD_WIDTH) + Math.cos(perp) * seg.lateralOffset;
       const y = snake.y + toroidDelta(snake.y, seg.y, WORLD_HEIGHT) + Math.sin(perp) * seg.lateralOffset;
@@ -7366,8 +7531,8 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   }
 
   // Head
-  const headGlowAlpha = Math.max(nightGlow * 0.75, hasAmbientAura ? 0.42 : 0, isMobViewport ? 0.36 : 0.16);
-  drawCachedGlow(pal.glow, snake.x, snake.y, HEAD_RADIUS * headVisualScale * (1.55 + Math.max(nightGlow, hasAmbientAura ? 0.45 : 0)), headGlowAlpha);
+  const headGlowAlpha = Math.max(nightGlow * 0.75, hasAmbientAura ? 0.45 : 0, isMobViewport ? (snake.isPlayer ? 0.48 : 0.34) : 0.22);
+  drawCachedGlow(pal.glow, snake.x, snake.y, HEAD_RADIUS * headVisualScale * (1.65 + Math.max(nightGlow, hasAmbientAura ? 0.45 : 0)), headGlowAlpha);
   ctx.save();
   ctx.translate(snake.x, snake.y);
   ctx.rotate(snake.angle);
