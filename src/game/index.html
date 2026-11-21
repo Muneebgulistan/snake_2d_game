@@ -65,7 +65,7 @@
     touch-action: none;
   }
 
-  /* ---------- HUD (top-left) ---------- */
+  /* ---------- HUD (top-left & top-right action cluster) ---------- */
   #hud {
     position: absolute;
     top: max(12px, env(safe-area-inset-top));
@@ -78,6 +78,18 @@
     align-items: center;
     gap: 8px;
     max-width: calc(100% - 190px);
+  }
+  .hud-stats-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+  }
+  .hud-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    pointer-events: auto;
   }
   .hud-stat {
     display: flex;
@@ -106,14 +118,16 @@
   }
   #stat-cycle { align-items: center; }
   #cycle-icon { color: var(--gold); font-size: 15px; }
-  #stat-length .hud-val, #stat-rank .hud-val { color: var(--accent); }
-  #stat-kills .hud-val { color: var(--danger); }
+  #stat-length-wrap .hud-val, #stat-rank-wrap .hud-val { color: var(--accent); }
+  #stat-kills-wrap .hud-val { color: var(--danger); }
+  #stat-level-wrap .hud-val { color: var(--accent-2); }
+  #stat-coins-wrap .hud-val { color: var(--gold); }
 
   #pause-btn, #home-btn, #mute-btn {
     pointer-events: auto;
-    width: 40px;
-    min-height: 40px;
-    height: 40px;
+    width: 42px;
+    min-height: 42px;
+    height: 42px;
     padding: 0;
     display: grid;
     place-items: center;
@@ -130,7 +144,7 @@
     transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease;
     touch-action: manipulation;
   }
-  #pause-btn:hover, #home-btn:hover, #mute-btn:hover { border-color: var(--accent); background: rgba(52, 211, 153, 0.12); }
+  #pause-btn:hover, #home-btn:hover, #mute-btn:hover { border-color: var(--accent); background: rgba(0, 245, 160, 0.14); }
   #pause-btn:active, #home-btn:active, #mute-btn:active { transform: scale(0.94); }
 
   /* ---------- Ability dock (bottom-center) ---------- */
@@ -274,7 +288,7 @@
   #fps-counter {
     position: absolute; top: 60px; left: 50%; transform: translateX(-50%); z-index: 12; display: none;
     padding: 4px 8px; border-radius: 6px; background: rgba(2, 6, 23, 0.7); color: #cbd5e1;
-    font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; pointer-events: none;
+    font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; pointer-events: none; white-space: nowrap;
   }
 
   /* ---------- Touch joystick ---------- */
@@ -331,7 +345,7 @@
     min-height: 40px; padding: 8px 16px; border-radius: 12px;
     border: 1px solid var(--line-strong); background: rgba(30, 41, 59, 0.7);
     color: var(--text); font-size: 13px; font-weight: 800; cursor: pointer;
-    display: inline-flex; align-items: center; gap: 6px;
+    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; flex: none;
   }
   .back-pill:hover { border-color: var(--accent-2); background: rgba(34, 211, 238, 0.12); }
 
@@ -1089,44 +1103,183 @@
   }
   .restart-hint:hover { border-color: var(--accent); color: var(--text); }
 
-  /* ---------- Responsive ---------- */
-  @media (max-width: 640px) {
-    #hud { max-width: 100%; gap: 6px; }
-    #hud .hud-stat { padding: 5px 10px; }
-    #hud .hud-stat .hud-val { font-size: 14px; }
+  /* ---------- Responsive Mobile & Tablet UI System ---------- */
+  @media (max-width: 768px) {
+    /* Mobile Gameplay HUD: Pin action buttons to top-right, compact stats on top-left */
+    #hud {
+      max-width: calc(100% - 154px);
+      gap: 5px;
+      top: max(10px, env(safe-area-inset-top));
+      left: max(10px, env(safe-area-inset-left));
+    }
+    .hud-stats-group { gap: 5px; }
+    .hud-actions-group {
+      position: fixed;
+      top: max(10px, env(safe-area-inset-top));
+      right: max(10px, env(safe-area-inset-right));
+      gap: 6px;
+      z-index: 15;
+    }
+    #hud .hud-stat { padding: 5px 9px; font-size: 10px; gap: 4px; }
+    #hud .hud-stat .hud-val { font-size: 13px; }
     #stat-cycle { display: none; }
+    #pause-btn, #home-btn, #mute-btn { width: 42px; height: 42px; min-height: 42px; border-radius: 12px; }
     #leaderboard {
-      top: max(84px, calc(env(safe-area-inset-top) + 74px));
+      top: max(60px, calc(env(safe-area-inset-top) + 56px));
       bottom: auto;
       right: max(10px, env(safe-area-inset-right));
-      width: 146px;
-      padding: 7px 8px;
+      width: 142px;
+      padding: 6px 8px;
       opacity: 0.92;
     }
+    .lb-title { font-size: 9px; margin-bottom: 4px; }
     .lb-item { font-size: 11px; padding: 3px 5px; }
-    #ability-dock { left: max(10px, env(safe-area-inset-left)); transform: none; bottom: max(14px, env(safe-area-inset-bottom)); gap: 6px; padding: 6px; }
-    .ability-btn { min-width: 62px; min-height: 50px; font-size: 11px; padding: 5px 6px; }
-    #kill-message { top: 108px; }
-    #powerup-indicator { top: 144px; }
-    #skin-list { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .skin-card { padding: 10px; }
-    .logo-mark { width: 64px; height: 64px; }
-    .shop-showcase-card { grid-template-columns: 1fr; text-align: center; justify-items: center; }
-    .showcase-details { width: 100%; text-align: left; }
-    #shop-showcase-canvas { width: 100%; max-width: 260px; height: 96px; }
+    #ability-dock {
+      left: max(12px, env(safe-area-inset-left));
+      transform: none;
+      bottom: max(14px, env(safe-area-inset-bottom));
+      gap: 7px;
+      padding: 7px;
+      border-radius: 16px;
+    }
+    .ability-btn { min-width: 68px; min-height: 52px; font-size: 11px; padding: 6px 8px; border-radius: 12px; }
+    #kill-message { top: 96px; font-size: 12px; padding: 6px 14px; }
+    #powerup-indicator { top: 132px; font-size: 12px; padding: 6px 14px; }
+    #fps-counter {
+      top: auto;
+      bottom: max(78px, calc(env(safe-area-inset-bottom) + 76px));
+      left: max(12px, env(safe-area-inset-left));
+      transform: none;
+    }
+
+    /* Mobile Main Menu: Compact no-scroll fit with prominent touch buttons */
+    #menu-screen {
+      justify-content: center;
+      padding: max(12px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
+    }
+    .player-topbar { padding: 8px 12px; margin-bottom: 6px; border-radius: 14px; }
+    #menu-screen h1 { font-size: clamp(32px, 8.5vw, 46px); margin-bottom: 4px; }
+    .menu-sub { font-size: 13px; margin-bottom: 10px; }
+    .menu-panel { padding: 14px; gap: 11px; border-radius: 18px; }
+    .hero-preview-card { padding: 8px 10px; gap: 10px; }
+    #menu-snake-canvas { width: 128px; height: 48px; }
+    .hero-skin-info .skin-change-btn { min-height: 30px; padding: 4px 10px; font-size: 11px; }
+    .diff-btn { min-height: 50px; font-size: 14px; padding: 6px 4px; }
+    .menu-records { padding: 8px 12px; font-size: 12px; }
+    .play-btn { min-height: 54px; font-size: 18px; border-radius: 14px; }
+    .menu-nav-grid { gap: 7px; }
+    .nav-card-btn { min-height: 56px; font-size: 11px; border-radius: 12px; padding: 8px 4px; }
+
+    /* Mobile Subscreens (Skin Vault, Missions, Achievements, Rewards, Settings) */
+    .subscreen {
+      padding: max(12px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom));
+      gap: 9px;
+    }
+    .subscreen-header h2 { font-size: 22px; }
+    .back-pill { min-height: 40px; padding: 7px 14px; font-size: 12px; }
+
+    /* Mobile Skin Vault: Compact 2-col showcase + single-row touch-scrollable filter pills */
+    .shop-showcase-card {
+      grid-template-columns: 124px 1fr;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      text-align: left;
+      justify-items: stretch;
+    }
+    #shop-showcase-canvas { width: 124px; height: 76px; border-radius: 10px; }
+    .showcase-name { font-size: 15px; }
+    .showcase-desc { font-size: 11px; line-height: 1.3; }
+    .showcase-req-wrap { padding: 5px 8px; }
+    .shop-toolbar { flex-direction: column; align-items: stretch; gap: 7px; }
+    .skin-search-input { width: 100%; height: 38px; font-size: 13px; }
+    #skin-category-bar, #skin-filter-bar, #ach-category-bar {
+      width: 100% !important;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      justify-content: flex-start !important;
+      padding-bottom: 2px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    #skin-category-bar::-webkit-scrollbar, #skin-filter-bar::-webkit-scrollbar, #ach-category-bar::-webkit-scrollbar {
+      display: none;
+    }
+    .filter-pill { flex: none; min-height: 34px; padding: 6px 13px; font-size: 11px; }
+    #skin-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      max-height: none;
+      flex: 1;
+      min-height: 220px;
+    }
+    .skin-card { padding: 10px; gap: 6px; }
+    .skin-act-btn { min-height: 38px; font-size: 11px; }
   }
-  @media (max-width: 400px) {
-    .controls-hint { grid-template-columns: 1fr; }
-    .hint-card { display: flex; align-items: center; gap: 10px; text-align: left; padding: 8px 12px; }
-    .hint-card .hint-icon { margin: 0; }
-    #skin-list { grid-template-columns: 1fr; }
+
+  /* Narrow Mobile Portrait: Stack Mission & Achievement Cards for Comfortable Touch */
+  @media (max-width: 520px) {
+    .mission-card {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+      padding: 12px 14px;
+    }
+    .mission-reward-col {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      width: 100%;
+      padding-top: 8px;
+      border-top: 1px solid rgba(38, 54, 79, 0.55);
+      gap: 6px;
+    }
+    .claim-btn { min-height: 38px; padding: 7px 16px; font-size: 12px; margin-left: auto; }
+    .daily-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .day-card.day-7 { grid-column: span 2; }
     .settings-row .opt-group { grid-template-columns: repeat(2, 1fr); }
+    .settings-option { min-height: 44px; font-size: 13px; }
   }
-  @media (max-height: 640px) {
-    #menu-screen { justify-content: flex-start; }
-    .logo-mark { display: none; }
-    .menu-sub { margin-bottom: 12px; }
-    .controls-hint, .menu-hint { display: none; }
+
+  @media (max-width: 360px) {
+    #skin-list { grid-template-columns: 1fr; }
+    .shop-showcase-card { grid-template-columns: 1fr; justify-items: center; }
+    #shop-showcase-canvas { width: 100%; max-width: 220px; height: 84px; }
+    .ability-btn { min-width: 60px; min-height: 48px; font-size: 10px; }
+  }
+
+  /* Mobile Landscape Mode (e.g. 844x390, 740x360) */
+  @media (max-height: 520px) and (orientation: landscape) {
+    #menu-screen {
+      justify-content: flex-start;
+      padding: 8px max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
+    }
+    #menu-screen h1 { font-size: 26px; margin-bottom: 2px; }
+    .menu-sub { display: none; }
+    .player-topbar { width: min(100%, 680px); padding: 6px 12px; margin-bottom: 6px; }
+    .menu-panel {
+      width: min(100%, 680px);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 12px;
+      align-items: center;
+    }
+    .play-btn { grid-column: span 2; min-height: 46px; font-size: 16px; }
+    .menu-nav-grid { grid-column: span 2; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+    .nav-card-btn { min-height: 46px; font-size: 10px; padding: 5px 4px; }
+    #menu-removeads-btn { grid-column: span 2; min-height: 36px !important; }
+    #leaderboard {
+      top: max(54px, calc(env(safe-area-inset-top) + 50px));
+      width: 132px;
+      padding: 5px 7px;
+    }
+    .lb-item { font-size: 10px; padding: 2px 4px; }
+    #ability-dock { bottom: max(8px, env(safe-area-inset-bottom)); padding: 5px; gap: 6px; }
+    .ability-btn { min-width: 64px; min-height: 44px; font-size: 10px; padding: 4px 6px; }
+    .shop-showcase-card { grid-template-columns: 130px 1fr; padding: 8px 12px; }
+    #shop-showcase-canvas { width: 130px; height: 70px; }
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -1139,17 +1292,23 @@
 
 <!-- HUD -->
 <div id="hud">
-  <div class="hud-stat" id="stat-cycle" aria-live="polite">
-    <span id="cycle-icon" aria-hidden="true">☼</span>
-    <span id="cycle-name" class="hud-val">Dawn</span>
+  <div class="hud-stats-group">
+    <div class="hud-stat" id="stat-cycle" aria-live="polite">
+      <span id="cycle-icon" aria-hidden="true">☼</span>
+      <span id="cycle-name" class="hud-val">Dawn</span>
+    </div>
+    <div class="hud-stat" id="stat-time-wrap"><span>Time</span><span id="stat-time" class="hud-val">00:00</span></div>
+    <div class="hud-stat" id="stat-length-wrap"><span>Length</span><span id="stat-length" class="hud-val">22</span></div>
+    <div class="hud-stat" id="stat-rank-wrap"><span>Rank</span><span id="stat-rank" class="hud-val">#1</span></div>
+    <div class="hud-stat" id="stat-kills-wrap"><span>Kills</span><span id="stat-kills" class="hud-val">0</span></div>
+    <div class="hud-stat" id="stat-level-wrap"><span>Lv</span><span id="stat-level" class="hud-val">1</span></div>
+    <div class="hud-stat" id="stat-coins-wrap"><span>$</span><span id="stat-coins" class="hud-val">250</span></div>
   </div>
-  <div class="hud-stat" id="stat-time-wrap"><span>Time</span><span id="stat-time" class="hud-val">00:00</span></div>
-  <div class="hud-stat" id="stat-length-wrap"><span>Length</span><span id="stat-length" class="hud-val">22</span></div>
-  <div class="hud-stat" id="stat-rank-wrap"><span>Rank</span><span id="stat-rank" class="hud-val">#1</span></div>
-  <div class="hud-stat" id="stat-kills-wrap"><span>Kills</span><span id="stat-kills" class="hud-val">0</span></div>
-  <button id="pause-btn" type="button" aria-label="Pause game" title="Pause (P)">Ⅱ</button>
-  <button id="home-btn" type="button" aria-label="Return to home" title="Home">⌂</button>
-  <button id="mute-btn" type="button" aria-label="Toggle sound" title="Sound" onclick="toggleMute()">🔊</button>
+  <div class="hud-actions-group">
+    <button id="pause-btn" type="button" aria-label="Pause game" title="Pause (P)">Ⅱ</button>
+    <button id="home-btn" type="button" aria-label="Return to home" title="Home">⌂</button>
+    <button id="mute-btn" type="button" aria-label="Toggle sound" title="Sound" onclick="toggleMute()">🔊</button>
+  </div>
 
   <div id="ability-dock">
     <button class="ability-btn" id="ghost-btn" type="button" onclick="activateAbility('ghost')">👻 Ghost<br><small>1</small></button>
@@ -1497,6 +1656,10 @@
     </div>
     <div class="settings-row inline"><span>Left-Handed Ability Dock</span><button id="lefthand-toggle" class="settings-option" onclick="toggleLeftHanded()">Off</button></div>
     <div class="settings-row inline">
+      <span>Ad-Free Experience</span>
+      <button type="button" class="settings-option" style="border-color:rgba(255,176,32,0.45);color:#FFB020;" onclick="openScreen('removeads')">✦ Remove Forced Ads</button>
+    </div>
+    <div class="settings-row inline">
       <span>Privacy &amp; Data</span>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button id="privacy-options-btn" type="button" class="settings-option" onclick="AdManager.openPrivacyOptions()">Ad Consent Options</button>
@@ -1645,11 +1808,16 @@ const TURN_RATE = 0.075;
 const SEGMENT_SPACING = 6;
 const INITIAL_SEGMENTS = 22;
 const HEAD_RADIUS = 9;
-const FOOD_DENSITY = GAME_CONFIG.FOOD_DENSITY ?? 1;
+const FOOD_SIZE_SCALE = 1.25; // +25% visual food scale increase
+const FOOD_DENSITY_SCALE = 1.25; // +25% world food density increase (100% -> 125%)
+const FOOD_DENSITY = GAME_CONFIG.FOOD_DENSITY ?? (0.3 * FOOD_DENSITY_SCALE);
 const FOOD_VALUE = GAME_CONFIG.FOOD_VALUE ?? 1;
 const FOOD_COUNT = Math.max(1, Math.round(42 * FOOD_DENSITY * (WORLD_WIDTH * WORLD_HEIGHT) / (REFERENCE_VIEW_WIDTH * REFERENCE_VIEW_HEIGHT)));
-const MAX_VISIBLE_FOOD = 15;
-const FOOD_RESPAWN_DELAY_MS = 900;
+const MAX_VISIBLE_FOOD = 19; // +25% from 15
+const FOOD_RESPAWN_DELAY_MS = 720; // 25% faster respawn throughput (900 / 1.25)
+const DANGER_ZONE_FOOD_COUNT = 53; // +25% from 42
+const FOOD_PICKUP_RADIUS = HEAD_RADIUS + 11 * FOOD_SIZE_SCALE;
+const RARE_ORB_PICKUP_RADIUS = HEAD_RADIUS + 14 * FOOD_SIZE_SCALE;
 const FOOD_GRID_COLUMNS = Math.ceil(Math.sqrt(FOOD_COUNT));
 const FOOD_GRID_ROWS = Math.ceil(FOOD_COUNT / FOOD_GRID_COLUMNS);
 const foodGridTaken = new Uint8Array(FOOD_COUNT);
@@ -2187,7 +2355,7 @@ function buildSpatialHash() {
     }
   }
   for (const orb of foodOrbs) {
-    insertSpatialItem(orb.x, orb.y, null, orb, -1, 2, HEAD_RADIUS + 11);
+    insertSpatialItem(orb.x, orb.y, null, orb, -1, 2, FOOD_PICKUP_RADIUS);
   }
 }
 
@@ -4639,7 +4807,7 @@ function spawnFoodOrb(customX, customY, customColor) {
   orb.isDeathDrop = scheme.isDeathDrop === true || (scheme.value ?? 1) > 1;
   orb.isDangerFood = scheme.isDangerFood === true;
   orb.gridCell = -1;
-  orb.baseRadius = (4.5 + Math.random() * 2) * 1.4;
+  orb.baseRadius = (4.5 + Math.random() * 2) * 1.4 * FOOD_SIZE_SCALE;
   orb.color = scheme.core;
   orb.glow = scheme.glow;
   orb.pulseSpeed = 0.04 + Math.random() * 0.04;
@@ -4654,7 +4822,7 @@ function spawnFoodOrb(customX, customY, customColor) {
 }
 
 function recycleFoodOrb(orb) {
-  if (foodOrbPool.length < 2048) foodOrbPool.push(orb);
+  if (foodOrbPool.length < 2560) foodOrbPool.push(orb);
 }
 
 function initFood() {
@@ -4667,10 +4835,10 @@ function initFood() {
     if (!orb) break;
     foodOrbs.push(orb);
   }
-  // A persistent high-value cluster gives the center of the arena a clear risk/reward.
-  for (let i = 0; i < 42; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const distance = Math.sqrt(Math.random()) * DANGER_ZONE_RADIUS * 0.82;
+  // A persistent high-value cluster gives the center of the arena a clear risk/reward (+25% density).
+  for (let i = 0; i < DANGER_ZONE_FOOD_COUNT; i++) {
+    const angle = (i / DANGER_ZONE_FOOD_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
+    const distance = (0.18 + 0.82 * Math.sqrt((i + Math.random()) / DANGER_ZONE_FOOD_COUNT)) * DANGER_ZONE_RADIUS * 0.84;
     const orb = spawnFoodOrb(WORLD_WIDTH / 2 + Math.cos(angle) * distance, WORLD_HEIGHT / 2 + Math.sin(angle) * distance,
       { core: '#facc15', glow: 'rgba(250,204,21,.72)', value: 3, isDeathDrop: true, isDangerFood: true });
     foodOrbs.push(orb);
@@ -5692,7 +5860,8 @@ function checkAllCollisions() {
 
 function checkFoodConsumptionAll() {
   const allSnakes = snakeRoster;
-  const eatDistSq = (HEAD_RADIUS + 11) * (HEAD_RADIUS + 11);
+  const eatDistSq = FOOD_PICKUP_RADIUS * FOOD_PICKUP_RADIUS;
+  const rareEatDistSq = RARE_ORB_PICKUP_RADIUS * RARE_ORB_PICKUP_RADIUS;
   const now = performance.now();
 
   for (const snake of allSnakes) {
@@ -5736,7 +5905,7 @@ function checkFoodConsumptionAll() {
       }
     }
 
-    if (rareOrb && toroidDistSq(snake.x, snake.y, rareOrb.x, rareOrb.y) < (HEAD_RADIUS + 14) ** 2) {
+    if (rareOrb && toroidDistSq(snake.x, snake.y, rareOrb.x, rareOrb.y) < rareEatDistSq) {
       const eatenOrb = rareOrb;
       rareOrb = null;
       scheduleNextRareOrb();
@@ -5819,9 +5988,13 @@ function updateHUDAndLeaderboard() {
 
   const playerRank = allSnakes.findIndex(s => s.isPlayer) + 1;
   if (statRankEl) statRankEl.textContent = `#${playerRank}`;
+  const statLvlEl = document.getElementById('stat-level');
+  const statCoinsEl = document.getElementById('stat-coins');
+  if (statLvlEl && profileData) statLvlEl.textContent = profileData.level;
+  if (statCoinsEl && profileData) statCoinsEl.textContent = profileData.coins.toLocaleString();
 
   if (lbListEl) {
-    const LB_SHOWN = width <= 640 ? 5 : 8;
+    const LB_SHOWN = height <= 500 ? 4 : (width <= 768 ? 5 : 8);
     const lbRow = (s, idx) => `
       <div class="lb-item ${s.isPlayer ? 'is-player' : ''}">
         <div class="lb-left">
@@ -6036,6 +6209,8 @@ function initInput() {
 
   const pauseButton = document.getElementById('pause-btn');
   const homeButton = document.getElementById('home-btn');
+  const muteButton = document.getElementById('mute-btn');
+  const abilityDock = document.getElementById('ability-dock');
   pauseButton.addEventListener('pointerdown', (e) => e.stopPropagation());
   pauseButton.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
   pauseButton.addEventListener('click', (e) => {
@@ -6043,7 +6218,16 @@ function initInput() {
     togglePause();
   });
   homeButton.addEventListener('pointerdown', (e) => e.stopPropagation());
+  homeButton.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
   homeButton.addEventListener('click', (e) => { e.stopPropagation(); goHome(); });
+  if (muteButton) {
+    muteButton.addEventListener('pointerdown', (e) => e.stopPropagation());
+    muteButton.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+  }
+  if (abilityDock) {
+    abilityDock.addEventListener('pointerdown', (e) => e.stopPropagation());
+    abilityDock.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+  }
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
@@ -6360,13 +6544,12 @@ function renderDangerZone() {
 
 function renderFood() {
   const now = performance.now();
-  const bounds = cameraViewBounds(20);
+  const bounds = cameraViewBounds(24);
   for (const orb of foodOrbs) {
     const birthProgress = orb.burstAt ? Math.min(1, Math.max(0, (now - orb.burstAt - orb.burstDelay) / 220)) : 1;
     if (birthProgress <= 0) continue;
     const radius = Math.max(1, orb.baseRadius * 0.72 * (orb.burstAt ? birthProgress : 1));
     ctx.globalAlpha = orb.burstAt ? birthProgress : 1;
-    ctx.fillStyle = orb.color;
     const baseX = cameraX + toroidDelta(cameraX, orb.x, WORLD_WIDTH);
     const baseY = cameraY + toroidDelta(cameraY, orb.y, WORLD_HEIGHT);
     for (let wx = -1; wx <= 1; wx++) {
@@ -6375,10 +6558,17 @@ function renderFood() {
       for (let wy = -1; wy <= 1; wy++) {
         const y = baseY + wy * WORLD_HEIGHT;
         if (y + radius < bounds.top || y - radius > bounds.bottom) continue;
-        if (graphicsQuality !== 'low') drawCachedGlow(orb.glow, x, y, radius * (1 + currentCycle.nightFactor * 0.65), graphicsQuality === 'medium' ? 0.6 : 0.9);
+        if (graphicsQuality !== 'low') drawCachedGlow(orb.glow, x, y, radius * (1.05 + currentCycle.nightFactor * 0.65), graphicsQuality === 'medium' ? 0.65 : 0.92);
+        ctx.fillStyle = orb.color;
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI * 2);
         ctx.fill();
+        if (graphicsQuality !== 'low' && radius >= 4.5) {
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.42)';
+          ctx.beginPath();
+          ctx.arc(x - radius * 0.24, y - radius * 0.24, radius * 0.32, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     }
   }
@@ -6440,36 +6630,36 @@ function renderRareOrb() {
   const now = performance.now();
   const shimmer = 0.82 + Math.sin(now * 0.009) * 0.18;
   const rotation = now * 0.0012;
-  const bounds = cameraViewBounds(20);
+  const bounds = cameraViewBounds(26);
   const baseX = cameraX + toroidDelta(cameraX, rareOrb.x, WORLD_WIDTH);
   const baseY = cameraY + toroidDelta(cameraY, rareOrb.y, WORLD_HEIGHT);
   for (let wx = -1; wx <= 1; wx++) {
     const x = baseX + wx * WORLD_WIDTH;
-    if (x + 20 < bounds.left || x - 20 > bounds.right) continue;
+    if (x + 26 < bounds.left || x - 26 > bounds.right) continue;
     for (let wy = -1; wy <= 1; wy++) {
       const y = baseY + wy * WORLD_HEIGHT;
-      if (y + 20 < bounds.top || y - 20 > bounds.bottom) continue;
+      if (y + 26 < bounds.top || y - 26 > bounds.bottom) continue;
     ctx.save();
     ctx.translate(x, y);
     ctx.globalAlpha = shimmer;
-    drawCachedGlow('rgba(255, 224, 145, 0.95)', 0, 0, 10 + currentCycle.nightFactor * 4, graphicsQuality === 'low' ? 0.35 : 0.95);
+    drawCachedGlow('rgba(255, 224, 145, 0.95)', 0, 0, (10 + currentCycle.nightFactor * 4) * FOOD_SIZE_SCALE, graphicsQuality === 'low' ? 0.35 : 0.95);
     ctx.fillStyle = '#fff8df';
     ctx.beginPath();
-    ctx.arc(0, 0, 6.5, 0, Math.PI * 2);
+    ctx.arc(0, 0, 6.5 * FOOD_SIZE_SCALE, 0, Math.PI * 2);
     ctx.fill();
     ctx.rotate(rotation);
     ctx.strokeStyle = '#ffe5a4';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([7, 4]);
+    ctx.lineWidth = 2.2;
+    ctx.setLineDash([8, 4.5]);
     ctx.beginPath();
-    ctx.ellipse(0, 0, 14, 9, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 14 * FOOD_SIZE_SCALE, 9 * FOOD_SIZE_SCALE, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = '#ffffff';
     for (let i = 0; i < 3; i++) {
       const a = rotation * 1.7 + i * Math.PI * 2 / 3;
       ctx.beginPath();
-      ctx.arc(Math.cos(a) * 17, Math.sin(a) * 12, 1.4, 0, Math.PI * 2);
+      ctx.arc(Math.cos(a) * 17 * FOOD_SIZE_SCALE, Math.sin(a) * 12 * FOOD_SIZE_SCALE, 1.4 * FOOD_SIZE_SCALE, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
@@ -7204,10 +7394,10 @@ function render() {
 }
 
 function renderMinimap() {
-  const size = Math.min(126, Math.max(92, width * 0.24));
+  const size = height <= 500 ? 84 : Math.min(126, Math.max(92, Math.min(width, height) * 0.23));
   const radius = size / 2;
-  const cx = width - radius - 14;
-  const cy = height - radius - 18;
+  const cx = width - radius - 12;
+  const cy = height - radius - 14;
   const mapRadius = radius - 7;
   ctx.save();
   ctx.beginPath();
