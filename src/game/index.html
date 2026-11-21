@@ -315,6 +315,7 @@
     gap: 12px;
     padding: max(18px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
     overflow-y: auto;
+    overflow-x: hidden;
     touch-action: pan-y;
   }
   .subscreen-header {
@@ -871,6 +872,7 @@
     justify-content: center;
     padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
     overflow-y: auto;
+    overflow-x: hidden;
     touch-action: pan-y;
     gap: 0;
   }
@@ -1094,8 +1096,12 @@
     #hud .hud-stat .hud-val { font-size: 14px; }
     #stat-cycle { display: none; }
     #leaderboard {
-      top: auto; bottom: max(86px, calc(env(safe-area-inset-bottom) + 86px)); right: max(10px, env(safe-area-inset-right));
-      width: 128px; padding: 7px 8px; opacity: 0.92;
+      top: max(84px, calc(env(safe-area-inset-top) + 74px));
+      bottom: auto;
+      right: max(10px, env(safe-area-inset-right));
+      width: 146px;
+      padding: 7px 8px;
+      opacity: 0.92;
     }
     .lb-item { font-size: 11px; padding: 3px 5px; }
     #ability-dock { left: max(10px, env(safe-area-inset-left)); transform: none; bottom: max(14px, env(safe-area-inset-bottom)); gap: 6px; padding: 6px; }
@@ -1263,7 +1269,7 @@
   <div class="subscreen-header">
     <div>
       <h2>Skin Vault</h2>
-      <div class="skins-subtitle" id="skin-collection-counter">3 / 56 Unlocked &bull; Purely cosmetic, identical hitboxes</div>
+      <div class="skins-subtitle" id="skin-collection-counter">3 / 62 Unlocked &bull; Purely cosmetic, identical hitboxes</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
       <div class="coin-pill"><span class="coin-icon">$</span><span id="shop-coins-val">0</span></div>
@@ -1301,7 +1307,7 @@
       <button type="button" class="filter-pill" data-cat="fantasy" onclick="setSkinCategory('fantasy')">Fantasy</button>
       <button type="button" class="filter-pill" data-cat="cyber" onclick="setSkinCategory('cyber')">Cyber &amp; Neon</button>
     </div>
-    <input type="search" id="skin-search-input" class="skin-search-input" placeholder="Search 56 skins..." oninput="setSkinSearch(this.value)">
+    <input type="search" id="skin-search-input" class="skin-search-input" placeholder="Search 62 skins..." oninput="setSkinSearch(this.value)">
   </div>
 
   <!-- Rarity Filter Pills -->
@@ -1909,7 +1915,7 @@ function applyGraphicsQuality(level) {
   maxParticles = PARTICLE_LIMITS[level] || PARTICLE_LIMITS.medium;
   if (particles.length > maxParticles) particles.length = maxParticles;
   backgroundCacheFrame = -1;
-  if (fpsCounterEl) fpsCounterEl.style.display = fpsCounterEnabled ? 'block' : 'none';
+  if (fpsCounterEl) fpsCounterEl.style.display = (fpsCounterEnabled && isGameRunning) ? 'block' : 'none';
   updateSettingsUI();
 }
 
@@ -1927,7 +1933,7 @@ function setGraphicsQuality(level) {
 function toggleFpsCounter() {
   fpsCounterEnabled = !fpsCounterEnabled;
   safeStorageSet('serpentRun_fpsCounter', fpsCounterEnabled ? '1' : '0');
-  if (fpsCounterEl) fpsCounterEl.style.display = fpsCounterEnabled ? 'block' : 'none';
+  if (fpsCounterEl) fpsCounterEl.style.display = (fpsCounterEnabled && isGameRunning) ? 'block' : 'none';
   updateSettingsUI();
 }
 
@@ -2623,6 +2629,9 @@ let matchXpEarned = 0;
 let matchScore = 0;
 let matchReviveUsed = false;
 let matchDoubleClaimed = false;
+let matchReachedLen150 = false;
+let matchPacifist3mAwarded = false;
+let lastRecordedSurvivalSecond = 0;
 let ingameQuestToastTimer = 0;
 
 function syncDerivedProfileStats() {
@@ -3763,6 +3772,8 @@ function renderSkinMenu() {
   if (shopCoinsEl && profileData) shopCoinsEl.textContent = profileData.coins.toLocaleString();
   const counterEl = document.getElementById('skin-collection-counter');
   if (counterEl) counterEl.textContent = `${unlockedSkinIds.size} / ${SKINS.length} Unlocked • Purely cosmetic, identical hitboxes`;
+  const searchEl = document.getElementById('skin-search-input');
+  if (searchEl) searchEl.placeholder = `Search ${SKINS.length} skins...`;
 
   if (!previewSkinId || !SKINS.some(s => s.id === previewSkinId)) {
     previewSkinId = selectedSkinId || 'classic';
@@ -5539,12 +5550,12 @@ function finalizeGameOver() {
     s.bestSurvivalTime = Math.max(s.bestSurvivalTime || 0, survivalSeconds);
     s.highestLength = Math.max(s.highestLength || INITIAL_SEGMENTS, player.length);
     s.singleMatchKills = Math.max(s.singleMatchKills || 0, playerKillCount);
-    s.dangerZoneTime = Math.round((s.dangerZoneTime || 0) + matchDangerZoneAccum);
 
     if (matchAbilitiesUsed === 0) {
       s.noAbilitySurvivalTime = Math.max(s.noAbilitySurvivalTime || 0, survivalSeconds);
     }
-    if (survivalSeconds >= 180 && playerKillCount === 0) {
+    if (survivalSeconds >= 180 && playerKillCount === 0 && !matchPacifist3mAwarded) {
+      matchPacifist3mAwarded = true;
       s.pacifist3m = (s.pacifist3m || 0) + 1;
     }
     if (matchReviveUsed && finalRank === 1) {
@@ -5554,7 +5565,7 @@ function finalizeGameOver() {
       s.hardSurvivalTime = Math.max(s.hardSurvivalTime || 0, survivalSeconds);
       s.hardSingleMatchKills = Math.max(s.hardSingleMatchKills || 0, playerKillCount);
       if (finalRank === 1) s.hardRank1Count = (s.hardRank1Count || 0) + 1;
-      if (finalRank <= 3 && survivalSeconds >= 45) {
+      if (finalRank <= 3) {
         s.hardWinsStreak = (s.hardWinsStreak || 0) + 1;
         s.hardWinsStreakBest = Math.max(s.hardWinsStreakBest || 0, s.hardWinsStreak);
       } else {
@@ -5562,12 +5573,19 @@ function finalizeGameOver() {
       }
     }
 
+    const unrecordedSec = Math.max(0, survivalSeconds - lastRecordedSurvivalSecond);
+    if (unrecordedSec > 0) {
+      recordMissionProgress('survive', unrecordedSec, false);
+      lastRecordedSurvivalSecond = survivalSeconds;
+    }
     recordMissionProgress('matches', 1, false);
-    recordMissionProgress('survive', survivalSeconds, false);
     recordMissionProgress('single_survive', survivalSeconds, true);
     recordMissionProgress('max_length', player.length, true);
-    if (player.length >= 150) recordMissionProgress('matches_len150', 1, false);
-    if (finalRank <= 3 && survivalSeconds >= 30) recordMissionProgress('top3_matches', 1, false);
+    if (player.length >= 150 && !matchReachedLen150) {
+      matchReachedLen150 = true;
+      recordMissionProgress('matches_len150', 1, false);
+    }
+    if (finalRank <= 3) recordMissionProgress('top3_matches', 1, false);
     addCoins(matchCoinsEarned);
     addXp(matchXpEarned);
     checkSkinUnlocks();
@@ -5703,7 +5721,13 @@ function checkFoodConsumptionAll() {
             matchFoodEaten += growth;
             if (profileData) {
               profileData.stats.totalFoodEaten = (profileData.stats.totalFoodEaten || 0) + growth;
+              profileData.stats.highestLength = Math.max(profileData.stats.highestLength || INITIAL_SEGMENTS, snake.length);
               recordMissionProgress('food', growth);
+              recordMissionProgress('max_length', snake.length, true);
+              if (snake.length >= 150 && !matchReachedLen150) {
+                matchReachedLen150 = true;
+                recordMissionProgress('matches_len150', 1, false);
+              }
             }
             if (orb.isDeathDrop) pushFloatingText(snake.x, snake.y, `+${growth}`);
             if (statLengthEl) statLengthEl.textContent = snake.length;
@@ -5730,11 +5754,17 @@ function checkFoodConsumptionAll() {
         matchFoodEaten += 3;
         if (profileData) {
           profileData.stats.totalFoodEaten = (profileData.stats.totalFoodEaten || 0) + 3;
+          profileData.stats.highestLength = Math.max(profileData.stats.highestLength || INITIAL_SEGMENTS, snake.length);
           profileData.stats.rareOrbsCollected = (profileData.stats.rareOrbsCollected || 0) + 1;
           if (now < player.dashUntil || (player.speedBoostUntil && now < player.speedBoostUntil)) {
             profileData.stats.dashingRareOrb = (profileData.stats.dashingRareOrb || 0) + 1;
           }
           recordMissionProgress('food', 3);
+          recordMissionProgress('max_length', snake.length, true);
+          if (snake.length >= 150 && !matchReachedLen150) {
+            matchReachedLen150 = true;
+            recordMissionProgress('matches_len150', 1, false);
+          }
         }
         if (statLengthEl) statLengthEl.textContent = snake.length;
       }
@@ -5756,6 +5786,29 @@ function updateHUDAndLeaderboard() {
     const elapsedMs = now - gameStartTime - totalPausedDuration;
     survivalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
     if (statTimeEl) statTimeEl.textContent = formatTime(survivalSeconds);
+    if (profileData && survivalSeconds > lastRecordedSurvivalSecond) {
+      const deltaSec = survivalSeconds - lastRecordedSurvivalSecond;
+      lastRecordedSurvivalSecond = survivalSeconds;
+      const s = profileData.stats;
+      s.bestSurvivalTime = Math.max(s.bestSurvivalTime || 0, survivalSeconds);
+      if (currentDifficulty === 'hard') {
+        s.hardSurvivalTime = Math.max(s.hardSurvivalTime || 0, survivalSeconds);
+      }
+      if (matchAbilitiesUsed === 0) {
+        s.noAbilitySurvivalTime = Math.max(s.noAbilitySurvivalTime || 0, survivalSeconds);
+      }
+      if (survivalSeconds >= 180 && playerKillCount === 0 && !matchPacifist3mAwarded) {
+        matchPacifist3mAwarded = true;
+        s.pacifist3m = (s.pacifist3m || 0) + 1;
+      }
+      if (matchDangerZoneAccum >= 1) {
+        const wholeDz = Math.floor(matchDangerZoneAccum);
+        matchDangerZoneAccum -= wholeDz;
+        s.dangerZoneTime = (s.dangerZoneTime || 0) + wholeDz;
+      }
+      recordMissionProgress('survive', deltaSec, false);
+      recordMissionProgress('single_survive', survivalSeconds, true);
+    }
   }
   checkSkinUnlocks();
   if (now - lastHudRefreshAt < 250) return;
@@ -5768,7 +5821,7 @@ function updateHUDAndLeaderboard() {
   if (statRankEl) statRankEl.textContent = `#${playerRank}`;
 
   if (lbListEl) {
-    const LB_SHOWN = 8;
+    const LB_SHOWN = width <= 640 ? 5 : 8;
     const lbRow = (s, idx) => `
       <div class="lb-item ${s.isPlayer ? 'is-player' : ''}">
         <div class="lb-left">
@@ -5890,6 +5943,7 @@ function startGame() {
   isGameRunning = true;
   isPaused = false;
   totalPausedDuration = 0;
+  if (fpsCounterEl) fpsCounterEl.style.display = fpsCounterEnabled ? 'block' : 'none';
 
   initSnake();
   initBots();
@@ -5907,6 +5961,7 @@ function goHome() {
   rareOrb = null;
   powerups.length = 0;
   AdManager.hideNativeBanner();
+  if (fpsCounterEl) fpsCounterEl.style.display = 'none';
   if (powerupIndicatorEl) powerupIndicatorEl.style.display = 'none';
   if (rareIndicatorEl) rareIndicatorEl.style.display = 'none';
   const reviveModal = document.getElementById('revive-modal');
@@ -6160,6 +6215,9 @@ function initSnake() {
   matchScore = 0;
   matchReviveUsed = false;
   matchDoubleClaimed = false;
+  matchReachedLen150 = false;
+  matchPacifist3mAwarded = false;
+  lastRecordedSurvivalSecond = 0;
   floatingTexts.length = 0;
   if (statKillsEl) statKillsEl.textContent = '0';
   
