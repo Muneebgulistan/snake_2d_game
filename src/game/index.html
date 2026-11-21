@@ -1197,6 +1197,13 @@
     .ability-btn { min-width: 66px; min-height: 50px; font-size: 11px; padding: 5px 8px; border-radius: 12px; }
     #kill-message { top: 94px; font-size: 12px; padding: 6px 14px; }
     #powerup-indicator { top: 128px; font-size: 12px; padding: 6px 14px; }
+    #ingame-quest-toast {
+      top: auto;
+      bottom: max(116px, calc(env(safe-area-inset-bottom) + 114px));
+      max-width: calc(100% - 28px);
+      font-size: 11px;
+      padding: 6px 12px;
+    }
     #fps-counter {
       top: auto;
       bottom: max(76px, calc(env(safe-area-inset-bottom) + 74px));
@@ -5211,11 +5218,14 @@ function renderPowerups() {
 function bigSnakeFoodProduction(now = performance.now()) {
   if (now - lastBigSnakeFoodAt < BIG_SNAKE_FOOD_INTERVAL_MS) return;
   lastBigSnakeFoodAt = now;
+  if (foodOrbs.length >= FOOD_COUNT + MAX_DEATH_DROP_ORBS) return;
   for (const snake of snakeRoster) {
     if (!snake.alive || snake.length < BIG_SNAKE_FOOD_THRESHOLD) continue;
+    if (foodOrbs.length >= FOOD_COUNT + MAX_DEATH_DROP_ORBS) break;
     // The bigger the snake, the more food it produces
     const extraFood = Math.min(3, Math.floor((snake.length - BIG_SNAKE_FOOD_THRESHOLD) / 25) + 1);
     for (let f = 0; f < extraFood; f++) {
+      if (foodOrbs.length >= FOOD_COUNT + MAX_DEATH_DROP_ORBS) break;
       // Spawn food near the snake's tail area
       const tailIdx = Math.min(snake.segments.length - 1, Math.floor(snake.segments.length * 0.6) + Math.floor(Math.random() * Math.floor(snake.segments.length * 0.4)));
       const tail = snake.segments[tailIdx];
@@ -6890,21 +6900,21 @@ function renderFood() {
   const mobileFoodScale = isMobViewport ? 1.48 : 1.05;
   const zoomComp = isMobViewport && cameraZoom < 0.72 ? Math.min(1.22, 0.74 / Math.max(0.45, cameraZoom)) : 1.0;
   const visualScale = 0.78 * mobileFoodScale * zoomComp;
-  const showFoodGlow = graphicsQuality !== 'low' || isMobViewport;
-  const glowAlpha = graphicsQuality === 'low' ? 0.52 : (graphicsQuality === 'medium' ? 0.72 : 0.94);
+  const showAllFoodGlow = graphicsQuality !== 'low';
+  const glowAlpha = graphicsQuality === 'low' ? 0.55 : (graphicsQuality === 'medium' ? 0.72 : 0.94);
   const glowScale = (isMobViewport ? 1.18 : 1.05) + currentCycle.nightFactor * 0.65;
   for (const orb of foodOrbs) {
     const birthProgress = orb.burstAt ? Math.min(1, Math.max(0, (now - orb.burstAt - orb.burstDelay) / 220)) : 1;
     if (birthProgress <= 0) continue;
     const bonusScale = orb.isDangerFood ? 1.24 : (orb.value > 1 ? 1.16 : 1.0);
-    const pulse = 1 + Math.sin(animFrame * (orb.pulseSpeed || 0.05) + (orb.pulsePhase || 0)) * 0.07;
+    const pulse = graphicsQuality === 'low' ? 1.0 : (1 + Math.sin(animFrame * (orb.pulseSpeed || 0.05) + (orb.pulsePhase || 0)) * 0.07);
     const radius = Math.max(2.2, orb.baseRadius * visualScale * bonusScale * pulse * (orb.burstAt ? birthProgress : 1));
     const x = cameraX + toroidDelta(cameraX, orb.x, WORLD_WIDTH);
     if (x + radius < bounds.left || x - radius > bounds.right) continue;
     const y = cameraY + toroidDelta(cameraY, orb.y, WORLD_HEIGHT);
     if (y + radius < bounds.top || y - radius > bounds.bottom) continue;
     ctx.globalAlpha = orb.burstAt ? birthProgress : 1;
-    if (showFoodGlow) drawCachedGlow(orb.glow, x, y, radius * glowScale, glowAlpha);
+    if (showAllFoodGlow || orb.value > 1) drawCachedGlow(orb.glow, x, y, radius * glowScale, glowAlpha);
     ctx.fillStyle = orb.color;
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
