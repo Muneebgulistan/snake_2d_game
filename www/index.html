@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#111827">
+<meta name="theme-color" content="#080D18">
 <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
 <title>Serpent Run</title>
 <style>
@@ -6203,9 +6203,43 @@ function togglePause() {
   }
 }
 
+function resetActiveControls() {
+  keys.left = false;
+  keys.right = false;
+  joystick.active = false;
+  joystick.pointerId = null;
+  joystick.dx = 0;
+  joystick.dy = 0;
+  joystick.hasDirection = false;
+  if (player) player.targetAngle = player.angle;
+  if (joystickEl) joystickEl.style.display = 'none';
+}
+
+window.onNativeAppPause = function () {
+  resetActiveControls();
+  if (isGameRunning && !isPaused && !isGameOver) togglePause();
+  if (ambientGain && audioCtx) {
+    try { ambientGain.gain.setValueAtTime(0, audioCtx.currentTime); } catch (_) {}
+  }
+  if (typeof saveProfileData === 'function') saveProfileData();
+};
+
+window.onNativeAppResume = function () {
+  if (!AdManager.adInProgress) {
+    applyAmbientAudioGain();
+    lastLoopFrameTime = performance.now();
+    fixedStepAccumulator = 0;
+  }
+};
+
 function initInput() {
   window.addEventListener('resize', onResize);
   window.addEventListener('orientationchange', onResize);
+  window.addEventListener('contextmenu', (e) => {
+    if (!e.target || (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA')) {
+      e.preventDefault();
+    }
+  });
 
   const pauseButton = document.getElementById('pause-btn');
   const homeButton = document.getElementById('home-btn');
@@ -6228,18 +6262,32 @@ function initInput() {
     abilityDock.addEventListener('pointerdown', (e) => e.stopPropagation());
     abilityDock.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
   }
+  // Multi-touch instant ability activation while steering with virtual joystick on Android
+  ['ghost', 'magnet', 'dash'].forEach(abName => {
+    const abBtn = document.getElementById(`${abName}-btn`);
+    if (!abBtn) return;
+    abBtn.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      if (e.pointerType === 'touch') {
+        e.preventDefault();
+        activateAbility(abName);
+      }
+    });
+  });
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      if (isGameRunning && !isPaused && !isGameOver) togglePause();
-      if (ambientGain && audioCtx) {
-        try { ambientGain.gain.setValueAtTime(0, audioCtx.currentTime); } catch (_) {}
-      }
-    } else if (!AdManager.adInProgress) {
-      applyAmbientAudioGain();
-      lastLoopFrameTime = performance.now();
-      fixedStepAccumulator = 0;
+      window.onNativeAppPause();
+    } else {
+      window.onNativeAppResume();
     }
+  });
+  window.addEventListener('blur', () => {
+    resetActiveControls();
+    if (typeof saveProfileData === 'function') saveProfileData();
+  });
+  window.addEventListener('pagehide', () => {
+    window.onNativeAppPause();
   });
 
   window.addEventListener('keydown', (e) => {
@@ -6353,6 +6401,12 @@ function onResize() {
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
   ctx.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
+  if (joystick.active) resetActiveControls();
+  const pCanvas = document.getElementById('reward-particle-canvas');
+  if (pCanvas && pCanvas.offsetParent !== null) {
+    pCanvas.width = width;
+    pCanvas.height = height;
+  }
   updateCamera();
 }
 

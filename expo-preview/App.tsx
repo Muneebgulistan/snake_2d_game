@@ -56,7 +56,7 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#111827',
+    backgroundColor: '#080D18',
   },
-  game: { backgroundColor: '#111827' },
+  game: { backgroundColor: '#080D18' },
 });

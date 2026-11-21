@@ -13,9 +13,13 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <item name="android:statusBarColor">#080D18</item>
+        <item name="android:navigationBarColor">#080D18</item>
     </style>
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:windowSplashScreenBackground">#111827</item>
+        <item name="android:windowSplashScreenBackground">#080D18</item>
         <item name="android:background">@drawable/splash</item>
+        <item name="android:statusBarColor">#080D18</item>
+        <item name="android:navigationBarColor">#080D18</item>
     </style>
 </resources>

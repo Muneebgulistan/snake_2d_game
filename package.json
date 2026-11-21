@@ -1,7 +1,7 @@
 {
   "name": "serpent-run",
-  "version": "1.0.0",
-  "description": "A simple snake survival game for Android and web",
+  "version": "3.0.0",
+  "description": "Serpent Run: Neon Abyss Edition — 2D snake arena survival game for Android and web",
   "private": true,
   "scripts": {
     "web:sync": "node scripts/sync-web-assets.mjs",
