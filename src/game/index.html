@@ -2407,12 +2407,18 @@ function buildSpatialHash() {
     if (!snake.alive) continue;
     insertSpatialItem(snake.x, snake.y, snake, null, -1, 1, HEAD_RADIUS);
     const length = snake.segments.length;
-    // Stride-2 body insertion halves spatial hash insertions & collision loop checks with identical collision coverage
+    // Stride-2 body insertion halves spatial hash insertions & collision loop checks while always including the tail segment
     for (let i = 1; i < length; i += 2) {
       const segment = snake.segments[i];
       const progress = i / length;
       const bodyRadius = Math.max(3.5, HEAD_RADIUS * (1 - progress * 0.72));
-      insertSpatialItem(segment.x, segment.y, snake, segment, i, 0, (HEAD_RADIUS + bodyRadius) * 0.72);
+      insertSpatialItem(segment.x, segment.y, snake, segment, i, 0, Math.max(8.8, (HEAD_RADIUS + bodyRadius) * 0.78));
+    }
+    if (length > 2 && (length - 1) % 2 === 0) {
+      const tailIdx = length - 1;
+      const tailSeg = snake.segments[tailIdx];
+      const tailRadius = Math.max(3.5, HEAD_RADIUS * 0.28);
+      insertSpatialItem(tailSeg.x, tailSeg.y, snake, tailSeg, tailIdx, 0, Math.max(8.8, (HEAD_RADIUS + tailRadius) * 0.78));
     }
   }
   for (const orb of foodOrbs) {
@@ -2433,10 +2439,11 @@ function spatialDangerAt(x, y, radius, requester) {
         if (spatialKind[slot] === 2) continue;
         const owner = spatialOwner[slot];
         if (!owner.alive || (owner === requester && (spatialKind[slot] === 1 || spatialIndex[slot] < 6))) continue;
-        const objectX = spatialKind[slot] ? owner.x : spatialSegment[slot].x;
-        const objectY = spatialKind[slot] ? owner.y : spatialSegment[slot].y;
-        const distanceSq = toroidDistSq(x, y, objectX, objectY);
-        if (distanceSq < radiusSq) danger += 1 / (1 + Math.sqrt(distanceSq));
+        const distanceSq = toroidDistSq(x, y, spatialX[slot], spatialY[slot]);
+        if (distanceSq < radiusSq) {
+          danger += 1 / (1 + Math.sqrt(distanceSq));
+          if (danger >= 1.5) return danger;
+        }
       }
     }
   }
@@ -3712,14 +3719,20 @@ const AdManager = {
 // ============================================================
 
 function wrap(val, max) {
-  return ((val % max) + max) % max;
+  const m = val % max;
+  return m < 0 ? m + max : m;
 }
 
-/** Robust shortest toroidal delta across seams */
+/** Robust shortest toroidal delta across seams (fast path when coordinates are in [0, size)) */
 function toroidDelta(a, b, size) {
-  let d = wrap(b, size) - wrap(a, size);
-  if (d > size * 0.5) d -= size;
-  else if (d < -size * 0.5) d += size;
+  let d = b - a;
+  if (d > size * 0.5) {
+    d -= size;
+    if (d > size * 0.5) d = wrap(b, size) - wrap(a, size);
+  } else if (d < -size * 0.5) {
+    d += size;
+    if (d < -size * 0.5) d = wrap(b, size) - wrap(a, size);
+  }
   return d;
 }
 
@@ -4914,6 +4927,23 @@ function checkSkinUnlocks() {
 
 function isFarFromAllSnakes(x, y, minDist = 60) {
   const minDistSq = minDist * minDist;
+  if (spatialItemCount > 0) {
+    const cellX = Math.floor(wrap(x, WORLD_WIDTH) / SPATIAL_CELL_SIZE);
+    const cellY = Math.floor(wrap(y, WORLD_HEIGHT) / SPATIAL_CELL_SIZE);
+    for (let oy = -1; oy <= 1; oy++) {
+      const row = wrap(cellY + oy, SPATIAL_ROWS);
+      for (let ox = -1; ox <= 1; ox++) {
+        const column = wrap(cellX + ox, SPATIAL_COLUMNS);
+        for (let slot = spatialHeads[row * SPATIAL_COLUMNS + column]; slot !== -1; slot = spatialNext[slot]) {
+          if (spatialKind[slot] === 2) continue;
+          const owner = spatialOwner[slot];
+          if (!owner || !owner.alive) continue;
+          if (toroidDistSq(spatialX[slot], spatialY[slot], x, y) < minDistSq) return false;
+        }
+      }
+    }
+    return true;
+  }
   const allSnakes = snakeRoster;
   for (const s of allSnakes) {
     if (!s.alive) continue;
@@ -5176,22 +5206,15 @@ function bigSnakeFoodProduction(now = performance.now()) {
       const fx = wrap(tail.x + Math.cos(angle) * dist, WORLD_WIDTH);
       const fy = wrap(tail.y + Math.sin(angle) * dist, WORLD_HEIGHT);
       const orb = spawnFoodOrb(fx, fy);
-      orb.isDeathDrop = false;
+      orb.isDeathDrop = true;
+      orb.value = 1;
       foodOrbs.push(orb);
     }
   }
 }
 
 function isClearRareOrbSpot(x, y) {
-  const clearanceSq = 34 * 34;
-  for (const snake of snakeRoster) {
-    if (!snake.alive) continue;
-    if (toroidDistSq(snake.x, snake.y, x, y) < clearanceSq) return false;
-    for (const segment of snake.segments) {
-      if (toroidDistSq(segment.x, segment.y, x, y) < clearanceSq) return false;
-    }
-  }
-  return true;
+  return isFarFromAllSnakes(x, y, 34);
 }
 
 function maybeSpawnRareOrb(now = performance.now()) {
@@ -5511,27 +5534,30 @@ function updateBotAI(bot) {
 
   const desiredAngle = brain.cachedDesiredAngle;
 
-  // Whisker sensors check wrapped distances to bodies ahead on every frame.
+  // Whisker sensors check wrapped distances to bodies ahead (staggered on even/odd frames when many bots are nearby).
   const lookDist = bot.personality.lookAheadDist;
   let bestDanger = 0;
   let avoidTurn = 0;
 
-  for (const sa of BOT_SENSOR_ANGLES) {
-    const checkAngle = bot.angle + sa;
-    const probeX = wrap(bot.x + Math.cos(checkAngle) * lookDist, WORLD_WIDTH);
-    const probeY = wrap(bot.y + Math.sin(checkAngle) * lookDist, WORLD_HEIGHT);
+  if ((animFrame + bot.aiOffset) % 2 === 0 || brain.lastHadDanger) {
+    for (const sa of BOT_SENSOR_ANGLES) {
+      const checkAngle = bot.angle + sa;
+      const probeX = wrap(bot.x + Math.cos(checkAngle) * lookDist, WORLD_WIDTH);
+      const probeY = wrap(bot.y + Math.sin(checkAngle) * lookDist, WORLD_HEIGHT);
 
-    const probeDanger = spatialDangerAt(probeX, probeY, HEAD_RADIUS + 10, bot);
+      const probeDanger = spatialDangerAt(probeX, probeY, HEAD_RADIUS + 10, bot);
 
-    if (probeDanger > 0) {
-      avoidTurn += (sa === 0 ? (Math.random() > 0.5 ? 1.5 : -1.5) : -Math.sign(sa) * 1.8);
-      bestDanger += probeDanger;
+      if (probeDanger > 0) {
+        avoidTurn += (sa === 0 ? (Math.random() > 0.5 ? 1.5 : -1.5) : -Math.sign(sa) * 1.8);
+        bestDanger += probeDanger;
+      }
     }
+    brain.lastHadDanger = bestDanger > 0;
   }
 
   if (bestDanger > 0) {
     bot.targetAngle = bot.angle + avoidTurn;
-  } else {
+  } else if (!brain.lastHadDanger) {
     bot.targetAngle = desiredAngle;
   }
 
@@ -6263,6 +6289,7 @@ function startGame() {
 }
 
 function goHome() {
+  flushDeferredProfileSave(true);
   isGameRunning = false;
   isPaused = false;
   isGameOver = false;
@@ -6329,6 +6356,7 @@ function togglePause() {
   isPaused = !isPaused;
   if (isPaused) {
     pauseStartTime = performance.now();
+    flushDeferredProfileSave(true);
     pauseOverlayEl.style.display = 'flex';
   } else {
     totalPausedDuration += performance.now() - pauseStartTime;
@@ -6357,6 +6385,7 @@ window.onNativeAppPause = function () {
   if (ambientGain && audioCtx) {
     try { ambientGain.gain.setValueAtTime(0, audioCtx.currentTime); } catch (_) {}
   }
+  saveProfileDirty = false;
   if (typeof saveProfileData === 'function') saveProfileData();
 };
 
@@ -7250,7 +7279,8 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
   const protectedNow = performance.now() < snake.protectedUntil;
   const protectionAlpha = 0.42 + Math.sin(performance.now() * 0.035) * 0.34;
   const far = toroidDistSq(player.x, player.y, snake.x, snake.y) > (Math.min(width, height) / cameraZoom * 0.42) ** 2;
-  const segmentStride = graphicsQuality === 'low' ? (far ? 5 : 2) : (far ? 3 : 1);
+  const longBodyMul = segs.length > 180 ? 2 : 1;
+  const segmentStride = (graphicsQuality === 'low' ? (far ? 5 : 2) : (far ? 3 : 1)) * longBodyMul;
   const bandCount = graphicsQuality === 'low' ? (far ? 1 : 2) : (far ? 2 : 3);
   const nightGlow = currentCycle.nightFactor * (graphicsQuality === 'low' ? 0.25 : (graphicsQuality === 'medium' ? 0.62 : 1));
   const hasAmbientAura = Boolean(pal.trailEffect) && graphicsQuality !== 'low';
