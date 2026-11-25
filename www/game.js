@@ -103,7 +103,27 @@ function computeLevelTargetScore(level = 1) {
 
 let currentArenaLevel = 1;
 let matchFruitScore = 0;
+let levelIntroTimer = 0;
 const fruitSpriteCache = new Map();
+
+function showLevelIntroBanner(level = 1) {
+  const bannerEl = document.getElementById('level-intro-banner');
+  const titleEl = document.getElementById('lvl-intro-title');
+  if (!bannerEl) return;
+  const targetPts = computeLevelTargetScore(level);
+  if (titleEl) {
+    titleEl.textContent = `STAGE ${level} • TARGET ${targetPts.toLocaleString()} PTS`;
+  }
+  bannerEl.style.display = 'block';
+  bannerEl.style.opacity = '1';
+  clearTimeout(levelIntroTimer);
+  levelIntroTimer = setTimeout(() => {
+    if (bannerEl) {
+      bannerEl.style.opacity = '0';
+      setTimeout(() => { if (bannerEl) bannerEl.style.display = 'none'; }, 260);
+    }
+  }, 3200);
+}
 const BOT_START_COUNT = GAME_CONFIG.BOT_START_COUNT || 50;
 const BOT_WAVE_ADD = GAME_CONFIG.BOT_WAVE_ADD || 5;
 const BOT_WAVE_INTERVAL_MS = GAME_CONFIG.BOT_WAVE_INTERVAL_MS || 10000;
@@ -1087,26 +1107,26 @@ const DAILY_REWARDS_CYCLE = [
 // A. DAILY MISSIONS POOL (10 Definitions — 4 Rotate Daily at Local Midnight)
 const MISSION_POOL = [
   { id: 'eat_100', tier: 'daily', difficulty: 'Easy', rarity: 'common', title: 'Hungry Serpent', desc: 'Collect 100 food value across matches today', type: 'food', target: 100, rewardCoins: 140, rewardXp: 90 },
-  { id: 'survive_180', tier: 'daily', difficulty: 'Normal', rarity: 'uncommon', title: 'Deep Survivor', desc: 'Survive 3 minutes (180s) total in the arena today', type: 'survive', target: 180, rewardCoins: 160, rewardXp: 110 },
-  { id: 'kill_5', tier: 'daily', difficulty: 'Normal', rarity: 'rare', title: 'Coil Trapper', desc: 'Eliminate 5 rival snakes today', type: 'kills', target: 5, rewardCoins: 175, rewardXp: 120 },
-  { id: 'len_120', tier: 'daily', difficulty: 'Normal', rarity: 'rare', title: 'Colossus', desc: 'Reach a snake length of 120 in a single run', type: 'max_length', target: 120, rewardCoins: 190, rewardXp: 130 },
+  { id: 'survive_180', tier: 'daily', difficulty: 'Medium', rarity: 'uncommon', title: 'Deep Survivor', desc: 'Survive 3 minutes (180s) total in the arena today', type: 'survive', target: 180, rewardCoins: 160, rewardXp: 110 },
+  { id: 'kill_5', tier: 'daily', difficulty: 'Medium', rarity: 'rare', title: 'Coil Trapper', desc: 'Eliminate 5 rival snakes today', type: 'kills', target: 5, rewardCoins: 175, rewardXp: 120 },
+  { id: 'len_120', tier: 'daily', difficulty: 'Medium', rarity: 'rare', title: 'Colossus', desc: 'Reach a snake length of 120 in a single run', type: 'max_length', target: 120, rewardCoins: 190, rewardXp: 130 },
   { id: 'powerup_3', tier: 'daily', difficulty: 'Easy', rarity: 'uncommon', title: 'Power Collector', desc: 'Pick up 3 map power-ups today', type: 'powerups', target: 3, rewardCoins: 150, rewardXp: 100 },
   { id: 'dash_10', tier: 'daily', difficulty: 'Easy', rarity: 'common', title: 'High Voltage', desc: 'Activate the Dash ability 10 times today', type: 'dash', target: 10, rewardCoins: 135, rewardXp: 90 },
-  { id: 'nodie_90', tier: 'daily', difficulty: 'Normal', rarity: 'uncommon', title: 'Untouchable', desc: 'Survive at least 90 seconds in one match', type: 'single_survive', target: 90, rewardCoins: 165, rewardXp: 110 },
+  { id: 'nodie_90', tier: 'daily', difficulty: 'Medium', rarity: 'uncommon', title: 'Untouchable', desc: 'Survive at least 90 seconds in one match', type: 'single_survive', target: 90, rewardCoins: 165, rewardXp: 110 },
   { id: 'king_1', tier: 'daily', difficulty: 'Hard', rarity: 'epic', title: 'Regicide', desc: 'Eliminate 1 crowned King Snake today', type: 'king_kills', target: 1, rewardCoins: 240, rewardXp: 160 },
   { id: 'matches_3', tier: 'daily', difficulty: 'Easy', rarity: 'common', title: 'Arena Regular', desc: 'Play 3 matches in any difficulty mode', type: 'matches', target: 3, rewardCoins: 140, rewardXp: 95 },
-  { id: 'coins_200', tier: 'daily', difficulty: 'Normal', rarity: 'uncommon', title: 'Treasure Hunter', desc: 'Earn 200 coins from matches or rewards today', type: 'coins_earned', target: 200, rewardCoins: 170, rewardXp: 115 }
+  { id: 'coins_200', tier: 'daily', difficulty: 'Medium', rarity: 'uncommon', title: 'Treasure Hunter', desc: 'Earn 200 coins from matches or rewards today', type: 'coins_earned', target: 200, rewardCoins: 170, rewardXp: 115 }
 ];
 
 // B. WEEKLY MISSIONS POOL (7 Definitions — 5 Rotate Weekly by ISO Week)
 const WEEKLY_MISSION_POOL = [
   { id: 'wk_kill_50', tier: 'weekly', difficulty: 'Hard', rarity: 'epic', title: 'Swarm Decimator', desc: 'Eliminate 50 enemy snakes this week', type: 'kills', target: 50, rewardCoins: 650, rewardXp: 450 },
-  { id: 'wk_survive_20m', tier: 'weekly', difficulty: 'Normal', rarity: 'rare', title: 'Abyssal Endurance', desc: 'Survive 20 minutes (1,200s) total across matches', type: 'survive', target: 1200, rewardCoins: 600, rewardXp: 420 },
+  { id: 'wk_survive_20m', tier: 'weekly', difficulty: 'Medium', rarity: 'rare', title: 'Abyssal Endurance', desc: 'Survive 20 minutes (1,200s) total across matches', type: 'survive', target: 1200, rewardCoins: 600, rewardXp: 420 },
   { id: 'wk_len300_3x', tier: 'weekly', difficulty: 'Hard', rarity: 'epic', title: 'Triple Titan', desc: 'Reach length 150+ in 3 separate matches this week', type: 'matches_len150', target: 3, rewardCoins: 700, rewardXp: 500 },
-  { id: 'wk_top3_10', tier: 'weekly', difficulty: 'Normal', rarity: 'rare', title: 'Podium Dominator', desc: 'Finish in the Top 3 arena rank in 10 matches', type: 'top3_matches', target: 10, rewardCoins: 680, rewardXp: 480 },
-  { id: 'wk_powerups_30', tier: 'weekly', difficulty: 'Normal', rarity: 'rare', title: 'Relic Overcharge', desc: 'Collect 30 map power-ups this week', type: 'powerups', target: 30, rewardCoins: 580, rewardXp: 400 },
+  { id: 'wk_top3_10', tier: 'weekly', difficulty: 'Medium', rarity: 'rare', title: 'Podium Dominator', desc: 'Finish in the Top 3 arena rank in 10 matches', type: 'top3_matches', target: 10, rewardCoins: 680, rewardXp: 480 },
+  { id: 'wk_powerups_30', tier: 'weekly', difficulty: 'Medium', rarity: 'rare', title: 'Relic Overcharge', desc: 'Collect 30 map power-ups this week', type: 'powerups', target: 30, rewardCoins: 580, rewardXp: 400 },
   { id: 'wk_kings_5', tier: 'weekly', difficulty: 'Hard', rarity: 'legendary', title: 'Crown Breaker', desc: 'Defeat 5 crowned King Snakes this week', type: 'king_kills', target: 5, rewardCoins: 850, rewardXp: 600 },
-  { id: 'wk_dailies_12', tier: 'weekly', difficulty: 'Normal', rarity: 'epic', title: 'Dedicated Striker', desc: 'Claim 12 daily missions this week', type: 'dailies_claimed', target: 12, rewardCoins: 750, rewardXp: 520 }
+  { id: 'wk_dailies_12', tier: 'weekly', difficulty: 'Medium', rarity: 'epic', title: 'Dedicated Striker', desc: 'Claim 12 daily missions this week', type: 'dailies_claimed', target: 12, rewardCoins: 750, rewardXp: 520 }
 ];
 
 // C. ELITE CHALLENGES POOL (8 High-Skill Long-Term Challenges with Exclusive Rewards)
@@ -1168,7 +1188,7 @@ const ACHIEVEMENTS_LIST = [
   { id: 'king_30', category: 'kingslayer', rarity: 'mythic', icon: '🐉', title: 'Bane of Monarchs', desc: 'Eliminate 30 crowned King Snakes', stat: 'kingKills', target: 30, rewardCoins: 2000, rewardXp: 1400, bonusTitle: 'Godslayer' },
 
   // 7. HARD MODE (4)
-  { id: 'hard_2m', category: 'hardmode', rarity: 'silver', icon: '🔥', title: 'Trial by Fire', desc: 'Survive 2 minutes (120s) in Hard Mode (50 bots)', stat: 'hardSurvivalTime', target: 120, rewardCoins: 320, rewardXp: 220 },
+  { id: 'hard_2m', category: 'hardmode', rarity: 'silver', icon: '🔥', title: 'Trial by Fire', desc: 'Survive 2 minutes (120s) in Hard Mode', stat: 'hardSurvivalTime', target: 120, rewardCoins: 320, rewardXp: 220 },
   { id: 'hard_4m', category: 'hardmode', rarity: 'gold', icon: '🌋', title: 'Crucible Master', desc: 'Survive 4 minutes (240s) in Hard Mode', stat: 'hardSurvivalTime', target: 240, rewardCoins: 680, rewardXp: 460 },
   { id: 'hard_top1', category: 'hardmode', rarity: 'diamond', icon: '🏆', title: 'Apex of the Swarm', desc: 'Finish a Hard Mode match at Rank #1', stat: 'hardRank1Count', target: 1, rewardCoins: 850, rewardXp: 600 },
   { id: 'hard_kills_10', category: 'hardmode', rarity: 'diamond', icon: '💀', title: 'Swarm Butcher', desc: 'Get 10 kills in a single Hard Mode match', stat: 'hardSingleMatchKills', target: 10, rewardCoins: 1150, rewardXp: 820 },
@@ -3082,7 +3102,7 @@ function renderMissionsScreen() {
       <div class="mission-info">
         <div class="mission-head-row">
           <span class="mission-title">${def.title}</span>
-          <span class="rarity-badge rarity-${def.rarity || 'common'}">${def.difficulty || 'Normal'}</span>
+          <span class="rarity-badge rarity-${def.rarity || 'common'}">${def.difficulty || 'Medium'}</span>
         </div>
         <div class="mission-desc">${def.desc}</div>
         <div class="mission-prog-wrap">
@@ -4253,9 +4273,8 @@ function findRingSpawnCoords(minClearDist = BOT_RING_MIN_DIST, bodyLen = INITIAL
   const viewHalfH = height / (2 * Math.max(0.25, cameraZoom));
   const viewHalfDiag = Math.hypot(viewHalfW, viewHalfH);
   const innerRing = Math.max(minClearDist, viewHalfDiag + 140);
-  const outerRing = Math.min(WORLD_WIDTH * 0.46, Math.max(innerRing + 550, viewHalfDiag + 900));
-  const minHeadSq = minClearDist * minClearDist;
-  const bodyClearSq = 155 * 155;
+  const outerRing = Math.min(WORLD_WIDTH * 0.46, Math.max(innerRing + 650, viewHalfDiag + 1150));
+  const playerMinSq = minClearDist * minClearDist;
   const tailSpan = Math.min(360, bodyLen * SEGMENT_SPACING);
   const cosA = Math.cos(spawnAngle);
   const sinA = Math.sin(spawnAngle);
@@ -4264,26 +4283,31 @@ function findRingSpawnCoords(minClearDist = BOT_RING_MIN_DIST, bodyLen = INITIAL
   let bestY = wrap(player.y + innerRing, WORLD_HEIGHT);
   let maxMinDistSq = -1;
 
-  for (let attempt = 0; attempt < 56; attempt++) {
+  for (let attempt = 0; attempt < 64; attempt++) {
     const theta = Math.random() * Math.PI * 2;
     const dist = innerRing + Math.random() * (outerRing - innerRing);
     const cx = wrap(player.x + Math.cos(theta) * dist, WORLD_WIDTH);
     const cy = wrap(player.y + Math.sin(theta) * dist, WORLD_HEIGHT);
 
-    // Must be outside the current camera view rectangle
+    // Must be outside the current camera view rectangle and at least minClearDist (600) from the player
     const inViewX = Math.abs(toroidDelta(cameraX, cx, WORLD_WIDTH)) < viewHalfW + 80;
     const inViewY = Math.abs(toroidDelta(cameraY, cy, WORLD_HEIGHT)) < viewHalfH + 80;
     if (inViewX && inViewY) continue;
+    if (toroidDistSq(cx, cy, player.x, player.y) < playerMinSq) continue;
 
+    // First 36 attempts enforce full 600-unit clearance from all other snakes; remaining attempts gracefully step down if 120 bots pack the arena
+    const otherClearDist = attempt < 36 ? minClearDist : (attempt < 50 ? 420 : 260);
+    const otherClearSq = otherClearDist * otherClearDist;
     let closestDistSq = Infinity;
     let rejected = false;
 
     for (let sIdx = 0; sIdx < snakeRoster.length; sIdx++) {
       const s = snakeRoster[sIdx];
       if (!s || !s.alive) continue;
+      const reqSq = s.isPlayer ? playerMinSq : otherClearSq;
       const dHeadSq = toroidDistSq(cx, cy, s.x, s.y);
       if (dHeadSq < closestDistSq) closestDistSq = dHeadSq;
-      if (dHeadSq < minHeadSq) {
+      if (dHeadSq < reqSq) {
         rejected = true;
         break;
       }
@@ -4292,7 +4316,7 @@ function findRingSpawnCoords(minClearDist = BOT_RING_MIN_DIST, bodyLen = INITIAL
       for (let i = 0; i < segs.length; i += stride) {
         const dSegSq = toroidDistSq(cx, cy, segs[i].x, segs[i].y);
         if (dSegSq < closestDistSq) closestDistSq = dSegSq;
-        if (dSegSq < bodyClearSq) {
+        if (dSegSq < reqSq) {
           rejected = true;
           break;
         }
@@ -4305,12 +4329,12 @@ function findRingSpawnCoords(minClearDist = BOT_RING_MIN_DIST, bodyLen = INITIAL
       const midY = wrap(cy - sinA * (tailSpan * 0.5), WORLD_HEIGHT);
       const endX = wrap(cx - cosA * tailSpan, WORLD_WIDTH);
       const endY = wrap(cy - sinA * tailSpan, WORLD_HEIGHT);
-      if (!isFarFromAllSnakes(midX, midY, 110) || !isFarFromAllSnakes(endX, endY, 110)) {
+      if (!isFarFromAllSnakes(midX, midY, 120) || !isFarFromAllSnakes(endX, endY, 120)) {
         rejected = true;
       }
     }
 
-    if (!rejected && closestDistSq >= bodyClearSq) {
+    if (!rejected && closestDistSq >= otherClearSq) {
       return { x: cx, y: cy };
     }
     if (closestDistSq > maxMinDistSq) {
@@ -4406,12 +4430,15 @@ function initBots() {
   leaderboardOrder[0] = player;
   leaderboardOrder.length = 1;
   const isMob = width <= 768 || isMobileDevice;
-  activeBotMax = isMob ? BOT_MAX_MOBILE : BOT_MAX_DESKTOP;
+  const cfgMax = Number(GAME_CONFIG.BOT_MAX);
+  activeBotMax = (Number.isFinite(cfgMax) && cfgMax >= BOT_MIN_CAP)
+    ? (isMob && cfgMax === BOT_MAX_DESKTOP ? BOT_MAX_MOBILE : cfgMax)
+    : (isMob ? BOT_MAX_MOBILE : BOT_MAX_DESKTOP);
   activeTargetBotCount = Math.min(activeBotMax, BOT_START_COUNT);
   totalBotsCreatedInMatch = 0;
   const now = performance.now();
   nextBotWaveAt = now + BOT_WAVE_INTERVAL_MS;
-  nextWaveBotSpawnAt = now + 500;
+  nextWaveBotSpawnAt = now + 450;
   for (let i = 0; i < activeTargetBotCount; i++) {
     const bot = createBot(BOT_CONFIGS[i % BOT_CONFIGS.length], totalBotsCreatedInMatch++, false);
     bots.push(bot);
@@ -4482,10 +4509,11 @@ function respawnBot(bot) {
 
 function updateBotWaves(now = performance.now()) {
   if (!isGameRunning || isPaused || isGameOver) return;
-  if (now >= nextBotWaveAt) {
-    nextBotWaveAt = now + BOT_WAVE_INTERVAL_MS;
-    activeTargetBotCount = Math.min(activeBotMax, activeTargetBotCount + BOT_WAVE_ADD);
-  }
+  if (typeof AdManager !== 'undefined' && AdManager.adInProgress) return;
+  const elapsedMatchMs = Math.max(0, now - gameStartTime - totalPausedDuration);
+  const waveSteps = Math.floor(elapsedMatchMs / BOT_WAVE_INTERVAL_MS);
+  activeTargetBotCount = Math.min(activeBotMax, BOT_START_COUNT + waveSteps * BOT_WAVE_ADD);
+
   // Gradually spawn new wave bots in a ring outside the player's view (at least 600 units away) with 1.5s fade-in
   if (bots.length < activeTargetBotCount && now >= nextWaveBotSpawnAt) {
     const idx = totalBotsCreatedInMatch++;
@@ -5013,12 +5041,17 @@ function killBot(bot, killer = null) {
     if (glowTrailSamplePool.length < 1024) glowTrailSamplePool.push(bot.glowTrailSamples[i]);
   }
   bot.glowTrailSamples.length = 0;
-  bot.respawnTimer = RESPAWN_DELAY_FRAMES;
   const reward = dissolveSnakeIntoFood(bot, bounty ? 2 : 1);
   bot.segments.length = 0;
   bot.growQueue = 0;
   if (killer === player) showKillMessage(bot, reward, bounty);
   sfxBotDeath();
+  // Immediately respawn in the outer ring with a 1.5s fade-in so population never drops below current target
+  if (bots.length <= activeTargetBotCount) {
+    respawnBot(bot);
+  } else {
+    bot.respawnTimer = 0;
+  }
 }
 
 let cachedKingSnake = null;
@@ -5457,7 +5490,7 @@ function checkFoodConsumptionAll() {
               const maxLvl = FRUITS_CONFIG.maxLevel || 10;
               while (currentArenaLevel < maxLvl && matchFruitScore >= computeLevelTargetScore(currentArenaLevel)) {
                 currentArenaLevel++;
-                showPowerupIndicator(`🎯 STAGE ${currentArenaLevel} REACHED!`);
+                showLevelIntroBanner(currentArenaLevel);
               }
               pushFloatingText(orb.x, orb.y, `+${pts}`, now, {
                 boxed: true,
@@ -5739,6 +5772,7 @@ function startGame() {
   scheduleNextPowerup();
   powerups.length = 0;
   applyDifficultySpeeds();
+  showLevelIntroBanner(currentArenaLevel);
   ensureGameLoop();
 }
 
@@ -5752,6 +5786,8 @@ function goHome() {
   AdManager.hideNativeBanner();
   if (fpsCounterEl) fpsCounterEl.style.display = 'none';
   if (powerupIndicatorEl) powerupIndicatorEl.style.display = 'none';
+  const lvlBanner = document.getElementById('level-intro-banner');
+  if (lvlBanner) lvlBanner.style.display = 'none';
   if (rareIndicatorEl) rareIndicatorEl.style.display = 'none';
   const reviveModal = document.getElementById('revive-modal');
   if (reviveModal) reviveModal.style.display = 'none';
@@ -6283,6 +6319,7 @@ function restartGame() {
   scheduleNextPowerup();
   powerups.length = 0;
   applyDifficultySpeeds();
+  showLevelIntroBanner(currentArenaLevel);
   ensureGameLoop();
 }
 

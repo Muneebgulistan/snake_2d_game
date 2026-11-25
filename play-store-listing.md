@@ -6,15 +6,15 @@ Serpent Run
 
 ## Short description
 
-Steer, grow, unlock 16 custom snake skins, and outsmart 50 AI serpents!
+Steer, grow, unlock 62 custom snake skins, and outsmart waves of AI serpents!
 
 ## Full description
 
-Dive into **Serpent Run**, a fast-paced 2D arcade snake survival game built for smooth mobile play. Steer through a massive wraparound underwater arena, collect food and power-ups, trigger tactical abilities, and trap rival AI serpents to claim the crown!
+Dive into **Serpent Run**, a fast-paced 2D arcade snake survival game built for smooth mobile play. Steer through a massive wraparound underwater arena, collect neon fruits and power-ups, trigger tactical abilities, and trap rival AI serpents to claim the crown!
 
 **Key Features**
 
-- **50 AI Rivals with 4 Tactical Personalities:** Outmaneuver Hunter, Encircler, Opportunist, and Scavenger snakes across Easy, Normal, and Hard difficulties.
+- **Speed-Only Difficulty & Scaling AI Waves:** Outmaneuver Hunter, Encircler, Opportunist, and Scavenger snakes across Easy (*Calm currents*), Medium (*Open water*), and Hard (*Deep abyss*) pace modes.
 - **3 Active Abilities & Map Power-Ups:** Phase through danger with **Ghost**, pull in nearby orbs with **Magnet**, or blast rivals back with **Dash**, plus collect random Speed & Magnet map drops.
 - **16 Custom-Anatomy Snake Skins:** Collect Common, Rare, Epic, and Legendary skins—including King Cobra (flared hood), Reticulated Python (labial heat pits), Emerald Tree Boa, Coral Snake, Diamondback, Black Mamba, Sea Krait, Cyber Neon, and Golden Dragon. All skins are 100% cosmetic with identical hitboxes.
 - **Full Progression & Coin Economy:** Earn XP, level up, complete rotating Daily Missions, claim 7-Day Login Rewards, and unlock 12 Career Achievements.

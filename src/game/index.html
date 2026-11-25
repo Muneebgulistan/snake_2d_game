@@ -316,6 +316,21 @@
     color: #fef3c7; font-size: 13px; font-weight: 800;
     transition: opacity 0.2s ease; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   }
+  #level-intro-banner {
+    position: absolute; z-index: 15; display: none; pointer-events: none;
+    left: 50%; top: max(76px, calc(env(safe-area-inset-top) + 64px)); transform: translateX(-50%);
+    padding: 10px 18px; border-radius: 16px;
+    background: rgba(17, 27, 45, 0.92); border: 1px solid var(--accent-2);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), 0 0 18px rgba(0, 217, 255, 0.22);
+    color: var(--text); text-align: center;
+    transition: opacity 0.25s ease; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  #level-intro-banner .lvl-intro-title {
+    font-size: 14px; font-weight: 900; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  #level-intro-banner .lvl-intro-legend {
+    margin-top: 4px; font-size: 11px; font-weight: 800; color: var(--text-dim); white-space: nowrap;
+  }
   #skin-unlock-toast {
     position: absolute; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); z-index: 90;
     display: none; transform: translateX(-50%); padding: 12px 20px; border-radius: 14px;
@@ -1452,6 +1467,10 @@
 <div id="rare-indicator" aria-hidden="true"><span>↑</span><small>Rare orb</small></div>
 <div id="kill-message" aria-live="polite"></div>
 <div id="powerup-indicator" aria-live="polite"></div>
+<div id="level-intro-banner" aria-live="polite">
+  <div class="lvl-intro-title" id="lvl-intro-title">STAGE 1 &bull; TARGET 430 PTS</div>
+  <div class="lvl-intro-legend">🍎 Apple +20 (+1) &bull; 🍒 Cherry +35 (+1) &bull; 🍇 Grapes +50 (+2)</div>
+</div>
 <div id="ingame-quest-toast" aria-live="polite">
   <span class="qt-tag" id="qt-badge">MISSION</span>
   <span id="qt-text">Completed!</span>
@@ -1522,6 +1541,10 @@
       <span class="fruit-pill apple">🍎 Apple <b>+20</b> <small>(+1)</small></span>
       <span class="fruit-pill cherry">🍒 Cherry <b>+35</b> <small>(+1)</small></span>
       <span class="fruit-pill grapes">🍇 Grapes <b>+50</b> <small>(+2)</small></span>
+    </div>
+
+    <div class="fruit-legend-bar" aria-label="How to play tutorial" style="font-size:10.5px;color:var(--text-dim);line-height:1.45;">
+      <span><b>How to Play:</b> Steer with mouse, A/D, arrows, or touch • Eat neon fruits before they blink &amp; expire, chain combos, and grab <b>💠 Blue Plasma (2X)</b> &amp; <b>Gold Orbs</b> • Cut off rival serpents and use <b>👻 Ghost (1)</b>, <b>🧲 Magnet (2)</b> &amp; <b>⚡ Dash (3)</b> to escape packs.</span>
     </div>
 
     <button class="play-btn" data-action="start-game">PLAY ARENA</button>

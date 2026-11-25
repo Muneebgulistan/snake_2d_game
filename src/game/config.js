@@ -14,6 +14,14 @@ const DETECTED_ADMOB_ENVIRONMENT = (() => {
   return 'development';
 })();
 
+const IS_MOBILE_RUNTIME = (() => {
+  try {
+    if (typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')) return true;
+    if (typeof window !== 'undefined' && window.innerWidth > 0 && window.innerWidth <= 768) return true;
+  } catch (_) {}
+  return false;
+})();
+
 window.GAME_CONFIG = Object.freeze({
   WORLD_WIDTH: 8000,
   WORLD_HEIGHT: 8000,
@@ -28,7 +36,7 @@ window.GAME_CONFIG = Object.freeze({
   BOT_START_COUNT: 50,
   BOT_WAVE_ADD: 5,
   BOT_WAVE_INTERVAL_MS: 10000,
-  BOT_MAX: 120,
+  BOT_MAX: IS_MOBILE_RUNTIME ? 80 : 120,
   BOT_MAX_DESKTOP: 120,
   BOT_MAX_MOBILE: 80,
   BOT_MIN_CAP: 40,
