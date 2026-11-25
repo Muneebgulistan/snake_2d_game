@@ -33,6 +33,9 @@ window.GAME_CONFIG = Object.freeze({
   FOOD_VALUE: 0.3,
   GRAPHICS_QUALITY: 'auto',
   FPS_COUNTER_DEFAULT: false,
+  // Disable simulated/AdMob ad prompts when running in a web browser (e.g. itch.io).
+  // Native Android builds via Capacitor still use ADMOB below.
+  WEB_DISABLE_ADS: true,
   BOT_START_COUNT: 50,
   BOT_WAVE_ADD: 5,
   BOT_WAVE_INTERVAL_MS: 10000,
@@ -132,4 +135,102 @@ window.GAME_CONFIG = Object.freeze({
       appOpen: 'ca-app-pub-XXXXXXXXXXXXXXXX/OOOOOOOOOO'
     })
   })
+});
+
+// ============================================================
+// SEPARATE LEVELS MODE CONFIGURATION (FIXED-SCREEN WALLED)
+// Completely independent of Arena's 8000x8000 world, wrap-around,
+// camera follow/zoom, 50-bot waves, danger zone, and minimap.
+// ============================================================
+const LEVELS_WORLDS = Object.freeze([
+  Object.freeze({ id: 'neon_maze',     name: 'Neon Maze',     subtitle: 'Pure Walled Precision',  accent: '#00D9FF', mechanic: 'Solid glowing walls & tight turns' }),
+  Object.freeze({ id: 'coral_reef',    name: 'Coral Reef',    subtitle: 'Drifting Jellyfish',     accent: '#FF477E', mechanic: 'Avoid pulsing neon jellyfish' }),
+  Object.freeze({ id: 'kelp_forest',   name: 'Kelp Forest',   subtitle: 'Abyssal Currents',       accent: '#00F5A0', mechanic: 'Ride or resist directional currents' }),
+  Object.freeze({ id: 'volcano_vents', name: 'Volcano Vents', subtitle: 'Thermal Plasma Mines',   accent: '#FF7A18', mechanic: 'Dodge armed thermal mines' }),
+  Object.freeze({ id: 'abyss',         name: 'Abyss',         subtitle: 'All Hazards Combined',   accent: '#A855F7', mechanic: 'Jellyfish, currents & mines united' })
+]);
+
+const LEVELS_TABLE = Object.freeze(Array.from({ length: 50 }, (_, idx) => {
+  const level = idx + 1;
+  const worldIndex = Math.floor(idx / 10);
+  const stageInWorld = (idx % 10) + 1;
+  const world = LEVELS_WORLDS[worldIndex];
+  const isBoss = stageInWorld === 10;
+  const t = idx / 49; // 0.0 at L1 -> 1.0 at L50
+
+  // Weighted average fruit points per spawn (24 spawns/min) + gold/blue orb bonus
+  const appleOdds = Math.max(0.25, 0.60 - 0.30 * t);
+  const cherryOdds = 0.30 + 0.12 * t;
+  const grapesOdds = Math.max(0.10, 1 - appleOdds - cherryOdds);
+  const avgFruitPts = appleOdds * 20 + cherryOdds * 35 + grapesOdds * 50;
+  const realisticMax = 24 * avgFruitPts + (120 + 20 * t);
+  const targetRatio = 0.55 + (0.85 - 0.55) * t;
+  const bossMult = isBoss ? 1.03 : 1.0;
+  const targetScore = Math.round((realisticMax * Math.min(0.85, targetRatio * bossMult)) / 10) * 10;
+
+  const fruitLifetimeMs = Math.max(4500, Math.round(9000 - t * 4300 - (isBoss ? 250 : 0)));
+  const botCount = level <= 2 ? 0 : (level < 15 ? 1 : 2);
+  const botTypes = botCount === 0
+    ? Object.freeze([])
+    : (botCount === 1
+      ? Object.freeze([level % 2 === 1 ? 'hunter' : 'encircler'])
+      : Object.freeze(['hunter', 'encircler']));
+
+  const snakeSpeed = Math.round(235 + t * 75 + (isBoss ? 10 : 0));
+
+  let jellyfish = 0;
+  let currents = 0;
+  let mines = 0;
+  if (world.id === 'coral_reef') {
+    jellyfish = Math.min(6, 2 + Math.floor(stageInWorld / 2) + (isBoss ? 1 : 0));
+  } else if (world.id === 'kelp_forest') {
+    currents = Math.min(5, 2 + Math.floor(stageInWorld / 3) + (isBoss ? 1 : 0));
+  } else if (world.id === 'volcano_vents') {
+    mines = Math.min(8, 3 + Math.floor(stageInWorld / 2) + (isBoss ? 1 : 0));
+  } else if (world.id === 'abyss') {
+    jellyfish = Math.min(4, 2 + Math.floor(stageInWorld / 4));
+    currents = Math.min(3, 1 + Math.floor(stageInWorld / 4));
+    mines = Math.min(6, 2 + Math.floor(stageInWorld / 2));
+  }
+
+  return Object.freeze({
+    level,
+    worldIndex,
+    worldId: world.id,
+    worldName: world.name,
+    stageInWorld,
+    isBoss,
+    targetScore,
+    fruitLifetimeMs,
+    botCount,
+    botTypes,
+    snakeSpeed,
+    hazards: Object.freeze({ jellyfish, currents, mines }),
+    rewardCoins: 40 + level * 4 + (isBoss ? 50 : 0),
+    rewardXp: 60 + level * 6 + (isBoss ? 80 : 0),
+    threeStarBonusCoins: 30 + level * 2 + (isBoss ? 40 : 0)
+  });
+}));
+
+window.LEVELS_CONFIG = Object.freeze({
+  MODE_ID: 'levels',
+  WRAP_AROUND: false,
+  USE_CAMERA_FOLLOW: false,
+  USE_MINIMAP: false,
+  USE_DANGER_ZONE: false,
+  GRID_LANDSCAPE: Object.freeze({ cols: 32, rows: 18 }),
+  GRID_PORTRAIT: Object.freeze({ cols: 18, rows: 32 }),
+  CELL_SIZE: 40,
+  ROUND_DURATION_SEC: 60,
+  FRUIT_SPAWN_INTERVAL_MS: 2500,
+  SPAWN_MIN_HEAD_CLEAR_CELLS: 3,
+  START_LIVES: 3,
+  RESPAWN_SHIELD_MS: 2000,
+  START_LENGTH: 10,
+  BOT_MAX: 2,
+  BOT_RESPAWN_MS: 3000,
+  STAR_THRESHOLDS: Object.freeze({ one: 1.0, two: 1.15, three: 1.35 }),
+  SPEED_DIFFICULTY_MULTIPLIERS: Object.freeze({ easy: 0.85, medium: 1.0, hard: 1.2 }),
+  WORLDS: LEVELS_WORLDS,
+  LEVELS: LEVELS_TABLE
 });

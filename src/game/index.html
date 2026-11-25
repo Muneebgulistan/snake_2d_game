@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.googletagservices.com https://adservice.google.com https://fundingchoicesmessages.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com; media-src 'self' data: blob:; connect-src 'self' https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://adservice.google.com https://fundingchoicesmessages.google.com https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google; frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://fundingchoicesmessages.google.com; object-src 'none'; base-uri 'self'; form-action 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://sdk.crazygames.com https://*.crazygames.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.googletagservices.com https://adservice.google.com https://fundingchoicesmessages.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.crazygames.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com; media-src 'self' data: blob:; connect-src 'self' https://sdk.crazygames.com https://*.crazygames.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://adservice.google.com https://fundingchoicesmessages.google.com https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google; frame-src https://*.crazygames.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://fundingchoicesmessages.google.com; object-src 'none'; base-uri 'self'; form-action 'none';">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#080D18">
 <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
-<title>Serpent Run</title>
+<title>Slythox — Neon Serpent Arena</title>
+<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js" async></script>
 <style>
   /* ============================================================
      SERPENT RUN — NEON ABYSS DESIGN SYSTEM (v3.0)
@@ -1418,6 +1419,376 @@
     .shop-showcase-card { grid-template-columns: 130px 1fr; padding: 8px 12px; }
     #shop-showcase-canvas { width: 130px; height: 70px; }
   }
+  /* Visual Skippable In-Game Onboarding Overlay (CrazyGames Guideline) */
+  #ingame-onboarding {
+    position: fixed;
+    left: 50%;
+    bottom: 92px;
+    transform: translateX(-50%);
+    z-index: 42;
+    display: none;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: rgba(10, 17, 30, 0.88);
+    border: 1px solid rgba(0, 245, 160, 0.45);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), 0 0 18px rgba(0, 245, 160, 0.14);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    pointer-events: none;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    max-width: calc(100vw - 24px);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  #ingame-onboarding.fading {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  .onb-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .onb-item kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-bottom-width: 2px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .onb-sep {
+    width: 1px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.16);
+  }
+  .onb-skip-btn {
+    pointer-events: auto;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-dim);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .onb-skip-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    color: var(--text);
+  }
+  #ingame-onboarding.touch-mode .onb-desktop-only { display: none; }
+  #ingame-onboarding:not(.touch-mode) .onb-touch-only { display: none; }
+
+  /* ============================================================
+     SEPARATE LEVELS MODE HUD, MAP & RESULT STYLES
+     ============================================================ */
+  .mode-cta-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+  .levels-play-btn {
+    min-height: 52px;
+    border-radius: var(--radius);
+    border: 1px solid rgba(0, 217, 255, 0.55);
+    background: linear-gradient(135deg, #00D9FF 0%, #3B82F6 100%);
+    color: #031524;
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: 0.6px;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 217, 255, 0.28);
+    transition: transform 0.14s ease, box-shadow 0.14s ease;
+  }
+  .levels-play-btn:hover { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(0, 217, 255, 0.38); }
+  .levels-play-btn:active { transform: translateY(0); }
+
+  #levels-hud {
+    position: fixed;
+    top: max(8px, env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(calc(100vw - 16px), 980px);
+    z-index: 30;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 14px;
+    background: rgba(8, 13, 24, 0.86);
+    border: 1px solid rgba(0, 217, 255, 0.38);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(0, 217, 255, 0.08);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    pointer-events: none;
+  }
+  #levels-hud button { pointer-events: auto; }
+  .lhud-left, .lhud-right { display: flex; align-items: center; gap: 10px; }
+  .lhud-level-pill {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+  }
+  .lhud-level-num { font-size: 13px; font-weight: 900; color: var(--accent-2); letter-spacing: 0.4px; }
+  .lhud-world-name { font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+  .lhud-hearts {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 16px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+  }
+  .lhud-heart.lost { opacity: 0.22; filter: grayscale(1); }
+  .lhud-shield-pip {
+    display: none;
+    font-size: 13px;
+    color: #38BDF8;
+    margin-left: 2px;
+    filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.9));
+  }
+  .lhud-timer {
+    font-size: 26px;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 1px;
+    color: #F5F7FF;
+    text-shadow: 0 0 14px rgba(0, 217, 255, 0.55);
+    min-width: 72px;
+    text-align: center;
+  }
+  .lhud-timer.urgent { color: #F43F5E; text-shadow: 0 0 16px rgba(244, 63, 94, 0.85); }
+  .lhud-score-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 150px;
+  }
+  .lhud-score-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .lhud-score-val { color: var(--accent); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .lhud-target-val { color: var(--text-dim); font-variant-numeric: tabular-nums; }
+  .lhud-bar-track {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.10);
+    overflow: hidden;
+  }
+  .lhud-bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #00D9FF, #00F5A0);
+    box-shadow: 0 0 10px rgba(0, 245, 160, 0.6);
+    transition: width 0.16s ease-out;
+  }
+  .lhud-combo {
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(255, 176, 32, 0.16);
+    border: 1px solid rgba(255, 176, 32, 0.45);
+    color: var(--gold);
+    font-size: 11px;
+    font-weight: 900;
+    opacity: 0.35;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  .lhud-combo.active { opacity: 1; transform: scale(1.06); }
+  .lhud-pause-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+  }
+
+  /* Level Select Map */
+  .levels-world-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: min(100%, 720px);
+    margin-bottom: 10px;
+  }
+  .world-tab-btn {
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .world-tab-btn.active {
+    border-color: var(--accent-2);
+    background: rgba(0, 217, 255, 0.16);
+    color: var(--text);
+  }
+  .world-banner-card {
+    width: min(100%, 720px);
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    background: var(--panel);
+    border: 1px solid var(--line-strong);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .levels-map-grid {
+    width: min(100%, 720px);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    padding-bottom: 18px;
+  }
+  .level-node-btn {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 82px;
+    padding: 10px 6px;
+    border-radius: 14px;
+    border: 1px solid var(--line-strong);
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+    transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+  }
+  .level-node-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    border-color: var(--accent-2);
+    box-shadow: 0 8px 20px rgba(0, 217, 255, 0.22);
+  }
+  .level-node-btn.locked {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: rgba(12, 20, 34, 0.72);
+  }
+  .level-node-btn.boss {
+    border-color: rgba(255, 176, 32, 0.65);
+    box-shadow: inset 0 0 16px rgba(255, 176, 32, 0.12);
+  }
+  .level-node-num { font-size: 20px; font-weight: 900; line-height: 1; }
+  .level-node-boss-tag {
+    position: absolute;
+    top: 5px;
+    right: 6px;
+    font-size: 9px;
+    font-weight: 900;
+    color: var(--gold);
+    letter-spacing: 0.4px;
+  }
+  .level-node-stars { font-size: 13px; letter-spacing: 2px; color: var(--gold); }
+  .level-node-stars .star-off { color: rgba(255, 255, 255, 0.18); }
+  .level-node-meta { font-size: 10px; color: var(--text-dim); font-weight: 700; }
+
+  /* Level Result Overlay */
+  #level-result-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(5, 9, 18, 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .level-result-card {
+    width: min(100%, 420px);
+    padding: 22px 20px;
+    border-radius: 18px;
+    background: var(--panel-solid);
+    border: 1px solid var(--line-strong);
+    box-shadow: var(--shadow);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .level-result-stars {
+    font-size: 38px;
+    letter-spacing: 8px;
+    line-height: 1;
+    color: var(--gold);
+    text-shadow: 0 0 18px rgba(255, 176, 32, 0.55);
+  }
+  .level-result-stars .star-off {
+    color: rgba(255, 255, 255, 0.16);
+    text-shadow: none;
+  }
+  .level-result-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .level-result-stat {
+    padding: 10px;
+    border-radius: 12px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .level-result-stat span { font-size: 11px; color: var(--text-dim); font-weight: 700; }
+  .level-result-stat b { font-size: 19px; color: var(--text); font-variant-numeric: tabular-nums; }
+  .level-result-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  @media (max-width: 600px) {
+    #levels-hud { padding: 6px 8px; gap: 6px; flex-wrap: wrap; }
+    .lhud-timer { font-size: 20px; min-width: 56px; }
+    .lhud-score-wrap { min-width: 112px; }
+    .levels-map-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
   }
@@ -1476,6 +1847,44 @@
   <span id="qt-text">Completed!</span>
 </div>
 <div id="touch-joystick" aria-hidden="true"><div class="joystick-ring"><div id="joystick-thumb"></div></div></div>
+<!-- Separate Fixed-Screen Levels Mode HUD (No Length, No Minimap, No Leaderboard) -->
+<div id="levels-hud" aria-label="Levels HUD">
+  <div class="lhud-left">
+    <div class="lhud-level-pill">
+      <span class="lhud-level-num" id="lhud-level-num">LVL 1</span>
+      <span class="lhud-world-name" id="lhud-world-name">NEON MAZE</span>
+    </div>
+    <div class="lhud-hearts" id="lhud-hearts" aria-label="Lives">
+      <span class="lhud-heart">❤️</span>
+      <span class="lhud-heart">❤️</span>
+      <span class="lhud-heart">❤️</span>
+      <span class="lhud-shield-pip" id="lhud-shield-pip" title="Blue Plasma Shield">💠</span>
+    </div>
+  </div>
+  <div class="lhud-timer" id="lhud-timer">60</div>
+  <div class="lhud-right">
+    <div class="lhud-score-wrap">
+      <div class="lhud-score-top">
+        <span class="lhud-score-val" id="lhud-score">0</span>
+        <span class="lhud-target-val" id="lhud-target">/ 430</span>
+      </div>
+      <div class="lhud-bar-track"><div class="lhud-bar-fill" id="lhud-bar-fill"></div></div>
+    </div>
+    <div class="lhud-combo" id="lhud-combo">x1</div>
+    <button type="button" class="lhud-pause-btn" data-action="toggle-pause" aria-label="Pause">⏸</button>
+  </div>
+</div>
+<div id="ingame-onboarding" role="status" aria-live="polite">
+  <span class="onb-item onb-desktop-only">🖱️ / <kbd>◀</kbd><kbd>▶</kbd> Steer</span>
+  <span class="onb-sep onb-desktop-only" aria-hidden="true"></span>
+  <span class="onb-item onb-desktop-only"><kbd>SPACE</kbd> Dash</span>
+  <span class="onb-sep onb-desktop-only" aria-hidden="true"></span>
+  <span class="onb-item onb-desktop-only"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> Skills</span>
+  <span class="onb-sep onb-desktop-only" aria-hidden="true"></span>
+  <span class="onb-item onb-desktop-only"><kbd>P</kbd> Pause</span>
+  <span class="onb-item onb-touch-only">👆 Drag anywhere to steer</span>
+  <button type="button" class="onb-skip-btn" data-action="skip-onboarding">Skip ✕</button>
+</div>
 
 <!-- Menu Start Screen -->
 <div id="menu-screen">
@@ -1497,8 +1906,8 @@
     </button>
   </div>
 
-  <h1>SERPENT RUN</h1>
-  <div class="menu-sub">Eat. Grow. Outsmart the swarm.</div>
+  <h1>SLYTHOX</h1>
+  <div class="menu-sub">Eat. Grow. Outsmart the neon swarm.</div>
 
   <div class="panel menu-panel">
     <!-- Live Animated Snake Skin Preview -->
@@ -1543,11 +1952,10 @@
       <span class="fruit-pill grapes">🍇 Grapes <b>+50</b> <small>(+2)</small></span>
     </div>
 
-    <div class="fruit-legend-bar" aria-label="How to play tutorial" style="font-size:10.5px;color:var(--text-dim);line-height:1.45;">
-      <span><b>How to Play:</b> Steer with mouse, A/D, arrows, or touch • Eat neon fruits before they blink &amp; expire, chain combos, and grab <b>💠 Blue Plasma (2X)</b> &amp; <b>Gold Orbs</b> • Cut off rival serpents and use <b>👻 Ghost (1)</b>, <b>🧲 Magnet (2)</b> &amp; <b>⚡ Dash (3)</b> to escape packs.</span>
+    <div class="mode-cta-row">
+      <button class="play-btn" data-action="start-game">PLAY ARENA</button>
+      <button class="levels-play-btn" type="button" data-action="open-screen" data-arg="levels">LEVELS (50)</button>
     </div>
-
-    <button class="play-btn" data-action="start-game">PLAY ARENA</button>
 
     <!-- Commercial Mobile Hub Navigation -->
     <div class="menu-nav-grid">
@@ -1586,6 +1994,26 @@
   </div>
 
   <a class="privacy-link" href="privacy-policy.html">Privacy Policy &amp; Ad Disclosures</a>
+</div>
+
+<!-- 0. LEVELS MODE SELECT SCREEN (5 WORLDS x 10 LEVELS = 50 LEVELS) -->
+<div id="levels-screen" class="subscreen" aria-label="Levels Mode">
+  <div class="subscreen-header">
+    <div>
+      <h2>Levels Campaign</h2>
+      <div class="skins-subtitle" id="levels-summary-text">★ 0 / 150 Stars &bull; Fixed-Screen Walled Mode</div>
+    </div>
+    <button class="back-pill" type="button" data-action="close-subscreen">← Menu</button>
+  </div>
+  <div class="levels-world-tabs" id="levels-world-tabs"></div>
+  <div class="world-banner-card" id="levels-world-banner">
+    <div>
+      <div style="font-size:16px;font-weight:900;color:var(--accent-2);" id="levels-world-title">World 1: Neon Maze</div>
+      <div style="font-size:12px;color:var(--text-dim);" id="levels-world-desc">Solid glowing walls &amp; tight turns</div>
+    </div>
+    <div style="font-size:13px;font-weight:900;color:var(--gold);" id="levels-world-stars">★ 0 / 30</div>
+  </div>
+  <div class="levels-map-grid" id="levels-map-grid"></div>
 </div>
 
 <!-- 1. SKIN SHOP SCREEN (56+ SKINS GALLERY) -->
@@ -1836,7 +2264,7 @@
       <button id="delete-data-btn" type="button" class="settings-option" style="border-color:rgba(244,63,94,0.45);color:#FDA4AF;" data-action="delete-my-data">Delete My Data</button>
     </div>
     <div style="font-size:11px;color:var(--text-faint);text-align:center;padding-top:4px;">
-      Serpent Run v3.0.0 &bull; Neon Abyss Edition &bull; AdMob Mode: <b id="settings-ad-env">development</b>
+      Slythox v3.0.0 &bull; Neon Abyss Edition<span id="settings-ad-env-wrap"> &bull; AdMob Mode: <b id="settings-ad-env">development</b></span>
     </div>
   </div>
 </div>
@@ -1889,6 +2317,28 @@
     <h3 id="confirm-modal-title">Confirm</h3>
     <p id="confirm-modal-body">Are you sure?</p>
     <div class="modal-actions" id="confirm-modal-actions"></div>
+  </div>
+</div>
+
+<!-- Levels Mode Result Overlay -->
+<div id="level-result-overlay" role="dialog" aria-modal="true">
+  <div class="level-result-card">
+    <div style="font-size:11px;font-weight:900;letter-spacing:1.2px;color:var(--accent-2);text-transform:uppercase;" id="lr-level-label">LEVEL 1 &bull; NEON MAZE</div>
+    <h2 style="font-size:26px;font-weight:900;margin:0;" id="lr-title">LEVEL COMPLETE!</h2>
+    <div style="font-size:13px;color:var(--text-dim);" id="lr-subtitle">Target reached before time ran out.</div>
+    <div class="level-result-stars" id="lr-stars" aria-label="Stars earned">★★★</div>
+    <div class="level-result-stats">
+      <div class="level-result-stat"><span>Score</span><b id="lr-score" style="color:var(--accent);">0</b></div>
+      <div class="level-result-stat"><span>Target</span><b id="lr-target">430</b></div>
+      <div class="level-result-stat"><span>Coins Earned</span><b id="lr-coins" style="color:var(--gold);">+0</b></div>
+      <div class="level-result-stat"><span>XP Earned</span><b id="lr-xp" style="color:var(--accent-2);">+0 XP</b></div>
+    </div>
+    <div class="level-result-actions">
+      <button type="button" class="play-btn" id="lr-next-btn" style="min-height:46px;font-size:15px;grid-column:span 2;" data-action="levels-next">Next Level →</button>
+      <button type="button" class="levels-play-btn" style="min-height:44px;font-size:14px;" data-action="levels-retry">Retry</button>
+      <button type="button" class="menu-secondary" style="min-height:44px;" data-action="levels-map">Level Map</button>
+      <button type="button" class="menu-secondary" style="min-height:42px;grid-column:span 2;" data-action="go-home">Main Menu</button>
+    </div>
   </div>
 </div>
 

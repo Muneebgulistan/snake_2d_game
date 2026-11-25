@@ -101,6 +101,7 @@ function computeLevelTargetScore(level = 1) {
   return Math.max(100, Math.round((realisticMax * ratio) / 10) * 10);
 }
 
+let gameMode = 'arena'; // 'arena' | 'levels' — explicit mode switch
 let currentArenaLevel = 1;
 let matchFruitScore = 0;
 let levelIntroTimer = 0;
@@ -110,6 +111,7 @@ function showLevelIntroBanner(level = 1) {
   const bannerEl = document.getElementById('level-intro-banner');
   const titleEl = document.getElementById('lvl-intro-title');
   if (!bannerEl) return;
+  if (level > 1 && typeof CrazyGamesBridge !== 'undefined') CrazyGamesBridge.happytime();
   const targetPts = computeLevelTargetScore(level);
   if (titleEl) {
     titleEl.textContent = `STAGE ${level} • TARGET ${targetPts.toLocaleString()} PTS`;
@@ -475,9 +477,11 @@ function updateSettingsUI() {
   }
   const envEl = document.getElementById('settings-ad-env');
   if (envEl) {
-    envEl.textContent = (typeof AdManager !== 'undefined' && typeof AdManager.getEnvironment === 'function')
-      ? AdManager.getEnvironment()
-      : (GAME_CONFIG.ADMOB ? GAME_CONFIG.ADMOB.environment : 'development');
+    envEl.textContent = (typeof AdManager !== 'undefined' && typeof AdManager.isWebAdsDisabled === 'function' && AdManager.isWebAdsDisabled())
+      ? 'web (disabled)'
+      : ((typeof AdManager !== 'undefined' && typeof AdManager.getEnvironment === 'function')
+        ? AdManager.getEnvironment()
+        : (GAME_CONFIG.ADMOB ? GAME_CONFIG.ADMOB.environment : 'development'));
   }
 }
 
@@ -1962,6 +1966,102 @@ function claimAchievement(achId) {
 // ============================================================
 const AD_CONSENT_STORAGE_KEY = 'serpentRun_adConsent_v1';
 
+const CrazyGamesBridge = {
+  initialized: false,
+  active: false,
+  environment: 'disabled',
+  gameplayActive: false,
+  loadingStopped: false,
+  getSDK() {
+    return (typeof window !== 'undefined' && window.CrazyGames && window.CrazyGames.SDK) ? window.CrazyGames.SDK : null;
+  },
+  isActive() {
+    return this.active && this.environment !== 'disabled';
+  },
+  async init() {
+    if (this.initialized) return;
+    this.initialized = true;
+    const sdk = this.getSDK();
+    if (!sdk || typeof sdk.init !== 'function') return;
+    try {
+      await sdk.init();
+      this.environment = sdk.environment || 'disabled';
+      this.active = this.environment !== 'disabled';
+      if (this.isActive() && sdk.game) {
+        if (typeof sdk.game.loadingStart === 'function' && !this.loadingStopped) {
+          try { sdk.game.loadingStart(); } catch (_) {}
+        }
+        if (sdk.game.settings && sdk.game.settings.muteAudio) {
+          isMuted = true;
+          if (muteBtnEl) muteBtnEl.textContent = '🔇';
+          applyAmbientAudioGain();
+        }
+        if (typeof sdk.game.addSettingsChangeListener === 'function') {
+          sdk.game.addSettingsChangeListener((newSettings) => {
+            if (newSettings && typeof newSettings.muteAudio === 'boolean') {
+              isMuted = newSettings.muteAudio;
+              if (muteBtnEl) muteBtnEl.textContent = isMuted ? '🔇' : '🔊';
+              applyAmbientAudioGain();
+              updateSettingsUI();
+            }
+          });
+        }
+      }
+    } catch (_) {
+      this.active = false;
+      this.environment = 'disabled';
+    }
+  },
+  loadingStop() {
+    if (this.loadingStopped) return;
+    this.loadingStopped = true;
+    const sdk = this.getSDK();
+    if (this.isActive() && sdk && sdk.game && typeof sdk.game.loadingStop === 'function') {
+      try { sdk.game.loadingStop(); } catch (_) {}
+    }
+  },
+  gameplayStart() {
+    if (this.gameplayActive) return;
+    this.gameplayActive = true;
+    const sdk = this.getSDK();
+    if (this.isActive() && sdk && sdk.game && typeof sdk.game.gameplayStart === 'function') {
+      try { sdk.game.gameplayStart(); } catch (_) {}
+    }
+  },
+  gameplayStop() {
+    if (!this.gameplayActive) return;
+    this.gameplayActive = false;
+    const sdk = this.getSDK();
+    if (this.isActive() && sdk && sdk.game && typeof sdk.game.gameplayStop === 'function') {
+      try { sdk.game.gameplayStop(); } catch (_) {}
+    }
+  },
+  happytime() {
+    const sdk = this.getSDK();
+    if (this.isActive() && sdk && sdk.game && typeof sdk.game.happytime === 'function') {
+      try { sdk.game.happytime(); } catch (_) {}
+    }
+  },
+  requestAd(type, { onStarted, onFinished, onError } = {}) {
+    const sdk = this.getSDK();
+    if (!this.isActive() || !sdk || !sdk.ad || typeof sdk.ad.requestAd !== 'function') {
+      if (onError) onError(new Error('CrazyGames SDK not active'));
+      return false;
+    }
+    try {
+      sdk.ad.requestAd(type, {
+        adStarted: () => { if (onStarted) onStarted(); },
+        adFinished: () => { if (onFinished) onFinished(); },
+        adError: (err) => { if (onError) onError(err); }
+      });
+      return true;
+    } catch (err) {
+      if (onError) onError(err);
+      return false;
+    }
+  }
+};
+
 const AdManager = {
   initialized: false,
   sdkReady: false,
@@ -2071,6 +2171,56 @@ const AdManager = {
       }
     } catch (_) {}
     return false;
+  },
+  isWebAdsDisabled() {
+    if (CrazyGamesBridge.isActive()) return false;
+    return !this.isNativeAndroidApp() && (GAME_CONFIG.WEB_DISABLE_ADS !== false);
+  },
+  applyWebNoAdsUI() {
+    const isWeb = !this.isNativeAndroidApp();
+    if (!isWeb) return;
+    // Hide Android/AdMob-only controls and external policy links on web & CrazyGames
+    const menuRemoveAdsBtn = document.getElementById('menu-removeads-btn');
+    if (menuRemoveAdsBtn) menuRemoveAdsBtn.style.display = 'none';
+    const settingsRemoveAdsBtn = document.querySelector('#settings-screen button[data-action="open-screen"][data-arg="removeads"]');
+    if (settingsRemoveAdsBtn && settingsRemoveAdsBtn.parentElement) {
+      settingsRemoveAdsBtn.parentElement.style.display = 'none';
+    }
+    const privacyBtn = document.getElementById('privacy-options-btn');
+    if (privacyBtn && privacyBtn.parentElement && privacyBtn.parentElement.parentElement) {
+      privacyBtn.parentElement.parentElement.style.display = 'none';
+    }
+    const menuPrivacyLink = document.querySelector('#menu-screen .privacy-link');
+    if (menuPrivacyLink) menuPrivacyLink.style.display = 'none';
+    const adEnvWrap = document.getElementById('settings-ad-env-wrap');
+    if (adEnvWrap) adEnvWrap.style.display = 'none';
+
+    if (!this.isWebAdsDisabled()) return;
+
+    const reviveBtn = document.getElementById('revive-watch-btn');
+    if (reviveBtn) reviveBtn.textContent = '▶ Revive Snake';
+    const reviveDesc = document.querySelector('#revive-modal p');
+    if (reviveDesc) {
+      const lenEl = document.getElementById('revive-len-preview');
+      const lenVal = lenEl ? lenEl.textContent : '22';
+      const boldEl = document.createElement('b');
+      boldEl.id = 'revive-len-preview';
+      boldEl.textContent = lenVal;
+      reviveDesc.replaceChildren(
+        document.createTextNode('Use your second chance to continue with '),
+        boldEl,
+        document.createTextNode(' length and 3 seconds of spawn shield.')
+      );
+    }
+    const doubleCoinsBtn = document.getElementById('double-coins-btn');
+    if (doubleCoinsBtn) doubleCoinsBtn.textContent = '▶ CLAIM 2x COINS';
+
+    const bonusChestBtn = document.querySelector('#rewards-screen button[data-action="watch-bonus-coins"]');
+    if (bonusChestBtn) {
+      bonusChestBtn.textContent = '🎁 Claim Bonus (+75 Coins)';
+      const descEl = bonusChestBtn.parentElement && bonusChestBtn.parentElement.querySelector('div > div:nth-child(2)');
+      if (descEl) descEl.textContent = 'Claim a free bonus chest (+75 Coins & +40 XP) anytime.';
+    }
   },
   getNativePlugin() {
     return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) || window.AdMob || null;
@@ -2201,6 +2351,15 @@ const AdManager = {
   async init() {
     if (this.initialized) return;
     this.initialized = true;
+    await CrazyGamesBridge.init();
+    if (!this.isNativeAndroidApp()) {
+      this.applyWebNoAdsUI();
+      updateSettingsUI();
+      this.refreshBannerVisibility();
+      if (this.isWebAdsDisabled() || CrazyGamesBridge.isActive()) {
+        return;
+      }
+    }
     this.loadSavedConsentState();
     const plugin = this.getNativePlugin();
     if (plugin && typeof plugin.initialize === 'function') {
@@ -2287,16 +2446,12 @@ const AdManager = {
     document.querySelectorAll('.ad-banner-slot').forEach(slot => {
       // On native Android, @capacitor-community/admob renders a real native AdView anchored at BOTTOM_CENTER;
       // keep space at the bottom so UI cards are never covered by the native banner.
-      if (removed) {
+      if (removed || this.isWebAdsDisabled() || !isNative) {
         slot.style.display = 'none';
-      } else if (isNative) {
+      } else {
         slot.style.display = 'flex';
         slot.style.opacity = '0.01';
         slot.style.pointerEvents = 'none';
-      } else {
-        slot.style.display = 'flex';
-        slot.style.opacity = '1';
-        slot.style.pointerEvents = 'auto';
       }
     });
   },
@@ -2304,6 +2459,38 @@ const AdManager = {
     // Rule 10: Never show or interrupt during active unpaused gameplay
     if (isGameRunning && !isPaused && !isGameOver) return;
     if (this.adInProgress) return;
+
+    // CrazyGames SDK v3 rewarded ad execution
+    if (CrazyGamesBridge.isActive()) {
+      this.adInProgress = true;
+      CrazyGamesBridge.gameplayStop();
+      this.suspendGameAudioForAd();
+      CrazyGamesBridge.requestAd('rewarded', {
+        onStarted: () => {
+          this.suspendGameAudioForAd();
+        },
+        onFinished: () => {
+          this.adInProgress = false;
+          this.resumeGameAudioAfterAd();
+          if (onReward) onReward({ type: 'coins', amount: 1 });
+        },
+        onError: () => {
+          this.adInProgress = false;
+          this.resumeGameAudioAfterAd();
+          if (onDismiss) onDismiss(false);
+        }
+      });
+      return;
+    }
+
+    // Web / itch.io fallback: no ad modals, fake ads, or "Ad Unavailable" popups.
+    // Grant the reward directly so revive, 2x coins, skin trials, and bonus chests remain playable.
+    if (this.isWebAdsDisabled()) {
+      this.adInProgress = false;
+      if (onReward) onReward({ type: 'coins', amount: 1 });
+      return;
+    }
+
     if (!navigator.onLine) {
       showConfirmModal('No Internet Connection', 'Rewarded advertisements require an active internet connection. You can continue playing offline anytime!', [
         { label: 'Continue', primary: true, onClick: closeConfirmModal }
@@ -2424,6 +2611,7 @@ const AdManager = {
     };
   },
   async maybeShowInterstitialAfterMatch() {
+    if (this.isWebAdsDisabled()) return;
     if (!profileData || profileData.removeForcedAds) return;
     // Never show during active gameplay or if another ad is active
     if ((isGameRunning && !isPaused && !isGameOver) || this.adInProgress) return;
@@ -2434,7 +2622,29 @@ const AdManager = {
     const freqOk = profileData.ads.matchesSinceInterstitial >= (cfg.interstitialEveryMatches || 3);
     saveProfileData();
 
-    if (!freqOk || !cooldownOk || !navigator.onLine || !this.canRequestAds) return;
+    if (!freqOk || !cooldownOk || !navigator.onLine) return;
+
+    if (CrazyGamesBridge.isActive()) {
+      this.adInProgress = true;
+      profileData.ads.matchesSinceInterstitial = 0;
+      profileData.ads.lastInterstitialAt = Date.now();
+      saveProfileData();
+      this.suspendGameAudioForAd();
+      CrazyGamesBridge.requestAd('midgame', {
+        onStarted: () => { this.suspendGameAudioForAd(); },
+        onFinished: () => {
+          this.adInProgress = false;
+          this.resumeGameAudioAfterAd();
+        },
+        onError: () => {
+          this.adInProgress = false;
+          this.resumeGameAudioAfterAd();
+        }
+      });
+      return;
+    }
+
+    if (!this.canRequestAds) return;
 
     const plugin = this.getNativePlugin();
     const unitId = this.getActiveUnitId('interstitial');
@@ -2983,7 +3193,9 @@ function openScreen(name) {
   }
   AdManager.refreshBannerVisibility();
   AdManager.syncNativeBannerForScreen(name);
-  if (name === 'skins') {
+  if (name === 'levels') {
+    if (typeof LevelsMode !== 'undefined') LevelsMode.renderLevelSelect();
+  } else if (name === 'skins') {
     previewSkinId = selectedSkinId || 'classic';
     renderSkinMenu();
   }
@@ -4934,15 +5146,15 @@ function advanceSnake(snake) {
     if (dist > 0.001) {
       const targetSegAngle = Math.atan2(dy, dx);
       const angleDiff = angleDifference(seg.angle, targetSegAngle);
-      // Smooth angular blending prevents sharp-turn kinks while keeping exact SEGMENT_SPACING distance
-      const segAngle = dist > SEGMENT_SPACING ? (seg.angle + angleDiff * 0.72) : targetSegAngle;
-      seg.angle = segAngle;
-      if (dist > SEGMENT_SPACING) {
-        seg.x = wrap(prevX - Math.cos(targetSegAngle) * SEGMENT_SPACING, WORLD_WIDTH);
-        seg.y = wrap(prevY - Math.sin(targetSegAngle) * SEGMENT_SPACING, WORLD_HEIGHT);
-      }
+      // Smooth angular blending prevents sharp-turn kinks while always keeping exact SEGMENT_SPACING
+      // so the tail never stalls or bunches up when circling tightly.
+      seg.angle = seg.angle + angleDiff * 0.72;
+      seg.x = wrap(prevX - Math.cos(targetSegAngle) * SEGMENT_SPACING, WORLD_WIDTH);
+      seg.y = wrap(prevY - Math.sin(targetSegAngle) * SEGMENT_SPACING, WORLD_HEIGHT);
     } else {
       seg.angle = prevAngle;
+      seg.x = wrap(prevX - Math.cos(prevAngle) * SEGMENT_SPACING, WORLD_WIDTH);
+      seg.y = wrap(prevY - Math.sin(prevAngle) * SEGMENT_SPACING, WORLD_HEIGHT);
     }
 
     const waveProgress = i / snake.segments.length;
@@ -4972,26 +5184,56 @@ function advanceSnake(snake) {
 function dissolveSnakeIntoFood(snake, rewardMultiplier = 1) {
   const orbValue = snake.length > 50 ? 4 : 2;
   let totalReward = 0;
+  const segCount = snake.segments ? snake.segments.length : 0;
+  const maxSnakeOrbs = Math.max(4, Math.min(80, Math.ceil(snake.length / (orbValue * 1.4))));
+  const segStep = segCount > 0 ? Math.max(2, Math.ceil(segCount / maxSnakeOrbs)) : 1;
+  const desiredDrops = segCount > 0 ? Math.max(1, Math.ceil(segCount / segStep)) : 1;
+
   let existingDeathDrops = 0;
   for (const orb of foodOrbs) if (orb.isDeathDrop) existingDeathDrops++;
-  let dropsRemaining = Math.max(0, MAX_DEATH_DROP_ORBS - existingDeathDrops);
-  const maxSnakeOrbs = Math.max(4, Math.min(dropsRemaining, Math.ceil(snake.length / (orbValue * 1.4))));
-  const segStep = Math.max(2, Math.ceil(snake.segments.length / maxSnakeOrbs));
-  let dropIdx = 0;
-  for (let i = 0; i < snake.segments.length && dropsRemaining > 0; i += segStep, dropsRemaining--, dropIdx++) {
-    const seg = snake.segments[i];
-    const foodScheme = {
+
+  // Evict oldest death-drop orbs if the global cap is reached so every killed snake always drops food
+  let toEvict = Math.max(0, existingDeathDrops + desiredDrops - MAX_DEATH_DROP_ORBS);
+  if (toEvict > 0) {
+    for (let i = 0; i < foodOrbs.length && toEvict > 0; ) {
+      if (foodOrbs[i].isDeathDrop) {
+        foodOrbs.splice(i, 1);
+        toEvict--;
+      } else {
+        i++;
+      }
+    }
+  }
+
+  const now = performance.now();
+  if (segCount > 0) {
+    let dropIdx = 0;
+    for (let i = 0; i < segCount; i += segStep, dropIdx++) {
+      const seg = snake.segments[i];
+      const foodScheme = {
+        core: snake.palette.head,
+        glow: snake.palette.glow,
+        value: orbValue * rewardMultiplier,
+        isDeathDrop: true
+      };
+      const orb = spawnFoodOrb(seg.x, seg.y, foodScheme);
+      orb.burstAt = now;
+      orb.burstDelay = Math.min(700, dropIdx * 16);
+      foodOrbs.push(orb);
+      totalReward += orbValue;
+      if (dropIdx % 4 === 0) spawnFoodBurst(seg.x, seg.y, snake.palette.head, 1);
+    }
+  } else {
+    const orb = spawnFoodOrb(snake.x, snake.y, {
       core: snake.palette.head,
       glow: snake.palette.glow,
       value: orbValue * rewardMultiplier,
       isDeathDrop: true
-    };
-    const orb = spawnFoodOrb(seg.x, seg.y, foodScheme);
-    orb.burstAt = performance.now();
-    orb.burstDelay = Math.min(700, dropIdx * 16);
+    });
+    orb.burstAt = now;
+    orb.burstDelay = 0;
     foodOrbs.push(orb);
     totalReward += orbValue;
-    if (dropIdx % 4 === 0) spawnFoodBurst(seg.x, seg.y, snake.palette.head, 1);
   }
   spawnFoodBurst(snake.x, snake.y, snake.palette.head, 6);
   return totalReward;
@@ -5193,6 +5435,7 @@ function handlePlayerDeath() {
   if (!player.alive || isGameOver) return;
   player.alive = false;
   isGameOver = true;
+  CrazyGamesBridge.gameplayStop();
   shakeIntensity = 18;
   triggerHaptic(55);
   sfxPlayerDeath();
@@ -5250,6 +5493,7 @@ function confirmWatchReviveAd() {
       fixedStepAccumulator = 0;
       sfxReward();
       showGlobalToast('Snake Revived! 3s Spawn Shield Active');
+      CrazyGamesBridge.gameplayStart();
       ensureGameLoop();
     },
     onDismiss: () => {
@@ -5487,11 +5731,6 @@ function checkFoodConsumptionAll() {
               const plasmaMul = (player.plasma2xUntil && now < player.plasma2xUntil) ? 2 : 1;
               const pts = Math.round((orb.points || 20) * comboMul * plasmaMul);
               matchFruitScore += pts;
-              const maxLvl = FRUITS_CONFIG.maxLevel || 10;
-              while (currentArenaLevel < maxLvl && matchFruitScore >= computeLevelTargetScore(currentArenaLevel)) {
-                currentArenaLevel++;
-                showLevelIntroBanner(currentArenaLevel);
-              }
               pushFloatingText(orb.x, orb.y, `+${pts}`, now, {
                 boxed: true,
                 color: orb.color,
@@ -5747,7 +5986,53 @@ function applyDifficultySpeeds() {
   }
 }
 
+let onboardingHideTimer = null;
+let onboardingActionTimer = null;
+let onboardingVisible = false;
+
+function showInGameOnboardingIfNeeded() {
+  const el = document.getElementById('ingame-onboarding');
+  if (!el) return;
+  if (safeStorageGet('slythox_onboarded') === '1') {
+    el.style.display = 'none';
+    onboardingVisible = false;
+    return;
+  }
+  el.classList.toggle('touch-mode', Boolean(isTouchDevice));
+  el.classList.remove('fading');
+  el.style.display = 'flex';
+  onboardingVisible = true;
+  if (onboardingHideTimer) clearTimeout(onboardingHideTimer);
+  if (onboardingActionTimer) clearTimeout(onboardingActionTimer);
+  // Auto-dismiss after 9s even if player hasn't clicked Skip
+  onboardingHideTimer = setTimeout(() => hideInGameOnboarding(true), 9000);
+}
+
+function markOnboardingAction() {
+  if (!onboardingVisible || onboardingActionTimer) return;
+  // Once the player steers or boosts, fade out cleanly after 3 seconds
+  onboardingActionTimer = setTimeout(() => hideInGameOnboarding(true), 3000);
+}
+
+function hideInGameOnboarding(markDone = true) {
+  if (onboardingHideTimer) { clearTimeout(onboardingHideTimer); onboardingHideTimer = null; }
+  if (onboardingActionTimer) { clearTimeout(onboardingActionTimer); onboardingActionTimer = null; }
+  if (markDone) safeStorageSet('slythox_onboarded', '1');
+  onboardingVisible = false;
+  const el = document.getElementById('ingame-onboarding');
+  if (!el || el.style.display === 'none') return;
+  el.classList.add('fading');
+  setTimeout(() => {
+    if (!onboardingVisible) {
+      el.style.display = 'none';
+      el.classList.remove('fading');
+    }
+  }, 360);
+}
+
 function startGame() {
+  gameMode = 'arena';
+  if (typeof LevelsMode !== 'undefined') LevelsMode.reset();
   initAudio();
   AdManager.hideNativeBanner();
   menuScreenEl.style.display = 'none';
@@ -5772,12 +6057,17 @@ function startGame() {
   scheduleNextPowerup();
   powerups.length = 0;
   applyDifficultySpeeds();
-  showLevelIntroBanner(currentArenaLevel);
+  CrazyGamesBridge.gameplayStart();
+  if (typeof showInGameOnboardingIfNeeded === 'function') showInGameOnboardingIfNeeded();
   ensureGameLoop();
 }
 
 function goHome() {
   flushDeferredProfileSave(true);
+  CrazyGamesBridge.gameplayStop();
+  if (typeof hideInGameOnboarding === 'function') hideInGameOnboarding(false);
+  if (typeof LevelsMode !== 'undefined') LevelsMode.reset();
+  gameMode = 'arena';
   isGameRunning = false;
   isPaused = false;
   isGameOver = false;
@@ -5847,12 +6137,19 @@ function togglePause() {
   if (isPaused) {
     pauseStartTime = performance.now();
     flushDeferredProfileSave(true);
+    CrazyGamesBridge.gameplayStop();
     pauseOverlayEl.style.display = 'flex';
   } else {
-    shiftActiveTimersByPauseDuration(performance.now() - pauseStartTime);
+    const pauseDelta = performance.now() - pauseStartTime;
+    if (gameMode === 'levels') {
+      if (typeof LevelsMode !== 'undefined') LevelsMode.shiftTimers(pauseDelta);
+    } else {
+      shiftActiveTimersByPauseDuration(pauseDelta);
+    }
     lastLoopFrameTime = performance.now();
     fixedStepAccumulator = 0;
     pauseOverlayEl.style.display = 'none';
+    CrazyGamesBridge.gameplayStart();
     ensureGameLoop();
   }
 }
@@ -5995,6 +6292,25 @@ function initInput() {
       case 'go-home':
         goHome();
         break;
+      case 'skip-onboarding':
+        hideInGameOnboarding(true);
+        break;
+      case 'levels-select-world':
+        if (typeof LevelsMode !== 'undefined') LevelsMode.selectWorld(Number(arg) || 0);
+        break;
+      case 'levels-play':
+        if (typeof LevelsMode !== 'undefined') LevelsMode.startLevel(Number(arg) || 1);
+        break;
+      case 'levels-next':
+        if (typeof LevelsMode !== 'undefined') LevelsMode.startLevel(Math.min(50, (LevelsMode.currentLevel || 1) + 1));
+        break;
+      case 'levels-retry':
+        if (typeof LevelsMode !== 'undefined') LevelsMode.startLevel(LevelsMode.currentLevel || 1);
+        break;
+      case 'levels-map':
+        goHome();
+        openScreen('levels');
+        break;
       case 'set-skin-category':
         setSkinCategory(arg);
         break;
@@ -6101,9 +6417,16 @@ function initInput() {
   });
 
   window.addEventListener('keydown', (e) => {
+    const code = e.code || '';
+    const isPlaying = isGameRunning && !isGameOver;
+    // Prevent iframe scroll on arrow keys & Space during gameplay (CrazyGames requirement)
+    if (isPlaying && (code === 'ArrowUp' || code === 'ArrowDown' || code === 'ArrowLeft' || code === 'ArrowRight' || code === 'Space')) {
+      e.preventDefault();
+    }
+
     initAudio();
-    if (e.key === 'p' || e.key === 'P' || e.key === ' ') {
-      if (isGameRunning && !isGameOver) {
+    if (code === 'KeyP') {
+      if (isPlaying) {
         e.preventDefault();
         togglePause();
         return;
@@ -6111,21 +6434,41 @@ function initInput() {
     }
 
     if (isGameOver) {
-      if (e.key === 'Enter') restartGame();
+      if (code === 'Enter' || e.key === 'Enter') restartGame();
       return;
     }
 
-    if (e.key === '1') activateAbility('ghost');
-    if (e.key === '2') activateAbility('magnet');
-    if (e.key === '3') activateAbility('dash');
+    if (!isPlaying || isPaused) return;
 
-    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
-    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+    if (code === 'Space') {
+      if (gameMode === 'arena') activateAbility('dash');
+      if (typeof markOnboardingAction === 'function') markOnboardingAction();
+      return;
+    }
+
+    if (gameMode === 'arena') {
+      if (code === 'Digit1' || e.key === '1') activateAbility('ghost');
+      if (code === 'Digit2' || e.key === '2') activateAbility('magnet');
+      if (code === 'Digit3' || e.key === '3') activateAbility('dash');
+    }
+
+    // Use physical key codes (KeyA / KeyD) so AZERTY (Q/D), QWERTZ, and QWERTY layouts all work automatically
+    if (code === 'ArrowLeft' || code === 'KeyA') {
+      keys.left = true;
+      mouse.active = false;
+      if (typeof markOnboardingAction === 'function') markOnboardingAction();
+    }
+    if (code === 'ArrowRight' || code === 'KeyD') {
+      keys.right = true;
+      mouse.active = false;
+      if (typeof markOnboardingAction === 'function') markOnboardingAction();
+    }
   });
 
   window.addEventListener('keyup', (e) => {
-    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
-    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+    const code = e.code || '';
+    if (code === 'ArrowLeft' || code === 'KeyA') keys.left = false;
+    if (code === 'ArrowRight' || code === 'KeyD') keys.right = false;
   });
 
   window.addEventListener('mousemove', (e) => {
@@ -6133,12 +6476,16 @@ function initInput() {
     mouse.x = e.clientX;
     mouse.y = e.clientY;
     mouse.active = true;
+    if (isGameRunning && !isPaused && !isGameOver && typeof markOnboardingAction === 'function') {
+      markOnboardingAction();
+    }
   });
 
   canvas.addEventListener('pointerdown', (e) => {
     if ((e.pointerType !== 'touch' && e.pointerType !== 'pen') || !isGameRunning || isPaused || isGameOver || joystick.active) return;
     e.preventDefault();
     initAudio();
+    markOnboardingAction();
     keys.left = false;
     keys.right = false;
     mouse.active = false;
@@ -6218,7 +6565,11 @@ function onResize() {
     pCanvas.width = width;
     pCanvas.height = height;
   }
-  updateCamera();
+  if (gameMode === 'levels' && typeof LevelsMode !== 'undefined') {
+    LevelsMode.computeViewportLayout();
+  } else {
+    updateCamera();
+  }
 }
 
 function initSnake() {
@@ -6305,6 +6656,10 @@ function initSnake() {
 }
 
 function restartGame() {
+  if (gameMode === 'levels' && typeof LevelsMode !== 'undefined') {
+    LevelsMode.startLevel(LevelsMode.currentLevel || 1);
+    return;
+  }
   overlayEl.style.display = 'none';
   pauseOverlayEl.style.display = 'none';
   isPaused = false;
@@ -6319,7 +6674,7 @@ function restartGame() {
   scheduleNextPowerup();
   powerups.length = 0;
   applyDifficultySpeeds();
-  showLevelIntroBanner(currentArenaLevel);
+  CrazyGamesBridge.gameplayStart();
   ensureGameLoop();
 }
 
@@ -7505,6 +7860,1256 @@ function drawMinimapDot(x, y, color, dotRadius, cx, cy, mapRadius) {
 }
 
 // ============================================================
+// §9.5  SEPARATE FIXED-SCREEN WALLED LEVELS MODE
+// Zero shared state with Arena's 8000x8000 world, wrap-around,
+// camera follow/zoom, 50-bot waves, danger zone, or minimap.
+// ============================================================
+const LEVELS_PROGRESS_KEY = 'slythox_levels_progress_v1';
+
+const LevelsMode = {
+  cfg: window.LEVELS_CONFIG || null,
+  selectedWorldIndex: 0,
+  currentLevel: 1,
+  levelData: null,
+  active: false,
+  finished: false,
+
+  // Fixed logical grid & letterboxed viewport transform
+  cols: 32,
+  rows: 18,
+  cellSize: 40,
+  fieldW: 1280,
+  fieldH: 720,
+  viewScale: 1,
+  viewOffsetX: 0,
+  viewOffsetY: 0,
+
+  // Round state
+  timeLeftMs: 60000,
+  score: 0,
+  lives: 3,
+  hasPlasmaShield: false,
+  targetReached: false,
+  comboCount: 1,
+  comboExpiresAt: 0,
+  nextFruitSpawnAt: 0,
+  lastTickNow: 0,
+  shakeMs: 0,
+
+  // Entities (100% isolated from Arena)
+  snake: null,
+  bots: [],
+  items: [], // fruits + gold/blue orbs
+  hazards: { jellyfish: [], currents: [], mines: [] },
+  pops: [], // floating score/status texts
+
+  getConfig() {
+    if (!this.cfg && window.LEVELS_CONFIG) this.cfg = window.LEVELS_CONFIG;
+    return this.cfg;
+  },
+
+  loadProgress() {
+    const fallback = { unlockedLevel: 1, stars: {} };
+    try {
+      const raw = safeStorageGet(LEVELS_PROGRESS_KEY);
+      if (!raw) return fallback;
+      const parsed = JSON.parse(raw);
+      if (!isPlainObject(parsed)) return fallback;
+      const unlocked = Number.isInteger(parsed.unlockedLevel)
+        ? Math.max(1, Math.min(50, parsed.unlockedLevel))
+        : 1;
+      const stars = {};
+      if (isPlainObject(parsed.stars)) {
+        for (const [k, v] of Object.entries(parsed.stars)) {
+          const lvl = Number(k);
+          const st = Number(v);
+          if (Number.isInteger(lvl) && lvl >= 1 && lvl <= 50 && Number.isInteger(st) && st >= 1 && st <= 3) {
+            stars[String(lvl)] = st;
+          }
+        }
+      }
+      return { unlockedLevel: unlocked, stars };
+    } catch (_) {
+      return fallback;
+    }
+  },
+
+  saveProgress(progress) {
+    const clean = {
+      unlockedLevel: Math.max(1, Math.min(50, Math.floor(progress.unlockedLevel || 1))),
+      stars: {}
+    };
+    if (progress.stars && typeof progress.stars === 'object') {
+      for (const [k, v] of Object.entries(progress.stars)) {
+        const lvl = Number(k);
+        const st = Number(v);
+        if (Number.isInteger(lvl) && lvl >= 1 && lvl <= 50 && Number.isInteger(st) && st >= 1 && st <= 3) {
+          clean.stars[String(lvl)] = st;
+        }
+      }
+    }
+    safeStorageSet(LEVELS_PROGRESS_KEY, JSON.stringify(clean));
+  },
+
+  selectWorld(worldIdx) {
+    const cfg = this.getConfig();
+    if (!cfg) return;
+    this.selectedWorldIndex = Math.max(0, Math.min(cfg.WORLDS.length - 1, worldIdx));
+    this.renderLevelSelect();
+  },
+
+  renderLevelSelect() {
+    const cfg = this.getConfig();
+    if (!cfg) return;
+    const progress = this.loadProgress();
+    let totalStars = 0;
+    for (const v of Object.values(progress.stars)) totalStars += v;
+
+    const summaryEl = document.getElementById('levels-summary-text');
+    if (summaryEl) summaryEl.textContent = `★ ${totalStars} / 150 Stars • Fixed-Screen Walled Mode`;
+
+    const tabsEl = document.getElementById('levels-world-tabs');
+    if (tabsEl) {
+      tabsEl.replaceChildren();
+      cfg.WORLDS.forEach((w, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'world-tab-btn' + (idx === this.selectedWorldIndex ? ' active' : '');
+        btn.dataset.action = 'levels-select-world';
+        btn.dataset.arg = String(idx);
+        btn.textContent = `${idx + 1}. ${w.name}`;
+        tabsEl.appendChild(btn);
+      });
+    }
+
+    const world = cfg.WORLDS[this.selectedWorldIndex] || cfg.WORLDS[0];
+    const startLvl = this.selectedWorldIndex * 10 + 1;
+    const endLvl = startLvl + 9;
+    let worldStars = 0;
+    for (let l = startLvl; l <= endLvl; l++) worldStars += (progress.stars[String(l)] || 0);
+
+    const wTitle = document.getElementById('levels-world-title');
+    const wDesc = document.getElementById('levels-world-desc');
+    const wStars = document.getElementById('levels-world-stars');
+    if (wTitle) {
+      wTitle.textContent = `World ${this.selectedWorldIndex + 1}: ${world.name}`;
+      wTitle.style.color = world.accent;
+    }
+    if (wDesc) wDesc.textContent = `${world.subtitle} — ${world.mechanic}`;
+    if (wStars) wStars.textContent = `★ ${worldStars} / 30`;
+
+    const gridEl = document.getElementById('levels-map-grid');
+    if (!gridEl) return;
+    gridEl.replaceChildren();
+
+    for (let l = startLvl; l <= endLvl; l++) {
+      const ld = cfg.LEVELS[l - 1];
+      const unlocked = l <= progress.unlockedLevel;
+      const earned = progress.stars[String(l)] || 0;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'level-node-btn' + (unlocked ? '' : ' locked') + (ld.isBoss ? ' boss' : '');
+      btn.disabled = !unlocked;
+      if (unlocked) {
+        btn.dataset.action = 'levels-play';
+        btn.dataset.arg = String(l);
+      }
+
+      if (ld.isBoss) {
+        const tag = document.createElement('span');
+        tag.className = 'level-node-boss-tag';
+        tag.textContent = '👑 BOSS';
+        btn.appendChild(tag);
+      }
+
+      const num = document.createElement('div');
+      num.className = 'level-node-num';
+      num.textContent = unlocked ? String(l) : '🔒';
+      btn.appendChild(num);
+
+      const starsRow = document.createElement('div');
+      starsRow.className = 'level-node-stars';
+      for (let s = 1; s <= 3; s++) {
+        const sp = document.createElement('span');
+        sp.textContent = '★';
+        if (s > earned) sp.className = 'star-off';
+        starsRow.appendChild(sp);
+      }
+      btn.appendChild(starsRow);
+
+      const meta = document.createElement('div');
+      meta.className = 'level-node-meta';
+      meta.textContent = `${ld.targetScore} pts` + (ld.botCount > 0 ? ` • ${ld.botCount}🤖` : '');
+      btn.appendChild(meta);
+
+      gridEl.appendChild(btn);
+    }
+  },
+
+  reset() {
+    this.active = false;
+    this.finished = false;
+    this.snake = null;
+    this.bots = [];
+    this.items = [];
+    this.hazards = { jellyfish: [], currents: [], mines: [] };
+    this.pops = [];
+    const lhud = document.getElementById('levels-hud');
+    if (lhud) lhud.style.display = 'none';
+    const res = document.getElementById('level-result-overlay');
+    if (res) res.style.display = 'none';
+  },
+
+  computeViewportLayout() {
+    const cfg = this.getConfig();
+    if (!cfg) return;
+    const isPortrait = height > width;
+    const grid = isPortrait ? cfg.GRID_PORTRAIT : cfg.GRID_LANDSCAPE;
+    this.cols = grid.cols;
+    this.rows = grid.rows;
+    this.cellSize = cfg.CELL_SIZE;
+    this.fieldW = this.cols * this.cellSize;
+    this.fieldH = this.rows * this.cellSize;
+
+    const topSafe = isPortrait ? 86 : 68;
+    const padX = 14;
+    const padBottom = 14;
+    const availW = Math.max(160, width - padX * 2);
+    const availH = Math.max(160, height - topSafe - padBottom);
+    this.viewScale = Math.min(availW / this.fieldW, availH / this.fieldH);
+    this.viewOffsetX = Math.floor((width - this.fieldW * this.viewScale) / 2);
+    this.viewOffsetY = Math.floor(topSafe + (availH - this.fieldH * this.viewScale) / 2);
+  },
+
+  getSkinPalette() {
+    const skin = (typeof getActiveSkin === 'function') ? getActiveSkin() : null;
+    if (skin) {
+      return {
+        head: skin.head || '#00F5A0',
+        body: skin.body || '#00D9FF',
+        glow: skin.glow || 'rgba(0, 245, 160, 0.55)'
+      };
+    }
+    return { head: '#00F5A0', body: '#00D9FF', glow: 'rgba(0, 245, 160, 0.55)' };
+  },
+
+  spawnPlayerSnake(withShieldMs = 0) {
+    const cfg = this.getConfig();
+    const startX = this.fieldW * 0.5;
+    const startY = this.fieldH * 0.5;
+    const angle = 0; // moving right cleanly on start
+    const segSpacing = 12;
+    const startLen = cfg.START_LENGTH;
+    const segments = [];
+    for (let i = 0; i < startLen; i++) {
+      segments.push({ x: startX - i * segSpacing, y: startY });
+    }
+    this.snake = {
+      x: startX,
+      y: startY,
+      angle,
+      targetAngle: angle,
+      radius: 13,
+      segSpacing,
+      targetSegments: startLen,
+      segments,
+      shieldUntil: withShieldMs > 0 ? performance.now() + withShieldMs : 0,
+      palette: this.getSkinPalette()
+    };
+  },
+
+  isSafeSpawnPoint(x, y, minHeadCells = 3, extraPad = 36) {
+    if (x < extraPad || x > this.fieldW - extraPad || y < extraPad || y > this.fieldH - extraPad) return false;
+    const minHeadDist = minHeadCells * this.cellSize;
+    if (this.snake) {
+      if (Math.hypot(x - this.snake.x, y - this.snake.y) < minHeadDist) return false;
+      for (let i = 0; i < this.snake.segments.length; i += 2) {
+        const s = this.snake.segments[i];
+        if (Math.hypot(x - s.x, y - s.y) < 34) return false;
+      }
+    }
+    for (const b of this.bots) {
+      if (!b.alive) continue;
+      if (Math.hypot(x - b.x, y - b.y) < 60) return false;
+      for (let i = 0; i < b.segments.length; i += 2) {
+        const s = b.segments[i];
+        if (Math.hypot(x - s.x, y - s.y) < 34) return false;
+      }
+    }
+    for (const m of this.hazards.mines) {
+      if (Math.hypot(x - m.x, y - m.y) < m.radius + 32) return false;
+    }
+    for (const j of this.hazards.jellyfish) {
+      if (Math.hypot(x - j.x, y - j.y) < j.radius + 32) return false;
+    }
+    return true;
+  },
+
+  findSafeCellCenter(minHeadCells = 3) {
+    const marginCells = 2;
+    for (let attempt = 0; attempt < 90; attempt++) {
+      const c = marginCells + Math.floor(Math.random() * Math.max(1, this.cols - marginCells * 2));
+      const r = marginCells + Math.floor(Math.random() * Math.max(1, this.rows - marginCells * 2));
+      const x = (c + 0.5) * this.cellSize;
+      const y = (r + 0.5) * this.cellSize;
+      if (this.isSafeSpawnPoint(x, y, minHeadCells, this.cellSize * 1.1)) {
+        return { x, y };
+      }
+    }
+    return { x: this.fieldW * 0.2, y: this.fieldH * 0.2 };
+  },
+
+  initHazards(ld) {
+    this.hazards = { jellyfish: [], currents: [], mines: [] };
+    const h = ld.hazards || { jellyfish: 0, currents: 0, mines: 0 };
+
+    // Coral Reef / Abyss Jellyfish
+    for (let i = 0; i < (h.jellyfish || 0); i++) {
+      const pt = this.findSafeCellCenter(4);
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 48 + Math.random() * 34;
+      this.hazards.jellyfish.push({
+        x: pt.x,
+        y: pt.y,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd,
+        radius: 20,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+
+    // Kelp Forest / Abyss Currents
+    for (let i = 0; i < (h.currents || 0); i++) {
+      const horizontal = (i % 2 === 0);
+      const w = horizontal ? this.cellSize * 6 : this.cellSize * 2.5;
+      const ch = horizontal ? this.cellSize * 2.5 : this.cellSize * 6;
+      const cx = this.cellSize * 2 + Math.random() * Math.max(40, this.fieldW - w - this.cellSize * 4);
+      const cy = this.cellSize * 2 + Math.random() * Math.max(40, this.fieldH - ch - this.cellSize * 4);
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      this.hazards.currents.push({
+        x: cx,
+        y: cy,
+        w,
+        h: ch,
+        fx: horizontal ? dir * 105 : 0,
+        fy: horizontal ? 0 : dir * 105
+      });
+    }
+
+    // Volcano Vents / Abyss Mines
+    for (let i = 0; i < (h.mines || 0); i++) {
+      const pt = this.findSafeCellCenter(4);
+      this.hazards.mines.push({
+        x: pt.x,
+        y: pt.y,
+        radius: 17,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+  },
+
+  createBot(type, idx) {
+    const pt = this.findSafeCellCenter(5);
+    const angle = Math.atan2(this.fieldH * 0.5 - pt.y, this.fieldW * 0.5 - pt.x);
+    const segSpacing = 12;
+    const len = 10;
+    const segments = [];
+    for (let i = 0; i < len; i++) {
+      segments.push({ x: pt.x - Math.cos(angle) * i * segSpacing, y: pt.y - Math.sin(angle) * i * segSpacing });
+    }
+    const palette = type === 'hunter'
+      ? { head: '#FF477E', body: '#FB7185', glow: 'rgba(255, 71, 126, 0.55)' }
+      : { head: '#FFB020', body: '#F59E0B', glow: 'rgba(255, 176, 32, 0.55)' };
+    return {
+      id: idx,
+      type,
+      alive: true,
+      respawnAt: 0,
+      x: pt.x,
+      y: pt.y,
+      angle,
+      radius: 12.5,
+      segSpacing,
+      targetSegments: len,
+      segments,
+      palette
+    };
+  },
+
+  initBots(ld) {
+    this.bots = [];
+    const count = Math.min(this.getConfig().BOT_MAX, ld.botCount || 0);
+    for (let i = 0; i < count; i++) {
+      const type = (ld.botTypes && ld.botTypes[i]) || (i === 0 ? 'hunter' : 'encircler');
+      this.bots.push(this.createBot(type, i));
+    }
+  },
+
+  spawnFruitOrOrb(now) {
+    const cfg = this.getConfig();
+    const ld = this.levelData;
+    if (!cfg || !ld) return;
+    // Cap simultaneous items so the field stays readable
+    if (this.items.length >= 10) return;
+
+    const pt = this.findSafeCellCenter(cfg.SPAWN_MIN_HEAD_CLEAR_CELLS);
+    const roll = Math.random();
+    if (roll < 0.12) {
+      // Gold Orb (+45 pts)
+      this.items.push({
+        kind: 'gold',
+        x: pt.x,
+        y: pt.y,
+        points: 45,
+        growth: 2,
+        radius: 14,
+        color: '#FFB020',
+        glow: 'rgba(255, 176, 32, 0.85)',
+        spawnedAt: now,
+        expiresAt: now + ld.fruitLifetimeMs
+      });
+    } else if (roll < 0.22) {
+      // Blue Plasma Shield Orb (+25 pts + absorbs 1 crash)
+      this.items.push({
+        kind: 'plasma',
+        x: pt.x,
+        y: pt.y,
+        points: 25,
+        growth: 1,
+        radius: 14,
+        color: '#38BDF8',
+        glow: 'rgba(56, 189, 248, 0.9)',
+        spawnedAt: now,
+        expiresAt: now + ld.fruitLifetimeMs
+      });
+    } else {
+      // Standard Neon Pixel Fruit (apple / cherry / grapes)
+      const fruitType = (typeof pickFruitTypeForLevel === 'function')
+        ? pickFruitTypeForLevel(Math.min(10, Math.ceil(ld.level / 5)))
+        : 'apple';
+      const fDef = (typeof FRUITS_CONFIG !== 'undefined' && FRUITS_CONFIG.types && FRUITS_CONFIG.types[fruitType])
+        ? FRUITS_CONFIG.types[fruitType]
+        : { id: 'apple', points: 20, growth: 1, color: '#ff3b5c', glow: 'rgba(255,59,92,0.8)' };
+      this.items.push({
+        kind: 'fruit',
+        fruitType: fDef.id || fruitType,
+        x: pt.x,
+        y: pt.y,
+        points: fDef.points || 20,
+        growth: fDef.growth || 1,
+        radius: 16,
+        color: fDef.color || '#ff3b5c',
+        glow: fDef.glow || 'rgba(255,59,92,0.8)',
+        spawnedAt: now,
+        expiresAt: now + ld.fruitLifetimeMs
+      });
+    }
+  },
+
+  startLevel(levelNum) {
+    const cfg = this.getConfig();
+    if (!cfg) return;
+    const clamped = Math.max(1, Math.min(50, Math.floor(levelNum || 1)));
+    const ld = cfg.LEVELS[clamped - 1];
+    if (!ld) return;
+
+    // Explicit mode switch & complete Arena cleanup
+    gameMode = 'levels';
+    initAudio();
+    AdManager.hideNativeBanner();
+    resetActiveControls();
+
+    if (menuScreenEl) menuScreenEl.style.display = 'none';
+    document.querySelectorAll('.subscreen').forEach(el => { el.style.display = 'none'; });
+    activeSubscreenId = null;
+    if (hudEl) hudEl.style.display = 'none';
+    if (lbEl) lbEl.style.display = 'none';
+    if (overlayEl) overlayEl.style.display = 'none';
+    if (pauseOverlayEl) pauseOverlayEl.style.display = 'none';
+    if (rareIndicatorEl) rareIndicatorEl.style.display = 'none';
+    if (powerupIndicatorEl) powerupIndicatorEl.style.display = 'none';
+    const lvlBanner = document.getElementById('level-intro-banner');
+    if (lvlBanner) lvlBanner.style.display = 'none';
+    const reviveModal = document.getElementById('revive-modal');
+    if (reviveModal) reviveModal.style.display = 'none';
+    const resOverlay = document.getElementById('level-result-overlay');
+    if (resOverlay) resOverlay.style.display = 'none';
+
+    this.currentLevel = clamped;
+    this.levelData = ld;
+    this.selectedWorldIndex = ld.worldIndex;
+    this.active = true;
+    this.finished = false;
+    this.timeLeftMs = cfg.ROUND_DURATION_SEC * 1000;
+    this.score = 0;
+    this.lives = cfg.START_LIVES;
+    this.hasPlasmaShield = false;
+    this.targetReached = false;
+    this.comboCount = 1;
+    this.comboExpiresAt = 0;
+    this.items = [];
+    this.pops = [];
+    this.shakeMs = 0;
+
+    this.computeViewportLayout();
+    this.spawnPlayerSnake(1500);
+    this.initHazards(ld);
+    this.initBots(ld);
+
+    const now = performance.now();
+    this.lastTickNow = now;
+    // Seed 3 initial fruits right away so gameplay starts immediately, then every 2.5s
+    for (let i = 0; i < 3; i++) this.spawnFruitOrOrb(now);
+    this.nextFruitSpawnAt = now + cfg.FRUIT_SPAWN_INTERVAL_MS;
+
+    const lhud = document.getElementById('levels-hud');
+    if (lhud) lhud.style.display = 'flex';
+    this.updateHUD();
+
+    isGameRunning = true;
+    isPaused = false;
+    isGameOver = false;
+    CrazyGamesBridge.gameplayStart();
+    if (typeof showInGameOnboardingIfNeeded === 'function') showInGameOnboardingIfNeeded();
+    ensureGameLoop();
+  },
+
+  shiftTimers(deltaMs) {
+    if (!deltaMs || deltaMs <= 0) return;
+    this.nextFruitSpawnAt += deltaMs;
+    if (this.comboExpiresAt > 0) this.comboExpiresAt += deltaMs;
+    if (this.snake && this.snake.shieldUntil > 0) this.snake.shieldUntil += deltaMs;
+    for (const it of this.items) {
+      it.spawnedAt += deltaMs;
+      it.expiresAt += deltaMs;
+    }
+    for (const b of this.bots) {
+      if (b.respawnAt > 0) b.respawnAt += deltaMs;
+    }
+  },
+
+  getEffectiveSpeed() {
+    const cfg = this.getConfig();
+    const diffMul = (cfg && cfg.SPEED_DIFFICULTY_MULTIPLIERS && cfg.SPEED_DIFFICULTY_MULTIPLIERS[currentDifficulty]) || 1.0;
+    return (this.levelData ? this.levelData.snakeSpeed : 240) * diffMul;
+  },
+
+  pushPop(x, y, text, color = '#00F5A0') {
+    this.pops.push({ x, y, text, color, life: 1.0 });
+    if (this.pops.length > 24) this.pops.shift();
+  },
+
+  handlePlayerCrash(reason, now) {
+    const cfg = this.getConfig();
+    if (!this.snake || !this.active || this.finished) return;
+    if (this.snake.shieldUntil > now) return;
+
+    if (this.hasPlasmaShield) {
+      this.hasPlasmaShield = false;
+      this.snake.shieldUntil = now + 1200;
+      this.shakeMs = 180;
+      // Bounce gently back inside if near wall
+      const pad = this.snake.radius + 10;
+      this.snake.x = Math.max(pad, Math.min(this.fieldW - pad, this.snake.x));
+      this.snake.y = Math.max(pad, Math.min(this.fieldH - pad, this.snake.y));
+      this.snake.angle = Math.atan2(this.fieldH * 0.5 - this.snake.y, this.fieldW * 0.5 - this.snake.x);
+      this.snake.targetAngle = this.snake.angle;
+      this.pushPop(this.snake.x, this.snake.y - 16, 'SHIELD SAVED!', '#38BDF8');
+      sfxReward();
+      triggerHaptic(30);
+      this.updateHUD();
+      return;
+    }
+
+    this.lives = Math.max(0, this.lives - 1);
+    this.comboCount = 1;
+    this.comboExpiresAt = 0;
+    this.shakeMs = 300;
+    sfxPlayerDeath();
+    triggerHaptic(55);
+    this.updateHUD();
+
+    if (this.lives <= 0) {
+      this.finishLevel(false, 'Out of Hearts');
+      return;
+    }
+
+    // Respawn at center with 2s shield + flicker, clock keeps running, length resets to starting length
+    resetActiveControls();
+    this.spawnPlayerSnake(cfg.RESPAWN_SHIELD_MS);
+    this.pushPop(this.snake.x, this.snake.y - 20, `${this.lives} ♥ LEFT`, '#F43F5E');
+  },
+
+  finishLevel(won, failReason = '') {
+    if (this.finished) return;
+    this.finished = true;
+    this.active = false;
+    isGameOver = true;
+    CrazyGamesBridge.gameplayStop();
+
+    const cfg = this.getConfig();
+    const ld = this.levelData;
+    const target = ld.targetScore;
+    let stars = 0;
+    if (won && this.score >= target) {
+      stars = 1;
+      if (this.score >= Math.round(target * cfg.STAR_THRESHOLDS.two)) stars = 2;
+      if (this.score >= Math.round(target * cfg.STAR_THRESHOLDS.three)) stars = 3;
+    }
+
+    let coinsEarned = 0;
+    let xpEarned = 0;
+    if (won && stars > 0) {
+      CrazyGamesBridge.happytime();
+      sfxReward();
+      const progress = this.loadProgress();
+      const prevStars = progress.stars[String(ld.level)] || 0;
+      if (stars > prevStars) progress.stars[String(ld.level)] = stars;
+      if (ld.level < 50 && progress.unlockedLevel <= ld.level) {
+        progress.unlockedLevel = ld.level + 1;
+      }
+      this.saveProgress(progress);
+
+      coinsEarned = ld.rewardCoins + (stars === 3 && prevStars < 3 ? ld.threeStarBonusCoins : 0);
+      xpEarned = ld.rewardXp;
+      if (profileData) {
+        profileData.coins = (profileData.coins || 0) + coinsEarned;
+        if (typeof addProfileXp === 'function') addProfileXp(xpEarned);
+        saveProfileData();
+      }
+    }
+
+    // Populate Result Overlay
+    const lvlLabel = document.getElementById('lr-level-label');
+    const titleEl = document.getElementById('lr-title');
+    const subEl = document.getElementById('lr-subtitle');
+    const starsEl = document.getElementById('lr-stars');
+    const scoreEl = document.getElementById('lr-score');
+    const targetEl = document.getElementById('lr-target');
+    const coinsEl = document.getElementById('lr-coins');
+    const xpEl = document.getElementById('lr-xp');
+    const nextBtn = document.getElementById('lr-next-btn');
+
+    if (lvlLabel) lvlLabel.textContent = `LEVEL ${ld.level} • ${ld.worldName.toUpperCase()}${ld.isBoss ? ' (BOSS)' : ''}`;
+    if (titleEl) {
+      titleEl.textContent = won ? (stars === 3 ? 'PERFECT 3★!' : 'LEVEL COMPLETE!') : 'LEVEL FAILED';
+      titleEl.style.color = won ? '#00F5A0' : '#F43F5E';
+    }
+    if (subEl) {
+      subEl.textContent = won
+        ? (ld.level === 50 ? 'You conquered all 50 levels of the Abyss!' : 'Target reached! Ready for the next stage.')
+        : (failReason || 'Time ran out below the target score.');
+    }
+    if (starsEl) {
+      starsEl.replaceChildren();
+      for (let s = 1; s <= 3; s++) {
+        const sp = document.createElement('span');
+        sp.textContent = '★';
+        if (s > stars) sp.className = 'star-off';
+        starsEl.appendChild(sp);
+      }
+    }
+    if (scoreEl) scoreEl.textContent = String(this.score);
+    if (targetEl) targetEl.textContent = String(target);
+    if (coinsEl) coinsEl.textContent = `+${coinsEarned}`;
+    if (xpEl) xpEl.textContent = `+${xpEarned} XP`;
+    if (nextBtn) nextBtn.style.display = (won && ld.level < 50) ? 'block' : 'none';
+
+    const resOverlay = document.getElementById('level-result-overlay');
+    if (resOverlay) resOverlay.style.display = 'flex';
+  },
+
+  advanceChain(entity, speed, dt) {
+    entity.x += Math.cos(entity.angle) * speed * dt;
+    entity.y += Math.sin(entity.angle) * speed * dt;
+
+    // Apply Kelp Forest / Abyss directional currents
+    for (const c of this.hazards.currents) {
+      if (entity.x >= c.x && entity.x <= c.x + c.w && entity.y >= c.y && entity.y <= c.y + c.h) {
+        entity.x += c.fx * dt;
+        entity.y += c.fy * dt;
+      }
+    }
+
+    const segs = entity.segments;
+    if (!segs || segs.length === 0) return;
+    segs[0].x = entity.x;
+    segs[0].y = entity.y;
+    const sp = entity.segSpacing;
+    for (let i = 1; i < segs.length; i++) {
+      const prev = segs[i - 1];
+      const cur = segs[i];
+      const dx = prev.x - cur.x;
+      const dy = prev.y - cur.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 0.001) {
+        const ang = Math.atan2(dy, dx);
+        cur.x = prev.x - Math.cos(ang) * sp;
+        cur.y = prev.y - Math.sin(ang) * sp;
+      }
+    }
+    while (segs.length < entity.targetSegments) {
+      const last = segs[segs.length - 1];
+      segs.push({ x: last.x, y: last.y });
+    }
+  },
+
+  updateBotAI(bot, speed, dt, now) {
+    if (!bot.alive) {
+      if (now >= bot.respawnAt) {
+        const fresh = this.createBot(bot.type, bot.id);
+        Object.assign(bot, fresh);
+      }
+      return;
+    }
+
+    // Choose target: compete for nearest fruit OR intercept/pin player near walls
+    let tx = this.fieldW * 0.5;
+    let ty = this.fieldH * 0.5;
+    let nearestFruit = null;
+    let nearestDist = Infinity;
+    for (const it of this.items) {
+      const d = Math.hypot(it.x - bot.x, it.y - bot.y);
+      if (d < nearestDist) {
+        nearestDist = d;
+        nearestFruit = it;
+      }
+    }
+
+    const playerDist = this.snake ? Math.hypot(this.snake.x - bot.x, this.snake.y - bot.y) : Infinity;
+    if (bot.type === 'encircler' && this.snake && playerDist < 340) {
+      // Predict ahead of player to pin them against the nearest wall
+      tx = this.snake.x + Math.cos(this.snake.angle) * 95;
+      ty = this.snake.y + Math.sin(this.snake.angle) * 95;
+    } else if (nearestFruit && (nearestDist < 380 || !this.snake)) {
+      tx = nearestFruit.x;
+      ty = nearestFruit.y;
+    } else if (this.snake) {
+      // Hunter aggressively cuts across player's path
+      tx = this.snake.x + Math.cos(this.snake.angle) * 65;
+      ty = this.snake.y + Math.sin(this.snake.angle) * 65;
+    }
+
+    let desiredAngle = Math.atan2(ty - bot.y, tx - bot.x);
+
+    // Wall avoidance lookahead
+    const lookX = bot.x + Math.cos(bot.angle) * 78;
+    const lookY = bot.y + Math.sin(bot.angle) * 78;
+    const margin = 52;
+    if (lookX < margin || lookX > this.fieldW - margin || lookY < margin || lookY > this.fieldH - margin) {
+      desiredAngle = Math.atan2(this.fieldH * 0.5 - bot.y, this.fieldW * 0.5 - bot.x);
+    }
+
+    // Avoid mines & jellyfish
+    for (const m of this.hazards.mines) {
+      const d = Math.hypot(m.x - bot.x, m.y - bot.y);
+      if (d < m.radius + 58) {
+        desiredAngle = Math.atan2(bot.y - m.y, bot.x - m.x);
+        break;
+      }
+    }
+
+    const diff = angleDifference(bot.angle, desiredAngle);
+    const maxTurn = 4.2 * dt;
+    bot.angle += Math.sign(diff) * Math.min(Math.abs(diff), maxTurn);
+
+    this.advanceChain(bot, speed * 0.94, dt);
+
+    // Bot wall collision -> bot dies and respawns in 3s
+    const wPad = bot.radius + 4;
+    if (bot.x < wPad || bot.x > this.fieldW - wPad || bot.y < wPad || bot.y > this.fieldH - wPad) {
+      this.killBot(bot, now);
+      return;
+    }
+
+    // Bot vs Player body collision
+    if (this.snake) {
+      for (let i = 2; i < this.snake.segments.length; i++) {
+        const s = this.snake.segments[i];
+        if (Math.hypot(bot.x - s.x, bot.y - s.y) < bot.radius + 10) {
+          this.killBot(bot, now);
+          return;
+        }
+      }
+    }
+
+    // Bot vs other bot body
+    for (const other of this.bots) {
+      if (other === bot || !other.alive) continue;
+      for (let i = 1; i < other.segments.length; i++) {
+        const s = other.segments[i];
+        if (Math.hypot(bot.x - s.x, bot.y - s.y) < bot.radius + 9) {
+          this.killBot(bot, now);
+          return;
+        }
+      }
+    }
+
+    // Bot eats fruits (competes for target score!)
+    for (let i = this.items.length - 1; i >= 0; i--) {
+      const it = this.items[i];
+      if (Math.hypot(bot.x - it.x, bot.y - it.y) < bot.radius + it.radius) {
+        bot.targetSegments = Math.min(28, bot.targetSegments + (it.growth || 1));
+        this.pushPop(it.x, it.y, 'BOT STOLE!', '#FF477E');
+        this.items.splice(i, 1);
+      }
+    }
+  },
+
+  killBot(bot, now) {
+    const cfg = this.getConfig();
+    bot.alive = false;
+    bot.respawnAt = now + cfg.BOT_RESPAWN_MS;
+    this.pushPop(bot.x, bot.y, 'BOT CRASHED!', '#FFB020');
+  },
+
+  update(stepMs = FIXED_STEP_MS) {
+    if (!this.active || this.finished || !this.snake) return;
+    const cfg = this.getConfig();
+    const ld = this.levelData;
+    const now = performance.now();
+    const dt = Math.min(0.05, stepMs / 1000);
+
+    // 60-second countdown
+    this.timeLeftMs = Math.max(0, this.timeLeftMs - stepMs);
+    if (this.shakeMs > 0) this.shakeMs = Math.max(0, this.shakeMs - stepMs);
+
+    // Spawn fruit/orb every 2.5s
+    if (now >= this.nextFruitSpawnAt) {
+      this.spawnFruitOrOrb(now);
+      this.nextFruitSpawnAt = now + cfg.FRUIT_SPAWN_INTERVAL_MS;
+    }
+
+    // Expire old fruits
+    for (let i = this.items.length - 1; i >= 0; i--) {
+      if (now >= this.items[i].expiresAt) this.items.splice(i, 1);
+    }
+
+    // Decay combo
+    if (this.comboCount > 1 && now > this.comboExpiresAt) {
+      this.comboCount = 1;
+    }
+
+    // Update floating pops
+    for (let i = this.pops.length - 1; i >= 0; i--) {
+      this.pops[i].y -= 28 * dt;
+      this.pops[i].life -= 1.25 * dt;
+      if (this.pops[i].life <= 0) this.pops.splice(i, 1);
+    }
+
+    // Update drifting Jellyfish (bounce off solid walls)
+    for (const j of this.hazards.jellyfish) {
+      j.x += j.vx * dt;
+      j.y += j.vy * dt;
+      j.phase += 3.2 * dt;
+      const pad = j.radius + 14;
+      if (j.x < pad) { j.x = pad; j.vx = Math.abs(j.vx); }
+      if (j.x > this.fieldW - pad) { j.x = this.fieldW - pad; j.vx = -Math.abs(j.vx); }
+      if (j.y < pad) { j.y = pad; j.vy = Math.abs(j.vy); }
+      if (j.y > this.fieldH - pad) { j.y = this.fieldH - pad; j.vy = -Math.abs(j.vy); }
+    }
+
+    // Player steering: straight movement until finger moves (touch), or mouse/keyboard (desktop)
+    const speed = this.getEffectiveSpeed();
+    if (joystick.active) {
+      if (joystick.hasDirection) {
+        const sensMul = (profileData && profileData.settings ? (profileData.settings.joystickSensitivity || 100) : 100) / 100;
+        this.snake.targetAngle = Math.atan2(joystick.dy, joystick.dx);
+        const diff = angleDifference(this.snake.angle, this.snake.targetAngle);
+        const maxTurn = 6.2 * sensMul * dt;
+        this.snake.angle += Math.sign(diff) * Math.min(Math.abs(diff), maxTurn);
+      } else {
+        this.snake.targetAngle = this.snake.angle;
+      }
+    } else if (keys.left || keys.right) {
+      const turnStep = 4.6 * dt;
+      if (keys.left) this.snake.angle -= turnStep;
+      if (keys.right) this.snake.angle += turnStep;
+      this.snake.targetAngle = this.snake.angle;
+    } else if (mouse.active) {
+      // Map screen mouse coordinates into fixed logical playfield
+      const lx = (mouse.x - this.viewOffsetX) / this.viewScale;
+      const ly = (mouse.y - this.viewOffsetY) / this.viewScale;
+      if (Math.hypot(lx - this.snake.x, ly - this.snake.y) > 14) {
+        this.snake.targetAngle = Math.atan2(ly - this.snake.y, lx - this.snake.x);
+        const diff = angleDifference(this.snake.angle, this.snake.targetAngle);
+        const maxTurn = 6.0 * dt;
+        this.snake.angle += Math.sign(diff) * Math.min(Math.abs(diff), maxTurn);
+      }
+    }
+
+    this.advanceChain(this.snake, speed, dt);
+
+    // Check Solid Border Wall Crash (NO wrap-around!)
+    const wallPad = this.snake.radius + 4;
+    if (
+      this.snake.x < wallPad ||
+      this.snake.x > this.fieldW - wallPad ||
+      this.snake.y < wallPad ||
+      this.snake.y > this.fieldH - wallPad
+    ) {
+      this.handlePlayerCrash('wall', now);
+      if (this.finished) return;
+    }
+
+    // Check Self-Body Crash (skip head + neck segments)
+    if (this.snake.shieldUntil <= now) {
+      for (let i = 10; i < this.snake.segments.length; i++) {
+        const s = this.snake.segments[i];
+        if (Math.hypot(this.snake.x - s.x, this.snake.y - s.y) < this.snake.radius * 0.95) {
+          this.handlePlayerCrash('self', now);
+          if (this.finished) return;
+          break;
+        }
+      }
+    }
+
+    // Check Hazard Crashes (Jellyfish & Volcano Mines)
+    if (this.snake.shieldUntil <= now) {
+      for (const j of this.hazards.jellyfish) {
+        if (Math.hypot(this.snake.x - j.x, this.snake.y - j.y) < this.snake.radius + j.radius - 4) {
+          this.handlePlayerCrash('jellyfish', now);
+          if (this.finished) return;
+          break;
+        }
+      }
+    }
+    if (this.snake.shieldUntil <= now) {
+      for (const m of this.hazards.mines) {
+        if (Math.hypot(this.snake.x - m.x, this.snake.y - m.y) < this.snake.radius + m.radius - 3) {
+          this.handlePlayerCrash('mine', now);
+          if (this.finished) return;
+          break;
+        }
+      }
+    }
+
+    // Update Bots & Check Player vs Bot Body Crash
+    for (const bot of this.bots) {
+      this.updateBotAI(bot, speed, dt, now);
+      if (bot.alive && this.snake && this.snake.shieldUntil <= now) {
+        for (let i = 0; i < bot.segments.length; i++) {
+          const s = bot.segments[i];
+          if (Math.hypot(this.snake.x - s.x, this.snake.y - s.y) < this.snake.radius + 10) {
+            this.handlePlayerCrash('bot', now);
+            if (this.finished) return;
+            break;
+          }
+        }
+      }
+    }
+
+    // Player Fruit & Orb Collection
+    for (let i = this.items.length - 1; i >= 0; i--) {
+      const it = this.items[i];
+      if (Math.hypot(this.snake.x - it.x, this.snake.y - it.y) < this.snake.radius + it.radius + 4) {
+        if (now < this.comboExpiresAt) {
+          this.comboCount = Math.min(4, this.comboCount + 1);
+        } else {
+          this.comboCount = 1;
+        }
+        this.comboExpiresAt = now + 3500;
+        const comboMul = 1 + (this.comboCount - 1) * 0.25;
+        const pts = Math.round(it.points * comboMul);
+        this.score += pts;
+        this.snake.targetSegments = Math.min(45, this.snake.targetSegments + (it.growth || 1));
+
+        if (it.kind === 'plasma') {
+          this.hasPlasmaShield = true;
+          sfxReward();
+          this.pushPop(it.x, it.y, `+${pts} 💠 SHIELD`, '#38BDF8');
+        } else if (it.kind === 'gold') {
+          sfxEat();
+          this.pushPop(it.x, it.y, `+${pts} ★`, '#FFB020');
+        } else {
+          if (typeof sfxEatFruit === 'function') sfxEatFruit(it.fruitType);
+          else sfxEat();
+          this.pushPop(it.x, it.y, `+${pts}`, it.color);
+        }
+        triggerHaptic(12);
+        this.items.splice(i, 1);
+
+        if (!this.targetReached && this.score >= ld.targetScore) {
+          this.targetReached = true;
+          this.pushPop(this.snake.x, this.snake.y - 26, 'TARGET REACHED! GO FOR 3★!', '#00F5A0');
+          CrazyGamesBridge.happytime();
+          sfxReward();
+        }
+        // Complete early with 3 stars if player hits 3-star threshold (+35%)!
+        if (this.score >= Math.round(ld.targetScore * cfg.STAR_THRESHOLDS.three)) {
+          this.updateHUD();
+          this.finishLevel(true);
+          return;
+        }
+      }
+    }
+
+    // Check 60s countdown completion
+    if (this.timeLeftMs <= 0) {
+      this.updateHUD();
+      if (this.score >= ld.targetScore) {
+        this.finishLevel(true);
+      } else {
+        this.finishLevel(false, 'Time ran out below target score.');
+      }
+      return;
+    }
+
+    this.updateHUD();
+  },
+
+  updateHUD() {
+    const ld = this.levelData;
+    if (!ld) return;
+    const lvlNumEl = document.getElementById('lhud-level-num');
+    const worldEl = document.getElementById('lhud-world-name');
+    const timerEl = document.getElementById('lhud-timer');
+    const scoreEl = document.getElementById('lhud-score');
+    const targetEl = document.getElementById('lhud-target');
+    const fillEl = document.getElementById('lhud-bar-fill');
+    const comboEl = document.getElementById('lhud-combo');
+    const heartsEl = document.getElementById('lhud-hearts');
+    const shieldPip = document.getElementById('lhud-shield-pip');
+
+    if (lvlNumEl) lvlNumEl.textContent = `LVL ${ld.level}${ld.isBoss ? ' 👑' : ''}`;
+    if (worldEl) worldEl.textContent = ld.worldName;
+    if (timerEl) {
+      const secs = Math.ceil(this.timeLeftMs / 1000);
+      timerEl.textContent = String(secs).padStart(2, '0');
+      timerEl.classList.toggle('urgent', secs <= 10);
+    }
+    if (scoreEl) scoreEl.textContent = String(this.score);
+    if (targetEl) targetEl.textContent = `/ ${ld.targetScore}`;
+    if (fillEl) {
+      const pct = Math.min(100, Math.round((this.score / Math.max(1, ld.targetScore)) * 100));
+      fillEl.style.width = `${pct}%`;
+    }
+    if (comboEl) {
+      comboEl.textContent = `x${this.comboCount}`;
+      comboEl.classList.toggle('active', this.comboCount > 1);
+    }
+    if (heartsEl) {
+      const spans = heartsEl.querySelectorAll('.lhud-heart');
+      spans.forEach((sp, idx) => sp.classList.toggle('lost', idx >= this.lives));
+    }
+    if (shieldPip) {
+      shieldPip.style.display = this.hasPlasmaShield ? 'inline' : 'none';
+    }
+  },
+
+  renderSnake(entity, now, isPlayer) {
+    if (!entity || !entity.segments || entity.segments.length === 0) return;
+    const shielding = isPlayer && entity.shieldUntil > now;
+    if (shielding && Math.floor(now / 90) % 2 === 0) {
+      ctx.globalAlpha = 0.45;
+    }
+
+    const segs = entity.segments;
+    // Draw body from tail to head
+    for (let i = segs.length - 1; i >= 1; i--) {
+      const t = 1 - i / segs.length;
+      const r = entity.radius * (0.58 + 0.36 * t);
+      ctx.fillStyle = entity.palette.body;
+      ctx.beginPath();
+      ctx.arc(segs[i].x, segs[i].y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Head with neon glow
+    ctx.save();
+    ctx.shadowColor = entity.palette.glow;
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = entity.palette.head;
+    ctx.beginPath();
+    ctx.arc(entity.x, entity.y, entity.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Eyes
+    const eyeOff = 5;
+    const eyeFwd = 4;
+    const perp = entity.angle + Math.PI / 2;
+    const ex1 = entity.x + Math.cos(entity.angle) * eyeFwd + Math.cos(perp) * eyeOff;
+    const ey1 = entity.y + Math.sin(entity.angle) * eyeFwd + Math.sin(perp) * eyeOff;
+    const ex2 = entity.x + Math.cos(entity.angle) * eyeFwd - Math.cos(perp) * eyeOff;
+    const ey2 = entity.y + Math.sin(entity.angle) * eyeFwd - Math.sin(perp) * eyeOff;
+    ctx.fillStyle = '#04121E';
+    ctx.beginPath();
+    ctx.arc(ex1, ey1, 2.6, 0, Math.PI * 2);
+    ctx.arc(ex2, ey2, 2.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Blue Plasma or Respawn Shield Aura
+    if (shielding || (isPlayer && this.hasPlasmaShield)) {
+      ctx.strokeStyle = shielding ? '#00F5A0' : '#38BDF8';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(entity.x, entity.y, entity.radius + 7, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.globalAlpha = 1;
+  },
+
+  render() {
+    if (!ctx) return;
+    const now = performance.now();
+
+    // Letterbox abyssal background
+    ctx.save();
+    ctx.fillStyle = '#040811';
+    ctx.fillRect(0, 0, width, height);
+
+    let sx = 0, sy = 0;
+    if (this.shakeMs > 0) {
+      const mag = (this.shakeMs / 300) * 7;
+      sx = (Math.random() - 0.5) * mag * 2;
+      sy = (Math.random() - 0.5) * mag * 2;
+    }
+
+    ctx.translate(this.viewOffsetX + sx, this.viewOffsetY + sy);
+    ctx.scale(this.viewScale, this.viewScale);
+
+    // CRT Playfield Interior
+    ctx.fillStyle = '#081020';
+    ctx.fillRect(0, 0, this.fieldW, this.fieldH);
+
+    // Neon Grid inside CRT frame
+    ctx.strokeStyle = 'rgba(0, 217, 255, 0.11)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = this.cellSize; x < this.fieldW; x += this.cellSize) {
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, this.fieldH);
+    }
+    for (let y = this.cellSize; y < this.fieldH; y += this.cellSize) {
+      ctx.moveTo(0, y);
+      ctx.lineTo(this.fieldW, y);
+    }
+    ctx.stroke();
+
+    // Subtle CRT Scanlines
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+    for (let y = 0; y < this.fieldH; y += 6) {
+      ctx.fillRect(0, y, this.fieldW, 2);
+    }
+
+    // Draw Kelp Currents
+    for (const c of this.hazards.currents) {
+      ctx.fillStyle = 'rgba(0, 245, 160, 0.12)';
+      ctx.strokeStyle = 'rgba(0, 245, 160, 0.45)';
+      ctx.lineWidth = 2;
+      ctx.fillRect(c.x, c.y, c.w, c.h);
+      ctx.strokeRect(c.x, c.y, c.w, c.h);
+      // Animated flow arrows
+      ctx.fillStyle = 'rgba(0, 245, 160, 0.65)';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const arrow = c.fx > 0 ? '»' : (c.fx < 0 ? '«' : (c.fy > 0 ? '⌄' : '⌃'));
+      ctx.fillText(arrow, c.x + c.w * 0.5, c.y + c.h * 0.5);
+    }
+
+    // Draw Volcano Mines
+    for (const m of this.hazards.mines) {
+      const pulse = 0.8 + 0.2 * Math.sin(now * 0.008 + m.phase);
+      ctx.save();
+      ctx.shadowColor = 'rgba(255, 122, 24, 0.85)';
+      ctx.shadowBlur = 14 * pulse;
+      ctx.fillStyle = '#FF7A18';
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, m.radius * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#2A0B02';
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, m.radius * 0.42, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Draw Coral Reef Jellyfish
+    for (const j of this.hazards.jellyfish) {
+      const bob = 1 + 0.1 * Math.sin(j.phase);
+      ctx.save();
+      ctx.shadowColor = 'rgba(255, 71, 126, 0.85)';
+      ctx.shadowBlur = 16;
+      ctx.fillStyle = 'rgba(255, 71, 126, 0.85)';
+      ctx.beginPath();
+      ctx.arc(j.x, j.y, j.radius * bob, Math.PI, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#FDA4AF';
+      ctx.lineWidth = 2;
+      for (let t = -1; t <= 1; t++) {
+        ctx.beginPath();
+        ctx.moveTo(j.x + t * 8, j.y);
+        ctx.lineTo(j.x + t * 10 + Math.sin(j.phase + t) * 4, j.y + 14);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Draw Fruits & Gold/Blue Orbs
+    for (const it of this.items) {
+      const remaining = it.expiresAt - now;
+      if (remaining < 2000 && Math.floor(now / 120) % 2 === 0) continue; // blink warning
+      if (it.kind === 'fruit' && typeof getFruitSprite === 'function') {
+        const sprite = getFruitSprite(it.fruitType);
+        if (sprite) {
+          const sz = 36;
+          ctx.drawImage(sprite, it.x - sz / 2, it.y - sz / 2, sz, sz);
+          continue;
+        }
+      }
+      ctx.save();
+      ctx.shadowColor = it.glow;
+      ctx.shadowBlur = 16;
+      ctx.fillStyle = it.color;
+      ctx.beginPath();
+      ctx.arc(it.x, it.y, it.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(it.x - 4, it.y - 4, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Draw Bots
+    for (const bot of this.bots) {
+      if (bot.alive) this.renderSnake(bot, now, false);
+    }
+
+    // Draw Player Snake
+    this.renderSnake(this.snake, now, true);
+
+    // Draw Floating Score Pops
+    ctx.font = '900 16px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    for (const p of this.pops) {
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.color;
+      ctx.fillText(p.text, p.x, p.y);
+    }
+    ctx.globalAlpha = 1;
+
+    // Solid Glowing Double Cyan Border Wall (CRT Frame)
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 217, 255, 0.85)';
+    ctx.shadowBlur = 18;
+    ctx.strokeStyle = '#00D9FF';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(2, 2, this.fieldW - 4, this.fieldH - 4);
+    ctx.shadowBlur = 6;
+    ctx.strokeStyle = 'rgba(125, 249, 255, 0.72)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(9, 9, this.fieldW - 18, this.fieldH - 18);
+    ctx.restore();
+
+    ctx.restore();
+  }
+};
+
+// ============================================================
 // §10  LOOP & STARTUP
 // ============================================================
 function gameLoop() {
@@ -7519,11 +9124,19 @@ function gameLoop() {
   fixedStepAccumulator = Math.min(fixedStepAccumulator + elapsed, FIXED_STEP_MS * 5);
   let updateSteps = 0;
   while (fixedStepAccumulator >= FIXED_STEP_MS && updateSteps < 5) {
-    update(FIXED_STEP_MS);
+    if (gameMode === 'levels') {
+      LevelsMode.update(FIXED_STEP_MS);
+    } else {
+      update(FIXED_STEP_MS);
+    }
     fixedStepAccumulator -= FIXED_STEP_MS;
     updateSteps++;
   }
-  render();
+  if (gameMode === 'levels') {
+    LevelsMode.render();
+  } else {
+    render();
+  }
   requestAnimationFrame(gameLoop);
 }
 
@@ -7593,5 +9206,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderSkinMenu();
   refreshMenuHeaderUI();
   startMenuPreviewTicker();
-  AdManager.init();
+  AdManager.init().then(() => {
+    CrazyGamesBridge.loadingStop();
+  });
 });

@@ -43,6 +43,26 @@ A high-performance 2D arcade snake survival game built for **Android (Capacitor 
 
 ---
 
+## 🧱 Separate Fixed-Screen Walled Levels Mode (`LEVELS_CONFIG`)
+
+Levels Mode is completely isolated from Arena Mode (`gameMode = 'arena' | 'levels'`) with its own `LEVELS_CONFIG` in `src/game/config.js`, its own engine & CRT renderer (`LevelsMode` in `src/game/game.js`), and full state resets when switching modes.
+
+- **Fixed Letterboxed CRT Playfield:** `32 × 18` cells on landscape (`1280 × 720`) and `18 × 32` cells on portrait (`720 × 1280`), scaled to fit any phone or laptop screen with letterboxing, zero camera follow/zoom, and a **solid glowing double cyan wall** (no wrap-around, no minimap, no danger zone).
+- **60-Second Timed Rounds & Star Targets:** Reach each level's target score (55% → 85% of realistic 60s max) before the 60s countdown ends. Earn **1★** at Target, **2★** at Target `+15%`, and **3★** at Target `+35%`. Fruits spawn every `2.5s` (never on snakes, bots, hazards, or within `3` cells of the player's head) alongside Gold Orbs and **Blue Plasma Shield Orbs**.
+- **3 Hearts & Respawn Shield:** Crashing into a solid wall, bot body, your own body, or a world hazard costs 1 heart (or consumes an active Blue Plasma shield first) and respawns you at the start point with `2s` of shield flicker while the clock keeps running. Losing all 3 hearts fails the level.
+- **Max 2 Competitive Bots:** Levels 1–2 have `0` bots, Levels 3–14 have `1` aggressive bot, and Levels 15–50 have `2` bots (`Hunter` & `Encircler`) that compete for fruits and try to pin you against walls. Bots follow the same wall-crash rules and respawn after `3s`.
+- **50 Levels Across 5 Worlds (5 Boss Levels):**
+  1. **Neon Maze (Levels 1–10):** Pure solid-walled precision.
+  2. **Coral Reef (Levels 11–20):** Drifting neon jellyfish.
+  3. **Kelp Forest (Levels 21–30):** Directional current zones.
+  4. **Volcano Vents (Levels 31–40):** Pulsing thermal plasma mines.
+  5. **Abyss (Levels 41–50):** Jellyfish, currents, and mines combined.
+  - Levels **10, 20, 30, 40, and 50** are **Boss Levels**.
+- **Level Map & Shared Economy:** Persistent, validated `localStorage` progression (`slythox_levels_progress_v1`) tracking unlocked levels and best stars, awarding Coins, XP, and 3-Star Bonus Coins into the shared profile & skin economy.
+- **Verification:** Run `npm run verify` (`scripts/verify-modes.mjs`) to validate both Arena and Levels invariants.
+
+---
+
 ## 🏆 Commercial Mobile Hub & Progression System (Save Schema v3)
 
 - **Player XP, Levels & 14 Rank Titles:** Earn XP and Coins from survival time, food, kills, missions, achievements, and daily rewards. Progress through 14 titles from *Starter Serpent* to *Quantum Immortal*, with automatic milestone skin & coin unlocks at **Levels 5, 10, 12, 15, and 20**.
@@ -80,12 +100,12 @@ A high-performance 2D arcade snake survival game built for **Android (Capacitor 
 
 | Action | Desktop (Keyboard / Mouse) | Mobile / Touch (Portrait & Landscape) |
 |---|---|---|
-| **Steer** | Mouse Cursor or **A / D** / **ArrowLeft / ArrowRight** | **Virtual Joystick** or **Direct Drag / Swipe** |
-| **Ghost Ability** | Key **1** or click HUD button | Tap **👻 Ghost** multi-touch ability button |
-| **Magnet Ability** | Key **2** or click HUD button | Tap **🧲 Magnet** multi-touch ability button |
-| **Dash Ability** | Key **3** or click HUD button | Tap **⚡ Dash** multi-touch ability button |
-| **Leaderboard** | Top-right live scorecard | Collapsible top-right pill (`👑 Top`) |
-| **Pause / Resume** | **P** or **Spacebar** | Tap **II** pause button or Android **Back** |
+| **Steer** | Mouse Cursor or **A / D** (AZERTY-safe `e.code`) / **ArrowLeft / ArrowRight** | **Virtual Joystick** or **Direct Drag / Swipe** (straight until dragged) |
+| **Ghost Ability (Arena)** | Key **1** or click HUD button | Tap **👻 Ghost** multi-touch ability button |
+| **Magnet Ability (Arena)** | Key **2** or click HUD button | Tap **🧲 Magnet** multi-touch ability button |
+| **Dash Ability (Arena)** | **Spacebar**, Key **3**, or click HUD button | Tap **⚡ Dash** multi-touch ability button |
+| **Leaderboard (Arena)** | Top-right live scorecard | Collapsible top-right pill (`👑 Top`) |
+| **Pause / Resume** | **P** (never `Escape` to preserve web fullscreen) | Tap **⏸** pause button or Android **Back** |
 | **Restart Match** | **Enter** on Game Over screen | Tap **Play Again** |
 
 **Mobile Customization (Settings Screen):**
