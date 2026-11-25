@@ -12,15 +12,17 @@ A high-performance 2D arcade snake survival game built for **Android (Capacitor 
 
 ## 🎮 Core Gameplay & Arena Mechanics
 
-- **8000 × 8000 Toroidal Wraparound World:** Seamless borderless arena where crossing any boundary wraps smoothly to the opposite edge with full camera lerp, dynamic zoom-out as your snake grows, and a live bottom-right circular radar minimap.
+- **8400 × 8400 Toroidal Wraparound World:** Seamless borderless arena where crossing any boundary wraps smoothly to the opposite edge with full camera lerp, dynamic zoom-out as your snake grows, and a live bottom-right circular radar minimap showing nearby rivals, the King Snake, and Rare Orbs.
 - **Dynamic Snake Thickness & Continuous Tail Rendering:** Serpents dynamically thicken in body and head radius as their length grows (`getSnakeBodyGrowthScale`, `getSnakeHeadGrowthScale`) with subtle agility scaling and continuous tapered tail rendering.
 - **3-Minute Underwater Day & Night Cycle:** Smoothly interpolates across **Dawn (`☼`)**, **Midday (`☀`)**, **Dusk (`◒`)**, and **Night (`☾`)** using smoothstep blending. Purely visual—intensifies neon bioluminescence and plankton glow at night without altering physics or hitboxes.
-- **30 / 40 / 50 Tactical AI Rivals:**
-  - **Easy:** 30 bots (`2.8 px/frame`)
-  - **Normal:** 40 bots (`3.6 px/frame`)
-  - **Hard:** 50 bots (`4.4 px/frame`)
-  - **4 Distinct AI Personalities:** **Hunter (`⚔`)** (predictive route-cutting & tactical Dash interception), **Encircler (`◉`)** (shrinking orbital coil traps), **Opportunist (`✦`)** (close-range cutoffs), and **Scavenger (`◈`)** (high-value death-drop and third-party battle harvesting).
-  - **Progressive AI Scaling & Anti-Spin Watchdog:** Respawning bots scale in starting length as the match progresses, evade larger predators when small, and include an 85-frame anti-spin unstick watchdog.
+- **Speed-Only Difficulty Modes & Dynamic Scaling Bot Waves:**
+  - **Easy (*Calm currents: a slower pace to learn the abyss*):** `2.8 px/frame`
+  - **Medium (*Open water: balanced and fast*):** `3.6 px/frame`
+  - **Hard (*Deep abyss: relentless speed*):** `4.4 px/frame`
+  - Difficulty changes **only** movement speed, applied equally to the player and every rival serpent. Bot waves, AI tactics, respawn bonuses, food density, abilities, and score multipliers are identical across all three modes.
+  - **Dynamic Wave Spawning:** Each match begins with an initial rival wave and adds a fresh wave every `10 seconds` of active match time (paused during menus and ads) up to `BOT_MAX` in `src/game/config.js`. New bots spawn in a ring outside the player's camera view (at least `600 units` from the player and other serpents) with a `1.5-second` fade-in, and dead bots respawn so the arena population never drops below the active wave target.
+  - **Aggressive Pack-Coordinated AI (~70% Aggressive / ~30% Scavenger):** **Hunter (`⚔`)** (predictive route-cutting & tactical Dash interception), **Encircler (`◉`)** (shrinking orbital coil traps), **Opportunist (`✦`)** (close-range cutoffs & flanking), and **Scavenger (`◈`)** (high-value loot harvesting). When multiple aggressive bots converge near the player, pack coordination distributes their approach angles to flank and encircle rather than stacking on a single line.
+  - **Level-of-Detail (LOD) AI & 40 FPS Auto-Governor:** Nearby bots (`<= 1200 units`) run full multi-angle tactical probes every 2–3 frames, while distant bots use lightweight steering every 6–8 frames. If average FPS drops below 40 for 3 seconds, the engine automatically steps down graphics quality and trims the maximum bot cap in steps of 10 (down to a floor of 40).
 - **3 Active Tactical Abilities:**
   - **👻 Ghost (`1`):** Phase safely through rival snake bodies for `3.0s` (`14s` cooldown).
   - **🧲 Resource Magnet (`2`):** Pull nearby food orbs toward your head for `5.0s` (`12s` cooldown).
@@ -133,8 +135,9 @@ npm run android:bundle
 
 ```text
 ├── src/game/
-│   ├── index.html            # Canonical single-file game engine, UI hub, audio & renderer (~8,000 lines)
-│   ├── config.js             # Shared world, camera, food density & AdMob configuration
+│   ├── index.html            # Strict-CSP HTML5 shell & responsive neon UI layout
+│   ├── game.js               # Core game engine, AI, Web Audio synthesizer, progression & renderer
+│   ├── config.js             # Shared world, camera, bot wave, food density & AdMob configuration
 │   ├── privacy-policy.html   # Hosted GDPR/UMP & Google Play Data Safety privacy policy
 │   └── icon.svg              # Vector source icon
 ├── www/                      # Generated web bundle consumed by Capacitor (synced via npm run web:sync)

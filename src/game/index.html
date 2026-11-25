@@ -963,18 +963,44 @@
   .menu-panel { display: flex; flex-direction: column; gap: 16px; }
   .diff-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .diff-btn {
-    min-height: 58px;
-    padding: 8px 6px;
+    min-height: 76px;
+    padding: 9px 7px;
     border-radius: 12px;
     background: rgba(30, 41, 59, 0.55);
     border: 1px solid var(--line);
     color: var(--text-dim);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 800;
     cursor: pointer;
     transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 4px;
   }
-  .diff-btn small { display: block; margin-top: 3px; font-size: 11px; font-weight: 600; color: var(--text-faint); }
+  .diff-btn-top {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .speed-bars {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 12px;
+  }
+  .speed-bars i {
+    display: inline-block;
+    width: 3px;
+    border-radius: 2px;
+    background: rgba(148, 163, 184, 0.32);
+  }
+  .speed-bars i:nth-child(1) { height: 5px; }
+  .speed-bars i:nth-child(2) { height: 8px; }
+  .speed-bars i:nth-child(3) { height: 12px; }
+  .speed-bars i.on { background: var(--accent); box-shadow: 0 0 6px rgba(0, 245, 160, 0.45); }
+  .diff-btn small { display: block; margin-top: 2px; font-size: 10px; line-height: 1.28; font-weight: 600; color: var(--text-faint); text-align: center; }
   .diff-btn:hover { border-color: var(--line-strong); color: var(--text); }
   .diff-btn.active {
     background: linear-gradient(160deg, rgba(16, 185, 129, 0.28), rgba(14, 165, 233, 0.16));
@@ -1435,16 +1461,25 @@
     </div>
 
     <div>
-      <span class="section-label">Difficulty</span>
+      <span class="section-label">Difficulty &middot; Pace</span>
       <div class="diff-btns">
-        <button class="diff-btn" data-diff="easy" data-action="set-difficulty" data-arg="easy">Easy<small>30 bots</small></button>
-        <button class="diff-btn active" data-diff="normal" data-action="set-difficulty" data-arg="normal">Normal<small>40 bots</small></button>
-        <button class="diff-btn" data-diff="hard" data-action="set-difficulty" data-arg="hard">Hard<small>50 bots</small></button>
+        <button class="diff-btn" data-diff="easy" data-action="set-difficulty" data-arg="easy">
+          <span class="diff-btn-top">Easy <span class="speed-bars" aria-hidden="true"><i class="on"></i><i></i><i></i></span></span>
+          <small>Calm currents: a slower pace to learn the abyss</small>
+        </button>
+        <button class="diff-btn active" data-diff="medium" data-action="set-difficulty" data-arg="medium">
+          <span class="diff-btn-top">Medium <span class="speed-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span></span>
+          <small>Open water: balanced and fast</small>
+        </button>
+        <button class="diff-btn" data-diff="hard" data-action="set-difficulty" data-arg="hard">
+          <span class="diff-btn-top">Hard <span class="speed-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i></span></span>
+          <small>Deep abyss: relentless speed</small>
+        </button>
       </div>
     </div>
 
     <div class="menu-records">
-      <span class="rec-title">Best &middot; <span id="diff-name-label">Normal</span></span>
+      <span class="rec-title">Best &middot; <span id="diff-name-label">Medium</span></span>
       <span class="rec-vals">
         <span>Time<b id="menu-best-time">00:00</b></span>
         <span>Length<b id="menu-best-len">22</b></span>
@@ -1835,7 +1870,7 @@
       <span id="final-xp" class="val" style="font-size:20px;color:var(--accent-2);">+0 XP</span>
     </div>
     <div class="score-row" style="grid-column:span 2;">
-      <span class="label">Best Time (<span id="card-diff-label">Normal</span>)</span>
+      <span class="label">Best Time (<span id="card-diff-label">Medium</span>)</span>
       <span id="best-time" class="best" style="font-size:16px;">00:00</span>
     </div>
     <div class="score-row" style="grid-column:span 2;">

@@ -10,6 +10,7 @@ const CAMERA_LERP = GAME_CONFIG.CAMERA_LERP || 0.12;
 const CAMERA_ZOOM_OUT_MAX = GAME_CONFIG.CAMERA_ZOOM_OUT_MAX || 0.25;
 const SPEED_CONFIGS = {
   easy: 2.8,
+  medium: 3.6,
   normal: 3.6,
   hard: 4.4
 };
@@ -34,7 +35,21 @@ const foodGridTaken = new Uint8Array(FOOD_COUNT);
 let foodGridCursor = 0;
 let nextFoodSpawnAt = 0;
 let normalFoodCount = 0;
-const BOT_COUNT_BY_DIFFICULTY = Object.freeze({ easy: 30, normal: 40, hard: 50 });
+const BOT_START_COUNT = GAME_CONFIG.BOT_START_COUNT || 50;
+const BOT_WAVE_ADD = GAME_CONFIG.BOT_WAVE_ADD || 5;
+const BOT_WAVE_INTERVAL_MS = GAME_CONFIG.BOT_WAVE_INTERVAL_MS || 10000;
+const BOT_MAX_DESKTOP = GAME_CONFIG.BOT_MAX_DESKTOP || GAME_CONFIG.BOT_MAX || 120;
+const BOT_MAX_MOBILE = GAME_CONFIG.BOT_MAX_MOBILE || 80;
+const BOT_MIN_CAP = GAME_CONFIG.BOT_MIN_CAP || 40;
+const BOT_RING_MIN_DIST = GAME_CONFIG.BOT_RING_MIN_DIST || 600;
+const BOT_SPAWN_FADE_MS = GAME_CONFIG.BOT_SPAWN_FADE_MS || 1500;
+const BOT_LOD_NEAR_DIST = GAME_CONFIG.BOT_LOD_NEAR_DIST || 1200;
+const BOT_LOD_NEAR_DIST_SQ = BOT_LOD_NEAR_DIST * BOT_LOD_NEAR_DIST;
+let activeBotMax = BOT_MAX_DESKTOP;
+let activeTargetBotCount = BOT_START_COUNT;
+let nextBotWaveAt = 0;
+let nextWaveBotSpawnAt = 0;
+let totalBotsCreatedInMatch = 0;
 const MAX_DEATH_DROP_ORBS = 300;
 const RESPAWN_DELAY_FRAMES = 180;
 const PARTICLE_LIMITS = { low: 150, medium: 260, high: 400 };
@@ -319,14 +334,47 @@ function toggleFpsCounter() {
   updateSettingsUI();
 }
 
+function trimExcessBotsToCap(cap) {
+  while (bots.length > cap) {
+    // Prefer removing a dead bot or the bot farthest from the player
+    let removeIdx = -1;
+    let maxDistSq = -1;
+    for (let i = bots.length - 1; i >= 0; i--) {
+      const b = bots[i];
+      if (!b.alive) {
+        removeIdx = i;
+        break;
+      }
+      const dSq = toroidDistSq(player.x, player.y, b.x, b.y);
+      if (dSq > maxDistSq) {
+        maxDistSq = dSq;
+        removeIdx = i;
+      }
+    }
+    if (removeIdx === -1) break;
+    const removed = bots.splice(removeIdx, 1)[0];
+    const rIdx = snakeRoster.indexOf(removed);
+    if (rIdx !== -1) snakeRoster.splice(rIdx, 1);
+    const lIdx = leaderboardOrder.indexOf(removed);
+    if (lIdx !== -1) leaderboardOrder.splice(lIdx, 1);
+  }
+}
+
 function updateFrameMetrics(frameNow, frameMs) {
   averageFrameMs += (frameMs - averageFrameMs) * 0.08;
+  // Under 40 FPS (< 40 FPS => > 25 ms/frame) for 3 seconds: lower bot cap in steps of 10 down to 40 and step down graphics quality
   if (averageFrameMs > 25) {
     if (!lowFpsSince) lowFpsSince = frameNow;
-    const slowFrameWindow = isMobileDevice ? 900 : 3000;
-    if (qualityPreference === 'auto' && graphicsQuality !== 'low' && frameNow - lowFpsSince >= slowFrameWindow) {
-      const currentIndex = QUALITY_ORDER.indexOf(graphicsQuality);
-      applyGraphicsQuality(QUALITY_ORDER[Math.min(QUALITY_ORDER.length - 1, currentIndex + 1)]);
+    if (frameNow - lowFpsSince >= 3000) {
+      if (activeBotMax > BOT_MIN_CAP) {
+        activeBotMax = Math.max(BOT_MIN_CAP, activeBotMax - 10);
+        activeTargetBotCount = Math.min(activeTargetBotCount, activeBotMax);
+        trimExcessBotsToCap(activeBotMax);
+      }
+      if (graphicsQuality !== 'low') {
+        const currentIndex = QUALITY_ORDER.indexOf(graphicsQuality);
+        applyGraphicsQuality(QUALITY_ORDER[Math.min(QUALITY_ORDER.length - 1, currentIndex + 1)]);
+      }
       lowFpsSince = frameNow;
     }
   } else {
@@ -404,11 +452,18 @@ const BOT_CONFIGS = [
     }
   }
 ];
+// 70% Aggressive (3 Hunter, 2 Encircler, 2 Opportunist) + 30% Scavenger (3 Scavenger)
 const BOT_PERSONALITIES = [
-  { name: 'Hunter', icon: '⚔', style: 'hunter' },
-  { name: 'Encircler', icon: '◉', style: 'encircler' },
-  { name: 'Opportunist', icon: '⚡', style: 'opportunist' },
-  { name: 'Scavenger', icon: '✦', style: 'scavenger' }
+  { name: 'Hunter', icon: '⚔', style: 'hunter', aggressive: true },
+  { name: 'Encircler', icon: '◉', style: 'encircler', aggressive: true },
+  { name: 'Opportunist', icon: '⚡', style: 'opportunist', aggressive: true },
+  { name: 'Hunter', icon: '⚔', style: 'hunter', aggressive: true },
+  { name: 'Scavenger', icon: '✦', style: 'scavenger', aggressive: false },
+  { name: 'Encircler', icon: '◉', style: 'encircler', aggressive: true },
+  { name: 'Hunter', icon: '⚔', style: 'hunter', aggressive: true },
+  { name: 'Scavenger', icon: '✦', style: 'scavenger', aggressive: false },
+  { name: 'Opportunist', icon: '⚡', style: 'opportunist', aggressive: true },
+  { name: 'Scavenger', icon: '✦', style: 'scavenger', aggressive: false }
 ];
 
 // ============================================================
@@ -433,7 +488,7 @@ let currentCycle = { ...CYCLE_PHASES[0], progress: 0, nightFactor: 0 };
 let rareOrb = null;
 let nextRareOrbAt = performance.now() + RARE_ORB_MIN_INTERVAL_MS + Math.random() * (RARE_ORB_MAX_INTERVAL_MS - RARE_ORB_MIN_INTERVAL_MS);
 
-let currentDifficulty = 'normal';
+let currentDifficulty = 'medium';
 let isGameRunning = false;
 let isPaused = false;
 let isGameOver = false;
@@ -1042,8 +1097,8 @@ function createDefaultProfile() {
   };
 }
 
-const cachedBestTimes = { easy: null, normal: null, hard: null };
-const cachedBestLengths = { easy: null, normal: null, hard: null };
+const cachedBestTimes = { easy: null, medium: null, normal: null, hard: null };
+const cachedBestLengths = { easy: null, medium: null, normal: null, hard: null };
 
 const MAX_SAFE_COINS = 1000000;
 const MAX_SAFE_XP = 500000;
@@ -1052,7 +1107,13 @@ const MAX_SAFE_SURVIVAL_SEC = 86400;
 const MAX_SAFE_SNAKE_LENGTH = 10000;
 const MAX_SAFE_SCORE = 50000000;
 const MAX_SAFE_GENERIC_STAT = 10000000;
-const VALID_DIFFICULTIES = new Set(['easy', 'normal', 'hard']);
+const VALID_DIFFICULTIES = new Set(['easy', 'medium', 'normal', 'hard']);
+
+function normalizeDifficulty(diff) {
+  if (diff === 'normal' || diff === 'medium') return 'medium';
+  if (diff === 'easy' || diff === 'hard') return diff;
+  return 'medium';
+}
 const VALID_SKIN_IDS = new Set(SKINS.map(s => s.id));
 const VALID_MISSION_IDS = new Set(MISSION_POOL.map(m => m.id));
 const VALID_WEEKLY_MISSION_IDS = new Set(WEEKLY_MISSION_POOL.map(m => m.id));
@@ -2351,41 +2412,49 @@ function formatTime(seconds) {
 }
 
 function getBestTime(diff) {
-  const safeDiff = VALID_DIFFICULTIES.has(diff) ? diff : 'normal';
+  const safeDiff = normalizeDifficulty(diff);
   if (cachedBestTimes[safeDiff] !== null && cachedBestTimes[safeDiff] !== undefined) return cachedBestTimes[safeDiff];
-  const parsed = parseInt(safeStorageGet(`neonSerpents_bestTime_${safeDiff}`) || '0', 10);
+  const rawVal = safeStorageGet(`neonSerpents_bestTime_${safeDiff}`) ||
+    (safeDiff === 'medium' ? safeStorageGet('neonSerpents_bestTime_normal') : null) || '0';
+  const parsed = parseInt(rawVal, 10);
   const clean = Number.isFinite(parsed) && parsed >= 0 ? Math.min(MAX_SAFE_SURVIVAL_SEC, parsed) : 0;
   cachedBestTimes[safeDiff] = clean;
+  if (safeDiff === 'medium') cachedBestTimes.normal = clean;
   return clean;
 }
 
 function getBestLength(diff) {
-  const safeDiff = VALID_DIFFICULTIES.has(diff) ? diff : 'normal';
+  const safeDiff = normalizeDifficulty(diff);
   if (cachedBestLengths[safeDiff] !== null && cachedBestLengths[safeDiff] !== undefined) return cachedBestLengths[safeDiff];
-  const parsed = parseInt(safeStorageGet(`neonSerpents_bestLength_${safeDiff}`) || `${INITIAL_SEGMENTS}`, 10);
+  const rawVal = safeStorageGet(`neonSerpents_bestLength_${safeDiff}`) ||
+    (safeDiff === 'medium' ? safeStorageGet('neonSerpents_bestLength_normal') : null) || `${INITIAL_SEGMENTS}`;
+  const parsed = parseInt(rawVal, 10);
   const clean = Number.isFinite(parsed) && parsed >= INITIAL_SEGMENTS ? Math.min(MAX_SAFE_SNAKE_LENGTH, parsed) : INITIAL_SEGMENTS;
   cachedBestLengths[safeDiff] = clean;
+  if (safeDiff === 'medium') cachedBestLengths.normal = clean;
   return clean;
 }
 
 function saveBestRecords(diff, time, len) {
-  const safeDiff = VALID_DIFFICULTIES.has(diff) ? diff : 'normal';
+  const safeDiff = normalizeDifficulty(diff);
   const cleanTime = sanitizeBoundedInt(time, 0, MAX_SAFE_SURVIVAL_SEC, 0);
   const cleanLen = sanitizeBoundedInt(len, INITIAL_SEGMENTS, MAX_SAFE_SNAKE_LENGTH, INITIAL_SEGMENTS);
   const curBestTime = getBestTime(safeDiff);
   const curBestLen = getBestLength(safeDiff);
   if (cleanTime > curBestTime) {
     cachedBestTimes[safeDiff] = cleanTime;
+    if (safeDiff === 'medium') cachedBestTimes.normal = cleanTime;
     safeStorageSet(`neonSerpents_bestTime_${safeDiff}`, cleanTime.toString());
   }
   if (cleanLen > curBestLen) {
     cachedBestLengths[safeDiff] = cleanLen;
+    if (safeDiff === 'medium') cachedBestLengths.normal = cleanLen;
     safeStorageSet(`neonSerpents_bestLength_${safeDiff}`, cleanLen.toString());
   }
 }
 
 function updateMenuRecordsDisplay() {
-  const diff = currentDifficulty;
+  const diff = normalizeDifficulty(currentDifficulty);
   const bTime = getBestTime(diff);
   const bLen = getBestLength(diff);
   const capitalized = diff.charAt(0).toUpperCase() + diff.slice(1);
@@ -2396,11 +2465,11 @@ function updateMenuRecordsDisplay() {
 }
 
 function getOverallBestTime() {
-  return Math.max(0, getBestTime('easy'), getBestTime('normal'), getBestTime('hard'));
+  return Math.max(0, getBestTime('easy'), getBestTime('medium'), getBestTime('hard'));
 }
 
 function getOverallBestLength() {
-  return Math.max(INITIAL_SEGMENTS, getBestLength('easy'), getBestLength('normal'), getBestLength('hard'));
+  return Math.max(INITIAL_SEGMENTS, getBestLength('easy'), getBestLength('medium'), getBestLength('hard'));
 }
 
 function persistUnlockedSkins() {
@@ -2963,6 +3032,7 @@ function renderCareerStatsScreen() {
     { label: 'Skins Unlocked', val: `${unlockedSkinIds.size} / ${SKINS.length}` },
     { label: 'Lifetime Coins Earned', val: (s.totalCoinsEarned || 0).toLocaleString() },
     { label: 'Best Time (Easy)', val: formatTime(getBestTime('easy')) },
+    { label: 'Best Time (Medium)', val: formatTime(getBestTime('medium')) },
     { label: 'Best Time (Hard)', val: formatTime(getBestTime('hard')) }
   ];
   gridEl.innerHTML = items.map(it => `
@@ -3062,9 +3132,11 @@ function promptDeleteMyData() {
           closeConfirmModal();
           try { localStorage.clear(); } catch (_) {}
           cachedBestTimes.easy = 0;
+          cachedBestTimes.medium = 0;
           cachedBestTimes.normal = 0;
           cachedBestTimes.hard = 0;
           cachedBestLengths.easy = INITIAL_SEGMENTS;
+          cachedBestLengths.medium = INITIAL_SEGMENTS;
           cachedBestLengths.normal = INITIAL_SEGMENTS;
           cachedBestLengths.hard = INITIAL_SEGMENTS;
           unlockedSkinIds.clear();
@@ -3813,7 +3885,7 @@ function updateParticles() {
 // ============================================================
 
 function getActiveSpeed() {
-  return SPEED_CONFIGS[currentDifficulty] || SPEED_CONFIGS.normal;
+  return SPEED_CONFIGS[normalizeDifficulty(currentDifficulty)] || SPEED_CONFIGS.medium;
 }
 
 function findSafeSpawnCoords(minHeadDist = 260, bodyLen = INITIAL_SEGMENTS, spawnAngle = 0) {
@@ -3822,7 +3894,7 @@ function findSafeSpawnCoords(minHeadDist = 260, bodyLen = INITIAL_SEGMENTS, spaw
   let maxMinDistSq = -1;
 
   const headClearSq = minHeadDist * minHeadDist;
-  const playerClearSq = Math.max(minHeadDist, 320) ** 2;
+  const playerClearSq = Math.max(minHeadDist, BOT_RING_MIN_DIST) ** 2;
   const bodyClearDist = 140;
   const bodyClearSq = bodyClearDist * bodyClearDist;
   const tailSpan = Math.min(360, bodyLen * SEGMENT_SPACING);
@@ -3878,12 +3950,88 @@ function findSafeSpawnCoords(minHeadDist = 260, bodyLen = INITIAL_SEGMENTS, spaw
   return { x: bestX, y: bestY };
 }
 
-function createBot(config, index) {
+function findRingSpawnCoords(minClearDist = BOT_RING_MIN_DIST, bodyLen = INITIAL_SEGMENTS, spawnAngle = 0) {
+  const viewHalfW = width / (2 * Math.max(0.25, cameraZoom));
+  const viewHalfH = height / (2 * Math.max(0.25, cameraZoom));
+  const viewHalfDiag = Math.hypot(viewHalfW, viewHalfH);
+  const innerRing = Math.max(minClearDist, viewHalfDiag + 140);
+  const outerRing = Math.min(WORLD_WIDTH * 0.46, Math.max(innerRing + 550, viewHalfDiag + 900));
+  const minHeadSq = minClearDist * minClearDist;
+  const bodyClearSq = 155 * 155;
+  const tailSpan = Math.min(360, bodyLen * SEGMENT_SPACING);
+  const cosA = Math.cos(spawnAngle);
+  const sinA = Math.sin(spawnAngle);
+
+  let bestX = wrap(player.x + innerRing, WORLD_WIDTH);
+  let bestY = wrap(player.y + innerRing, WORLD_HEIGHT);
+  let maxMinDistSq = -1;
+
+  for (let attempt = 0; attempt < 56; attempt++) {
+    const theta = Math.random() * Math.PI * 2;
+    const dist = innerRing + Math.random() * (outerRing - innerRing);
+    const cx = wrap(player.x + Math.cos(theta) * dist, WORLD_WIDTH);
+    const cy = wrap(player.y + Math.sin(theta) * dist, WORLD_HEIGHT);
+
+    // Must be outside the current camera view rectangle
+    const inViewX = Math.abs(toroidDelta(cameraX, cx, WORLD_WIDTH)) < viewHalfW + 80;
+    const inViewY = Math.abs(toroidDelta(cameraY, cy, WORLD_HEIGHT)) < viewHalfH + 80;
+    if (inViewX && inViewY) continue;
+
+    let closestDistSq = Infinity;
+    let rejected = false;
+
+    for (let sIdx = 0; sIdx < snakeRoster.length; sIdx++) {
+      const s = snakeRoster[sIdx];
+      if (!s || !s.alive) continue;
+      const dHeadSq = toroidDistSq(cx, cy, s.x, s.y);
+      if (dHeadSq < closestDistSq) closestDistSq = dHeadSq;
+      if (dHeadSq < minHeadSq) {
+        rejected = true;
+        break;
+      }
+      const segs = s.segments;
+      const stride = segs.length > 80 ? 5 : 3;
+      for (let i = 0; i < segs.length; i += stride) {
+        const dSegSq = toroidDistSq(cx, cy, segs[i].x, segs[i].y);
+        if (dSegSq < closestDistSq) closestDistSq = dSegSq;
+        if (dSegSq < bodyClearSq) {
+          rejected = true;
+          break;
+        }
+      }
+      if (rejected) break;
+    }
+
+    if (!rejected && tailSpan > 30) {
+      const midX = wrap(cx - cosA * (tailSpan * 0.5), WORLD_WIDTH);
+      const midY = wrap(cy - sinA * (tailSpan * 0.5), WORLD_HEIGHT);
+      const endX = wrap(cx - cosA * tailSpan, WORLD_WIDTH);
+      const endY = wrap(cy - sinA * tailSpan, WORLD_HEIGHT);
+      if (!isFarFromAllSnakes(midX, midY, 110) || !isFarFromAllSnakes(endX, endY, 110)) {
+        rejected = true;
+      }
+    }
+
+    if (!rejected && closestDistSq >= bodyClearSq) {
+      return { x: cx, y: cy };
+    }
+    if (closestDistSq > maxMinDistSq) {
+      maxMinDistSq = closestDistSq;
+      bestX = cx;
+      bestY = cy;
+    }
+  }
+  return { x: bestX, y: bestY };
+}
+
+function createBot(config, index, useRingSpawn = false) {
   const initialAngle = Math.random() * Math.PI * 2;
-  // Seed tiered rival sizes so the arena has immediate medium & large contenders
+  // Seed tiered rival sizes identically in all difficulties
   const sizeTierBonus = index === 0 ? 45 : index < 4 ? 22 : index < 10 ? 10 : 0;
   const initialLength = INITIAL_SEGMENTS - 3 + Math.floor(Math.random() * 12) + sizeTierBonus;
-  const pos = findSafeSpawnCoords(260, initialLength, initialAngle);
+  const pos = useRingSpawn
+    ? findRingSpawnCoords(BOT_RING_MIN_DIST, initialLength, initialAngle)
+    : findSafeSpawnCoords(280, initialLength, initialAngle);
   const segments = [];
 
   for (let i = 0; i < initialLength; i++) {
@@ -3895,9 +4043,12 @@ function createBot(config, index) {
     });
   }
 
+  const now = performance.now();
+  const personalityBase = BOT_PERSONALITIES[index % BOT_PERSONALITIES.length];
+
   return {
     name: index < BOT_CONFIGS.length ? config.name : `${config.name}-${Math.floor(index / BOT_CONFIGS.length) + 1}`,
-    aiOffset: index % 4,
+    aiOffset: index % 8,
     isPlayer: false,
     x: pos.x,
     y: pos.y,
@@ -3905,8 +4056,8 @@ function createBot(config, index) {
     prevY: pos.y,
     angle: initialAngle,
     targetAngle: initialAngle,
-    speed: getActiveSpeed() * (0.96 + Math.random() * 0.1),
-    turnRate: TURN_RATE * (0.94 + Math.random() * 0.2),
+    speed: getActiveSpeed(),
+    turnRate: TURN_RATE,
     length: initialLength,
     segments,
     palette: config.palette,
@@ -3919,7 +4070,9 @@ function createBot(config, index) {
     lastTrailSampleAt: 0,
     growQueue: 0,
     alive: true,
-    protectedUntil: performance.now() + 2000,
+    protectedUntil: now + 2000,
+    spawnFadeStartAt: now,
+    spawnFadeDuration: BOT_SPAWN_FADE_MS,
     respawnTimer: 0,
     sameTurnCount: 0,
     turnDir: 0,
@@ -3927,17 +4080,20 @@ function createBot(config, index) {
     unstickAngle: initialAngle,
     anchorX: pos.x,
     anchorY: pos.y,
-    anchorTime: performance.now(),
+    anchorTime: now,
     dashUntil: 0,
     speedBoostUntil: 0,
-    botDashReadyAt: performance.now() + 4000 + Math.random() * 5000,
+    botDashReadyAt: now + 3500 + Math.random() * 4500,
+    packSlotIdx: -1,
+    packCount: 0,
+    packFlankAngle: 0,
     personality: {
-      ...BOT_PERSONALITIES[index % BOT_PERSONALITIES.length],
-      aggressiveness: 0.35 + Math.random() * 0.55,
-      lookAheadDist: 78 + Math.random() * 34,
+      ...personalityBase,
+      aggressiveness: personalityBase.aggressive ? (0.58 + Math.random() * 0.38) : (0.25 + Math.random() * 0.25),
+      lookAheadDist: 82 + Math.random() * 34,
       orbitAngle: Math.random() * Math.PI * 2,
-      orbitRadius: 150,
-      reactionMs: 32 + Math.random() * 20,
+      orbitRadius: 145,
+      reactionMs: 36 + Math.random() * 24,
       nextDecisionAt: 0,
       cachedDesiredAngle: initialAngle,
       lastHadDanger: false,
@@ -3951,9 +4107,15 @@ function initBots() {
   snakeRoster.length = 1;
   leaderboardOrder[0] = player;
   leaderboardOrder.length = 1;
-  const botCount = BOT_COUNT_BY_DIFFICULTY[currentDifficulty] || BOT_COUNT_BY_DIFFICULTY.normal;
-  for (let i = 0; i < botCount; i++) {
-    const bot = createBot(BOT_CONFIGS[i % BOT_CONFIGS.length], i);
+  const isMob = width <= 768 || isMobileDevice;
+  activeBotMax = isMob ? BOT_MAX_MOBILE : BOT_MAX_DESKTOP;
+  activeTargetBotCount = Math.min(activeBotMax, BOT_START_COUNT);
+  totalBotsCreatedInMatch = 0;
+  const now = performance.now();
+  nextBotWaveAt = now + BOT_WAVE_INTERVAL_MS;
+  nextWaveBotSpawnAt = now + 500;
+  for (let i = 0; i < activeTargetBotCount; i++) {
+    const bot = createBot(BOT_CONFIGS[i % BOT_CONFIGS.length], totalBotsCreatedInMatch++, false);
     bots.push(bot);
     snakeRoster.push(bot);
     leaderboardOrder.push(bot);
@@ -3963,11 +4125,11 @@ function initBots() {
 
 function respawnBot(bot) {
   const newAngle = Math.random() * Math.PI * 2;
-  // Progressive difficulty scaling: respawning bots scale up with survival time & player size
+  // Identical progressive respawn scaling across all difficulties
   const timeProgression = Math.min(1, survivalSeconds / 180);
-  const progressiveBonus = Math.round(timeProgression * (currentDifficulty === 'hard' ? 42 : currentDifficulty === 'normal' ? 28 : 16) + Math.max(0, player.length - INITIAL_SEGMENTS) * 0.18);
+  const progressiveBonus = Math.round(timeProgression * 28 + Math.max(0, player.length - INITIAL_SEGMENTS) * 0.18);
   const newLength = INITIAL_SEGMENTS - 3 + Math.floor(Math.random() * 12) + Math.min(85, progressiveBonus);
-  const pos = findSafeSpawnCoords(260, newLength, newAngle);
+  const pos = findRingSpawnCoords(BOT_RING_MIN_DIST, newLength, newAngle);
   bot.x = pos.x;
   bot.y = pos.y;
   bot.prevX = pos.x;
@@ -3982,13 +4144,15 @@ function respawnBot(bot) {
   bot.lastTrailSampleAt = 0;
   bot.angle = newAngle;
   bot.targetAngle = newAngle;
-  bot.speed = getActiveSpeed() * (0.96 + Math.random() * 0.1);
+  bot.speed = getActiveSpeed();
   bot.length = newLength;
   bot.segments.length = 0;
   bot.growQueue = 0;
   bot.alive = true;
   const now = performance.now();
   bot.protectedUntil = now + 2000;
+  bot.spawnFadeStartAt = now;
+  bot.spawnFadeDuration = BOT_SPAWN_FADE_MS;
   bot.respawnTimer = 0;
   bot.sameTurnCount = 0;
   bot.turnDir = 0;
@@ -4000,11 +4164,13 @@ function respawnBot(bot) {
   bot.dashUntil = 0;
   bot.speedBoostUntil = 0;
   bot.botDashReadyAt = now + 3500 + Math.random() * 4500;
+  bot.packSlotIdx = -1;
+  bot.packCount = 0;
   bot.personality.nextDecisionAt = 0;
   bot.personality.cachedDesiredAngle = newAngle;
   bot.personality.lastHadDanger = false;
   bot.personality.lastAvoidAngle = newAngle;
-  bot.personality.orbitRadius = 150;
+  bot.personality.orbitRadius = 145;
 
   for (let i = 0; i < bot.length; i++) {
     bot.segments.push({
@@ -4016,12 +4182,78 @@ function respawnBot(bot) {
   }
 }
 
+function updateBotWaves(now = performance.now()) {
+  if (!isGameRunning || isPaused || isGameOver) return;
+  if (now >= nextBotWaveAt) {
+    nextBotWaveAt = now + BOT_WAVE_INTERVAL_MS;
+    activeTargetBotCount = Math.min(activeBotMax, activeTargetBotCount + BOT_WAVE_ADD);
+  }
+  // Gradually spawn new wave bots in a ring outside the player's view (at least 600 units away) with 1.5s fade-in
+  if (bots.length < activeTargetBotCount && now >= nextWaveBotSpawnAt) {
+    const idx = totalBotsCreatedInMatch++;
+    const bot = createBot(BOT_CONFIGS[idx % BOT_CONFIGS.length], idx, true);
+    bots.push(bot);
+    snakeRoster.push(bot);
+    leaderboardOrder.push(bot);
+    nextWaveBotSpawnAt = now + 420;
+  }
+}
+
 function getMatchDifficultyPhase() {
-  // 0.0 at start (manageable early game) -> 0.5 at 90s / len 90 (mid-game aggression) -> 1.0 at 210s / len 220 (late-game tactical pressure)
+  // Identical tactical AI progression in every difficulty mode; bots are ready to hunt and trap from the start (baseline 0.38)
   const timeFactor = Math.min(1, survivalSeconds / 180);
   const sizeFactor = Math.min(1, Math.max(0, player.length - INITIAL_SEGMENTS) / 180);
-  const diffBias = currentDifficulty === 'hard' ? 0.25 : currentDifficulty === 'normal' ? 0.10 : 0.0;
-  return Math.min(1, Math.max(timeFactor * 0.65 + sizeFactor * 0.35 + diffBias, 0));
+  return Math.min(1, 0.38 + timeFactor * 0.42 + sizeFactor * 0.20);
+}
+
+const activePackBots = [];
+
+function updatePackCoordination() {
+  if (animFrame % 4 !== 0 || !player.alive) return;
+  activePackBots.length = 0;
+  const packRadiusSq = 680 * 680;
+  for (let i = 0; i < bots.length; i++) {
+    const b = bots[i];
+    if (!b.alive) {
+      b.packSlotIdx = -1;
+      b.packCount = 0;
+      continue;
+    }
+    if (!b.personality.aggressive) {
+      b.packSlotIdx = -1;
+      b.packCount = 0;
+      continue;
+    }
+    const dSq = toroidDistSq(player.x, player.y, b.x, b.y);
+    if (dSq <= packRadiusSq) {
+      activePackBots.push(b);
+    } else {
+      b.packSlotIdx = -1;
+      b.packCount = 0;
+    }
+  }
+  const count = activePackBots.length;
+  if (count < 2) {
+    if (count === 1) {
+      activePackBots[0].packSlotIdx = -1;
+      activePackBots[0].packCount = 1;
+    }
+    return;
+  }
+  // Sort pack members by current angle around the player so they take non-crossing pincer lanes
+  activePackBots.sort((a, b) => {
+    const angA = Math.atan2(toroidDelta(player.y, a.y, WORLD_HEIGHT), toroidDelta(player.x, a.x, WORLD_WIDTH));
+    const angB = Math.atan2(toroidDelta(player.y, b.y, WORLD_HEIGHT), toroidDelta(player.x, b.x, WORLD_WIDTH));
+    return angA - angB;
+  });
+  for (let i = 0; i < count; i++) {
+    const b = activePackBots[i];
+    b.packSlotIdx = i;
+    b.packCount = count;
+    // Spread flanking approach angles across a 250-degree arc centered on the player's forward path
+    const spread = ((i / Math.max(1, count - 1)) - 0.5) * Math.PI * 1.38;
+    b.packFlankAngle = player.angle + spread;
+  }
 }
 
 function updateBotAI(bot) {
@@ -4031,40 +4263,50 @@ function updateBotAI(bot) {
   const brain = bot.personality;
   const now = performance.now();
   const phase = getMatchDifficultyPhase();
-  const isEliteBot = bot.length >= 48 || isKingSnake(bot);
+  const isEliteBot = bot.length >= 42 || isKingSnake(bot);
+  const playerDistSq = player.alive ? toroidDistSq(bot.x, bot.y, player.x, player.y) : Infinity;
 
-  const farFromView = Math.abs(toroidDelta(cameraX, bot.x, WORLD_WIDTH)) > width / (2 * cameraZoom) + 180 ||
-    Math.abs(toroidDelta(cameraY, bot.y, WORLD_HEIGHT)) > height / (2 * cameraZoom) + 180;
-  if (farFromView) {
-    if (animFrame % 4 === bot.aiOffset) {
+  // Level-of-Detail (LOD) AI:
+  // - Far LOD (> 1200 units from player): simple cheap steering every 6 to 8 frames
+  // - Near LOD (<= 1200 units from player): full tactical decisions every 2 to 3 frames
+  if (playerDistSq > BOT_LOD_NEAR_DIST_SQ) {
+    if ((animFrame + bot.aiOffset) % 7 === 0) {
       let target = rareOrb;
       let nearestDistance = target ? toroidDistSq(bot.x, bot.y, target.x, target.y) : Infinity;
-      for (const orb of foodOrbs) {
+      const stride = foodOrbs.length > 240 ? 3 : 1;
+      for (let i = bot.aiOffset % stride; i < foodOrbs.length; i += stride) {
+        const orb = foodOrbs[i];
         const distance = toroidDistSq(bot.x, bot.y, orb.x, orb.y);
         if (distance < nearestDistance) { nearestDistance = distance; target = orb; }
       }
-      if (target) bot.targetAngle = Math.atan2(toroidDelta(bot.y, target.y, WORLD_HEIGHT), toroidDelta(bot.x, target.x, WORLD_WIDTH));
+      if (target) {
+        bot.targetAngle = Math.atan2(toroidDelta(bot.y, target.y, WORLD_HEIGHT), toroidDelta(bot.x, target.x, WORLD_WIDTH));
+      }
+      const probeX = wrap(bot.x + Math.cos(bot.angle) * 76, WORLD_WIDTH);
+      const probeY = wrap(bot.y + Math.sin(bot.angle) * 76, WORLD_HEIGHT);
+      if (spatialDangerAt(probeX, probeY, HEAD_RADIUS + 12, bot) > 0) {
+        bot.targetAngle = bot.angle + ((bot.aiOffset & 1) ? 1.45 : -1.45);
+      }
     }
     const farTurn = angleDifference(bot.angle, bot.targetAngle);
-    bot.angle += Math.sign(farTurn) * Math.min(Math.abs(farTurn), bot.turnRate * 0.72);
+    bot.angle += Math.sign(farTurn) * Math.min(Math.abs(farTurn), bot.turnRate * 0.78);
     return;
   }
 
-  // Retarget on a short reaction delay. The whisker avoidance below still runs every frame.
-  if (animFrame % 4 === bot.aiOffset && now >= brain.nextDecisionAt) {
+  // Near LOD (<= 1200 units): full decisions every 2 to 3 frames with short reaction delay
+  if ((animFrame + bot.aiOffset) % 3 === 0 && now >= brain.nextDecisionAt) {
     let nearestFood = null;
     let nearestFoodDistSq = Infinity;
     let nearestDrop = null;
     let nearestDropDistSq = Infinity;
     for (const orb of foodOrbs) {
       const dSq = toroidDistSq(bot.x, bot.y, orb.x, orb.y);
-      // Higher value orbs get distance priority so bots actively contest high-value food & death drops
-      const weightedDistSq = orb.value > 1 ? dSq / (orb.value * 1.45) : dSq;
+      const weightedDistSq = orb.value > 1 ? dSq / (orb.value * 1.55) : dSq;
       if (weightedDistSq < nearestFoodDistSq) { nearestFoodDistSq = weightedDistSq; nearestFood = orb; }
       if (orb.value > 1 && dSq < nearestDropDistSq) { nearestDropDistSq = dSq; nearestDrop = orb; }
     }
 
-    let target = nearestDrop && nearestDropDistSq < 420 * 420 ? nearestDrop : nearestFood;
+    let target = nearestDrop && nearestDropDistSq < 440 * 440 ? nearestDrop : nearestFood;
     if (brain.style === 'scavenger' && nearestDrop) target = nearestDrop;
     let targetDistSq = target ? toroidDistSq(bot.x, bot.y, target.x, target.y) : Infinity;
     let rareTarget = false;
@@ -4088,46 +4330,59 @@ function updateBotAI(bot) {
     for (const enemy of allSnakes) {
       if (enemy === bot || !enemy.alive) continue;
       const dSq = toroidDistSq(bot.x, bot.y, enemy.x, enemy.y);
-      if (enemy.length < bot.length + 12 && dSq < closestEnemyDistSq) {
+      if (enemy.length < bot.length + 14 && dSq < closestEnemyDistSq) {
         closestEnemyDistSq = dSq;
         closestEnemy = enemy;
       }
-      if (enemy.length >= bot.length + 10 && dSq < threateningDistSq) {
+      if (enemy.length >= bot.length + 12 && dSq < threateningDistSq) {
         threateningDistSq = dSq;
         threateningEnemy = enemy;
       }
     }
 
-    const predictIntercept = (enemy, leadFrames = 56, offset = 46) => {
-      const x = wrap(enemy.x + Math.cos(enemy.angle) * enemy.speed * leadFrames + Math.cos(enemy.angle) * offset, WORLD_WIDTH);
-      const y = wrap(enemy.y + Math.sin(enemy.angle) * enemy.speed * leadFrames + Math.sin(enemy.angle) * offset, WORLD_HEIGHT);
+    const predictIntercept = (enemy, leadFrames = 56, offset = 46, flankAngleOffset = 0) => {
+      const heading = enemy.angle + flankAngleOffset;
+      const x = wrap(enemy.x + Math.cos(heading) * enemy.speed * leadFrames + Math.cos(heading) * offset, WORLD_WIDTH);
+      const y = wrap(enemy.y + Math.sin(heading) * enemy.speed * leadFrames + Math.sin(heading) * offset, WORLD_HEIGHT);
       return Math.atan2(toroidDelta(bot.y, y, WORLD_HEIGHT), toroidDelta(bot.x, x, WORLD_WIDTH));
     };
 
-    const playerDistSq = player.alive ? toroidDistSq(bot.x, bot.y, player.x, player.y) : Infinity;
-    const engageRadiusSq = (320 + phase * 260) ** 2;
+    const engageRadiusSq = (420 + phase * 240) ** 2;
 
-    // 1. Smart Evasion when threatened by a much larger snake at close range
-    if (threateningEnemy && threateningDistSq < (135 + phase * 40) ** 2 && bot.length < 40) {
+    // 1. Smart Evasion when threatened by a much larger snake at very close range
+    if (threateningEnemy && threateningDistSq < (125 + phase * 35) ** 2 && bot.length < 36) {
       const awayX = toroidDelta(threateningEnemy.x, bot.x, WORLD_WIDTH);
       const awayY = toroidDelta(threateningEnemy.y, bot.y, WORLD_HEIGHT);
       desiredAngle = Math.atan2(awayY, awayX) + Math.sin(animFrame * 0.08 + bot.aiOffset) * 0.35;
     }
-    // 2. Route-Cutting & Interception against Player or nearby rivals (scales up with match phase & elite status)
-    else if (!rareTarget && (brain.style === 'hunter' || (isEliteBot && phase > 0.25)) && (player.alive || closestEnemy)) {
-      const preferPlayer = player.alive && playerDistSq < engageRadiusSq && (brain.aggressiveness + phase * 0.45 > 0.48);
+    // 2. Pack Pincer Coordination: when 2+ aggressive bots are near the player, approach from distributed flank angles to pin the player
+    else if (!rareTarget && player.alive && bot.packCount >= 2 && bot.packSlotIdx >= 0 && playerDistSq < 660 * 660) {
+      const pincerDist = 115 + (bot.packSlotIdx % 3) * 32;
+      const leadX = wrap(player.x + Math.cos(player.angle) * player.speed * 26 + Math.cos(bot.packFlankAngle) * pincerDist, WORLD_WIDTH);
+      const leadY = wrap(player.y + Math.sin(player.angle) * player.speed * 26 + Math.sin(bot.packFlankAngle) * pincerDist, WORLD_HEIGHT);
+      desiredAngle = Math.atan2(toroidDelta(bot.y, leadY, WORLD_HEIGHT), toroidDelta(bot.x, leadX, WORLD_WIDTH));
+      const distToPlayer = Math.sqrt(playerDistSq);
+      if (distToPlayer > 75 && distToPlayer < 240 && now >= (bot.botDashReadyAt || 0)) {
+        const angleToFront = Math.abs(angleDifference(bot.angle, desiredAngle));
+        if (angleToFront < 0.42) {
+          bot.dashUntil = now + 680;
+          bot.botDashReadyAt = now + 7500 + Math.random() * 3000;
+        }
+      }
+    }
+    // 3. Hunter Route-Cutting & Interception against Player or nearby rivals
+    else if (!rareTarget && (brain.style === 'hunter' || isEliteBot) && (player.alive || closestEnemy)) {
+      const preferPlayer = player.alive && playerDistSq < engageRadiusSq && (brain.aggressiveness + phase * 0.35 > 0.42);
       const huntTarget = preferPlayer ? player : (closestEnemy || (player.alive ? player : null));
       if (huntTarget) {
-        // Cut across the target's future path to force a body collision trap
         const distToTarget = Math.sqrt(toroidDistSq(bot.x, bot.y, huntTarget.x, huntTarget.y));
-        const lead = Math.min(78, Math.max(24, distToTarget / Math.max(2.5, bot.speed) * (0.75 + phase * 0.45)));
-        desiredAngle = predictIntercept(huntTarget, lead, 42 + phase * 28);
-        // Tactical AI Dash burst when in position to cut across the player's nose
-        if (huntTarget === player && distToTarget > 75 && distToTarget < 235 && now >= (bot.botDashReadyAt || 0) && (phase > 0.28 || isEliteBot)) {
+        const lead = Math.min(78, Math.max(24, distToTarget / Math.max(2.5, bot.speed) * (0.78 + phase * 0.42)));
+        desiredAngle = predictIntercept(huntTarget, lead, 44 + phase * 26);
+        if (huntTarget === player && distToTarget > 75 && distToTarget < 235 && now >= (bot.botDashReadyAt || 0)) {
           const angleToFront = Math.abs(angleDifference(bot.angle, desiredAngle));
           if (angleToFront < 0.45) {
             bot.dashUntil = now + 680;
-            bot.botDashReadyAt = now + (currentDifficulty === 'hard' ? 6500 : 8500) + Math.random() * 3000;
+            bot.botDashReadyAt = now + 7500 + Math.random() * 3000;
           }
         }
       }
@@ -4142,8 +4397,8 @@ function updateBotAI(bot) {
         }
       }
       if (nearby) {
-        brain.orbitAngle += (bot.name < nearby.name ? 1 : -1) * (0.075 + phase * 0.035);
-        brain.orbitRadius = Math.max(54, brain.orbitRadius - (0.09 + phase * 0.08));
+        brain.orbitAngle += (bot.name < nearby.name ? 1 : -1) * (0.08 + phase * 0.035);
+        brain.orbitRadius = Math.max(54, brain.orbitRadius - (0.10 + phase * 0.08));
         const leadX = wrap(nearby.x + Math.cos(nearby.angle) * nearby.speed * (14 + phase * 18), WORLD_WIDTH);
         const leadY = wrap(nearby.y + Math.sin(nearby.angle) * nearby.speed * (14 + phase * 18), WORLD_HEIGHT);
         const orbitX = wrap(leadX + Math.cos(brain.orbitAngle) * brain.orbitRadius, WORLD_WIDTH);
@@ -4151,10 +4406,10 @@ function updateBotAI(bot) {
         desiredAngle = Math.atan2(toroidDelta(bot.y, orbitY, WORLD_HEIGHT), toroidDelta(bot.x, orbitX, WORLD_WIDTH));
       }
     } else if (!rareTarget && brain.style === 'opportunist') {
-      if (player.alive && playerDistSq < (250 + phase * 140) ** 2) {
-        desiredAngle = predictIntercept(player, 44 + phase * 22, 38);
-      } else if (closestEnemy && closestEnemyDistSq < (240 + phase * 110) ** 2) {
-        desiredAngle = predictIntercept(closestEnemy, 45, 32);
+      if (player.alive && playerDistSq < (310 + phase * 140) ** 2) {
+        desiredAngle = predictIntercept(player, 46 + phase * 22, 40);
+      } else if (closestEnemy && closestEnemyDistSq < (260 + phase * 110) ** 2) {
+        desiredAngle = predictIntercept(closestEnemy, 45, 34);
       }
     } else if (!rareTarget && brain.style === 'scavenger' && !nearestDrop) {
       let nearbyA = null;
@@ -4174,11 +4429,11 @@ function updateBotAI(bot) {
       }
     }
 
-    // Less error in mid/late game so AI feels sharp and competitive
-    const errorChance = Math.max(0.006, 0.024 - phase * 0.016);
+    // Small human-like imperfection and reaction delay so a skilled player can outmaneuver packs
+    const errorChance = Math.max(0.008, 0.025 - phase * 0.014);
     if (Math.random() < errorChance) desiredAngle += (Math.random() < 0.5 ? -1 : 1) * (0.18 + Math.random() * 0.35);
     brain.cachedDesiredAngle = desiredAngle;
-    brain.nextDecisionAt = now + brain.reactionMs * (1 - phase * 0.25);
+    brain.nextDecisionAt = now + brain.reactionMs * (1 - phase * 0.22);
   }
 
   const desiredAngle = brain.cachedDesiredAngle;
@@ -4555,6 +4810,7 @@ function shiftActiveTimersByPauseDuration(deltaMs) {
   for (let b = 0; b < bots.length; b++) {
     const bot = bots[b];
     bot.protectedUntil = shiftIfPositive(bot.protectedUntil);
+    bot.spawnFadeStartAt = shiftIfPositive(bot.spawnFadeStartAt);
     bot.dashUntil = shiftIfPositive(bot.dashUntil);
     bot.speedBoostUntil = shiftIfPositive(bot.speedBoostUntil);
     bot.botDashReadyAt = shiftIfPositive(bot.botDashReadyAt);
@@ -4578,6 +4834,8 @@ function shiftActiveTimersByPauseDuration(deltaMs) {
   nextPowerupSpawnAt = shiftIfPositive(nextPowerupSpawnAt);
   nextFoodSpawnAt = shiftIfPositive(nextFoodSpawnAt);
   lastBigSnakeFoodAt = shiftIfPositive(lastBigSnakeFoodAt);
+  nextBotWaveAt = shiftIfPositive(nextBotWaveAt);
+  nextWaveBotSpawnAt = shiftIfPositive(nextWaveBotSpawnAt);
 
   for (let i = 0; i < powerups.length; i++) {
     powerups[i].spawnedAt = shiftIfPositive(powerups[i].spawnedAt);
@@ -4682,10 +4940,10 @@ function finalizeGameOver() {
   const prevBestLength = getBestLength(currentDifficulty);
   saveBestRecords(currentDifficulty, survivalSeconds, player.length);
 
-  // Calculate final score, coins, and XP
+  // Calculate final score, coins, and XP (identical multiplier across all difficulties)
   const allSnakes = leaderboardOrder.slice().sort((a, b) => b.length - a.length);
   const finalRank = Math.max(1, allSnakes.findIndex(s => s.isPlayer) + 1);
-  const diffMul = currentDifficulty === 'hard' ? 1.35 : currentDifficulty === 'easy' ? 0.85 : 1.0;
+  const diffMul = 1.0;
 
   matchScore = Math.round((player.length * 15 + survivalSeconds * 6 + playerKillCount * 120 + matchFoodEaten * 4) * diffMul);
   matchCoinsEarned = Math.max(5, Math.round(8 + survivalSeconds * 0.35 + playerKillCount * 14 + Math.max(0, player.length - INITIAL_SEGMENTS) * 0.5));
@@ -4779,7 +5037,8 @@ function finalizeGameOver() {
   finalLengthEl.textContent = player.length;
   bestLengthEl.textContent = bestL;
   if (cardDiffLabel) {
-    cardDiffLabel.textContent = currentDifficulty.charAt(0).toUpperCase() + currentDifficulty.slice(1);
+    const normDiff = normalizeDifficulty(currentDifficulty);
+    cardDiffLabel.textContent = normDiff.charAt(0).toUpperCase() + normDiff.slice(1);
   }
   overlayEl.style.display = 'flex';
   AdManager.maybeShowInterstitialAfterMatch();
@@ -4992,7 +5251,7 @@ function updateHUDAndLeaderboard() {
   if (statCoinsEl && profileData) statCoinsEl.textContent = profileData.coins.toLocaleString();
 
   if (lbListEl) {
-    const LB_SHOWN = height <= 500 ? 4 : (width <= 768 ? 5 : 8);
+    const LB_SHOWN = 10;
     const lbRow = (s, idx) => `
       <div class="lb-item ${s.isPlayer ? 'is-player' : ''}">
         <div class="lb-left">
@@ -5015,7 +5274,9 @@ function update(stepMs = FIXED_STEP_MS) {
 
   const frameSeconds = Math.min(0.05, stepMs / 1000);
   animFrame++;
+  updateBotWaves();
   buildSpatialHash();
+  updatePackCoordination();
   maybeSpawnRareOrb();
   spawnPowerup();
   checkPowerupCollection();
@@ -5057,11 +5318,20 @@ function update(stepMs = FIXED_STEP_MS) {
 
   advanceSnake(player);
 
-  for (const bot of bots) {
+  for (let i = bots.length - 1; i >= 0; i--) {
+    const bot = bots[i];
     if (!bot.alive) {
       bot.respawnTimer--;
       if (bot.respawnTimer <= 0) {
-        respawnBot(bot);
+        if (bots.length > activeTargetBotCount) {
+          bots.splice(i, 1);
+          const rIdx = snakeRoster.indexOf(bot);
+          if (rIdx !== -1) snakeRoster.splice(rIdx, 1);
+          const lIdx = leaderboardOrder.indexOf(bot);
+          if (lIdx !== -1) leaderboardOrder.splice(lIdx, 1);
+        } else {
+          respawnBot(bot);
+        }
       }
       continue;
     }
@@ -5090,9 +5360,9 @@ function update(stepMs = FIXED_STEP_MS) {
 // ============================================================
 
 function setDifficulty(diff) {
-  currentDifficulty = diff;
+  currentDifficulty = normalizeDifficulty(diff);
   document.querySelectorAll('.diff-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.diff === diff);
+    btn.classList.toggle('active', btn.dataset.diff === currentDifficulty);
   });
   updateMenuRecordsDisplay();
 }
@@ -5101,7 +5371,7 @@ function applyDifficultySpeeds() {
   const spd = getActiveSpeed();
   player.speed = spd;
   for (const bot of bots) {
-    bot.speed = spd * (0.95 + Math.random() * 0.1);
+    bot.speed = spd;
   }
 }
 
@@ -6268,7 +6538,12 @@ function drawRealisticSnakeAt(snake, offsetX, offsetY) {
 
   ctx.save();
   ctx.translate(offsetX, offsetY);
-  if (snake.isPlayer && performance.now() < snake.ghostUntil) ctx.globalAlpha = 0.38;
+  const nowRender = performance.now();
+  if (snake.isPlayer && nowRender < snake.ghostUntil) ctx.globalAlpha = 0.38;
+  if (!snake.isPlayer && snake.spawnFadeStartAt && nowRender - snake.spawnFadeStartAt < (snake.spawnFadeDuration || BOT_SPAWN_FADE_MS)) {
+    const fadeProgress = Math.max(0.06, Math.min(1, (nowRender - snake.spawnFadeStartAt) / (snake.spawnFadeDuration || BOT_SPAWN_FADE_MS)));
+    ctx.globalAlpha *= fadeProgress;
+  }
 
   const pal = snake.palette;
 
@@ -6726,7 +7001,12 @@ function renderMinimap() {
   ctx.lineTo(cx, cy + mapRadius);
   ctx.stroke();
 
-  for (const bot of bots) if (bot.alive) drawMinimapDot(bot.x, bot.y, bot.palette.head, 2.5, cx, cy, mapRadius);
+  const nearbyBotLimitSq = 1800 * 1800;
+  for (const bot of bots) {
+    if (bot.alive && toroidDistSq(player.x, player.y, bot.x, bot.y) <= nearbyBotLimitSq) {
+      drawMinimapDot(bot.x, bot.y, bot.palette.head, 2.5, cx, cy, mapRadius);
+    }
+  }
   const king = getKingSnake();
   if (king && !king.isPlayer) drawMinimapDot(king.x, king.y, '#facc15', 5, cx, cy, mapRadius);
   if (rareOrb) drawMinimapDot(rareOrb.x, rareOrb.y, '#ffe6a5', 3, cx, cy, mapRadius);
