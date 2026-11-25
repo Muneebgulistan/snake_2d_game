@@ -1,9 +1,15 @@
 node_modules/
 expo-preview/preview-qr.png
 android/.gradle/
+local.properties
 android/local.properties
+**/local.properties
 android/**/build/
 android/.idea/
 *.jks
 *.keystore
 keystore.properties
+android/keystore.properties
+**/keystore.properties
+.env
+.env.*

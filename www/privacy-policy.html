@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none';">
+  <meta name="referrer" content="no-referrer">
   <meta name="theme-color" content="#080D18">
   <title>Privacy Policy — Serpent Run</title>
   <style>
@@ -18,12 +20,22 @@
     p, li { color: #A7B4C9; font-size: 15px; }
     ul { padding-left: 22px; }
     a { color: #00D9FF; text-decoration: underline; text-underline-offset: 3px; }
+    code { color: #E2E8F0; background: rgba(24, 36, 58, 0.75); padding: 2px 6px; border-radius: 6px; font-size: 13px; }
     .card {
       background: #111B2D;
       border: 1px solid #26364F;
       border-radius: 16px;
       padding: 18px 22px;
       margin-top: 16px;
+    }
+    .todo-box {
+      background: rgba(255, 176, 32, 0.12);
+      border: 1px solid rgba(255, 176, 32, 0.45);
+      color: #FDE68A;
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-top: 10px;
+      font-size: 14px;
     }
     .back-btn {
       display: inline-flex;
@@ -46,51 +58,77 @@
   <main>
     <a class="back-btn" href="index.html">← Back to Serpent Run</a>
     <h1>Privacy Policy for Serpent Run</h1>
-    <p><strong>Last updated:</strong> November 20, 2026</p>
-    <p><strong>Serpent Run</strong> (package ID: <code>com.muneeb.neonserpents</code>) is an arcade survival game published by Muneeb. This Privacy Policy explains how local game data, advertising, and user privacy are handled.</p>
+    <p><strong>Last updated:</strong> November 25, 2026</p>
+    <p><strong>Serpent Run</strong> (Android package ID: <code>com.muneeb.neonserpents</code>) is an arcade survival game published by Muneeb. This Privacy Policy describes what data the application stores locally, what third-party data Google AdMob processes for advertising, and how you can control or delete your data at any time.</p>
 
     <div class="card">
-      <h2>1. Local Game Data &amp; Save Storage</h2>
-      <p>Serpent Run does not require user registration or an account. Gameplay progress—including best survival times, highest snake lengths, player level, XP, coins, unlocked cosmetic skins, daily missions, achievements, and audio/control settings—is stored locally on your device using browser/WebView local storage (<code>localStorage</code>).</p>
-      <p>This local save data remains on your device and is not transmitted to developer-operated servers. You can reset your progress at any time via <strong>Settings → Reset Progress</strong>, or by clearing the app's storage / uninstalling the application.</p>
-    </div>
-
-    <div class="card">
-      <h2>2. Advertising (Google AdMob)</h2>
-      <p>The Android and supported versions of Serpent Run may integrate <strong>Google AdMob</strong> to display optional rewarded advertisements (such as reviving a snake, doubling match coins, or previewing a skin), frequency-capped interstitial advertisements between completed matches, and non-intrusive banner advertisements on menu subscreens.</p>
-      <p>When Google AdMob is active in a production release, the Google Mobile Ads SDK may automatically collect and process certain device and usage information in accordance with Google's privacy policies, including:</p>
+      <h2>1. No User Account &amp; No Sale of Personal Data</h2>
       <ul>
-        <li><strong>Device Identifiers:</strong> Android Advertising ID (AAID) or similar resettable advertising identifiers.</li>
-        <li><strong>Coarse Location &amp; Network Info:</strong> IP address (used to estimate general/coarse geographic region for relevant ad serving and fraud prevention).</li>
-        <li><strong>Ad Interaction &amp; Diagnostics:</strong> Ad impressions, clicks, reward completion events, and crash/performance diagnostics related to ad delivery.</li>
+        <li><strong>No Account Required:</strong> Serpent Run does not require registration, login credentials, names, email addresses, or phone numbers.</li>
+        <li><strong>No Developer Backend Servers:</strong> The developer does not operate remote analytics, tracking, or telemetry servers.</li>
+        <li><strong>No Personal Data Sold:</strong> We do not sell your personal information to third parties.</li>
       </ul>
-      <p>For full details on how Google collects and processes data, please review <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer">How Google uses information from sites or apps that use our services</a> and the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google Privacy Policy</a>.</p>
     </div>
 
     <div class="card">
-      <h2>3. User Consent, Personalized Ads &amp; Opt-Out</h2>
-      <p>Where required by applicable privacy laws (such as GDPR in the European Economic Area/UK or US state privacy regulations), users are presented with a consent choice via Google's User Messaging Platform (UMP) or device-level privacy controls before personalized advertisements are served.</p>
-      <p>You can also reset or opt out of personalized advertising at any time in your Android device settings under <strong>Settings → Google → Ads</strong> (or <strong>Privacy → Ads</strong>).</p>
-    </div>
-
-    <div class="card">
-      <h2>4. Device Permissions</h2>
-      <p>Serpent Run requests only standard permissions necessary for core functionality:</p>
+      <h2>2. Local On-Device Storage &amp; How to Delete Your Data</h2>
+      <p>To save your offline gameplay progress and preferences, Serpent Run stores the following keys exclusively on your device inside WebView/browser <code>localStorage</code>:</p>
       <ul>
-        <li><code>android.permission.INTERNET</code> — Used only to load advertisements when online. The core game remains playable offline.</li>
-        <li><code>com.google.android.gms.permission.AD_ID</code> (when AdMob SDK is enabled) — Used by Google Mobile Ads for frequency capping, fraud prevention, and ad attribution.</li>
+        <li><code>serpentRun_save_v2</code> — Player level, XP, coins, career statistics, daily/weekly/elite mission progress, claimed achievements, and audio/control settings.</li>
+        <li><code>serpentRun_unlockedSkins</code> &amp; <code>serpentRun_selectedSkin</code> — Unlocked and equipped snake skins.</li>
+        <li><code>neonSerpents_bestTime_easy|normal|hard</code> &amp; <code>neonSerpents_bestLength_easy|normal|hard</code> — High scores per difficulty mode.</li>
+        <li><code>serpentRun_graphicsQuality</code>, <code>serpentRun_fpsCounter</code>, <code>serpentRun_lbCollapsed</code>, <code>neonSerpents_muted</code> — Display, HUD, and mute preferences.</li>
+        <li><code>serpentRun_adConsent_v1</code> — Your saved Google UMP / Ad personalization consent state.</li>
       </ul>
-      <p>The game does not request access to your camera, microphone, contacts, photos, or precise GPS location.</p>
+      <p>Android cloud auto-backup and device-to-device extraction are disabled (<code>android:allowBackup="false"</code>), so this data stays strictly on your device.</p>
+      <p><strong>Deleting Your Data:</strong> You can permanently erase all locally stored data at any time inside the game by opening <strong>Settings → Delete My Data</strong> and confirming deletion, or by clearing the app's storage / uninstalling the app in Android system settings.</p>
     </div>
 
     <div class="card">
-      <h2>5. Children's Privacy</h2>
-      <p>We do not knowingly collect personal information directly from children. When advertisements are served via Google AdMob, ad requests respect applicable age-appropriate and family policy settings configured in Google Play Console and AdMob.</p>
+      <h2>3. Advertising (Google AdMob) &amp; Android Advertising ID</h2>
+      <p>The Android version of Serpent Run integrates the <strong>Google Mobile Ads SDK (AdMob)</strong> to display optional rewarded video advertisements (Revive Snake, 2x Match Coins, Bonus Chest, 1-Match Skin Trial), frequency-capped interstitial advertisements between completed matches, and menu-only banner advertisements.</p>
+      <p>When online and permitted by your consent settings, the Google Mobile Ads SDK may automatically collect and transmit the following categories of data to Google over encrypted HTTPS connections:</p>
+      <ul>
+        <li><strong>Device &amp; Advertising Identifiers:</strong> Android Advertising ID (<code>com.google.android.gms.permission.AD_ID</code>) and app set ID, used for ad frequency capping, fraud prevention, attribution, and (only when consented) personalized advertising.</li>
+        <li><strong>Approximate (Coarse) Location &amp; Network Info:</strong> Device IP address and network connection type, used by Google to estimate general geographic region for regional privacy compliance and relevant ad delivery.</li>
+        <li><strong>App Interactions &amp; Ad Diagnostics:</strong> Ad impressions, ad clicks, reward completion callbacks, and SDK crash/performance diagnostics related to ad loading.</li>
+      </ul>
+      <p>Google processes this data under the Google Privacy Policy (<code>https://policies.google.com/privacy</code>) and Google Partner Sites policy (<code>https://policies.google.com/technologies/partner-sites</code>).</p>
     </div>
 
     <div class="card">
-      <h2>6. Changes &amp; Contact</h2>
-      <p>This Privacy Policy may be updated when new features, monetization options, or regulatory requirements are introduced. For questions regarding privacy or data practices, please contact the developer via the support email listed on the official Serpent Run Google Play Store page.</p>
+      <h2>4. User Consent (UMP), Personalized Ads &amp; Opt-Out Controls</h2>
+      <p>Before requesting advertisements, Serpent Run checks regional consent requirements using Google's <strong>User Messaging Platform (UMP)</strong> (including GDPR in the EEA/UK and applicable US state privacy laws):</p>
+      <ul>
+        <li><strong>No Personalized Ads Before Consent:</strong> Personalized ads are never requested before required consent is obtained. By default, or whenever consent is not granted, ad requests are restricted to Non-Personalized Ads (<code>npa: true</code>).</li>
+        <li><strong>In-App Consent Management:</strong> You can review or change your ad personalization choice at any time in <strong>Settings → Ad Consent Preferences</strong>.</li>
+        <li><strong>Device-Level Advertising ID Controls:</strong> On Android, you can reset or delete your Advertising ID or opt out of ad personalization at any time under <strong>Android Settings → Google → All services → Ads</strong> (or <strong>Settings → Privacy → Ads</strong>).</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>5. Device Permissions</h2>
+      <p>Serpent Run requests only the minimum Android permissions required for core gameplay and ad delivery:</p>
+      <ul>
+        <li><code>android.permission.INTERNET</code> &amp; <code>android.permission.ACCESS_NETWORK_STATE</code> — Used solely by the Google Mobile Ads SDK to check connectivity and load advertisements. Core gameplay works 100% offline.</li>
+        <li><code>com.google.android.gms.permission.AD_ID</code> — Used by the Google Mobile Ads SDK on Android 13+ as described in Section 3.</li>
+        <li><code>android.permission.VIBRATE</code> — Used for optional in-game haptic feedback (can be turned off in <strong>Settings → Vibration / Haptics</strong>).</li>
+      </ul>
+      <p>Serpent Run never requests access to your camera, microphone, contacts, photos/media files, or precise GPS location.</p>
+    </div>
+
+    <div class="card">
+      <h2>6. Children's Privacy</h2>
+      <p>We do not knowingly collect personal information directly from children. Ad requests are configured with a general audience content rating guard and follow the target audience and family policy settings configured in Google Play Console and AdMob.</p>
+    </div>
+
+    <div class="card">
+      <h2>7. Changes &amp; Contact Information</h2>
+      <p>We may update this Privacy Policy to reflect changes in legal requirements or app functionality. Any updates will revise the "Last updated" date at the top of this page.</p>
+      <p>If you have any questions or privacy requests regarding Serpent Run, please contact the developer at:</p>
+      <div class="todo-box">
+        <strong>Developer Contact Email:</strong> <code>TODO: Replace with your support email before publishing (e.g., support@yourdomain.com)</code>
+      </div>
     </div>
   </main>
 </body>

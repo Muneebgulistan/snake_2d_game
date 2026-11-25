@@ -2,7 +2,14 @@
   "appId": "com.muneeb.neonserpents",
   "appName": "Serpent Run",
   "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": false,
+    "allowNavigation": []
+  },
   "android": {
-    "backgroundColor": "#080D18"
+    "backgroundColor": "#080D18",
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
   }
 }

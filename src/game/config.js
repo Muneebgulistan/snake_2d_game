@@ -1,4 +1,19 @@
 // Shared tuning values for the browser, Android WebView, and Expo Go build.
+const DETECTED_ADMOB_ENVIRONMENT = (() => {
+  try {
+    if (window.SerpentBuildConfig && typeof window.SerpentBuildConfig.getBuildEnvironment === 'function') {
+      return window.SerpentBuildConfig.getBuildEnvironment() === 'production' ? 'production' : 'development';
+    }
+    if (window.SerpentBuildConfig && typeof window.SerpentBuildConfig.isDebugBuild === 'function') {
+      return window.SerpentBuildConfig.isDebugBuild() ? 'development' : 'production';
+    }
+    if (window.__SERPENT_BUILD_ENV__ === 'production') {
+      return 'production';
+    }
+  } catch (_) {}
+  return 'development';
+})();
+
 window.GAME_CONFIG = Object.freeze({
   WORLD_WIDTH: 8000,
   WORLD_HEIGHT: 8000,
@@ -14,14 +29,14 @@ window.GAME_CONFIG = Object.freeze({
   // ============================================================
   // GOOGLE ADMOB MONETIZATION CONFIGURATION
   // ============================================================
-  // IMPORTANT: Keep environment set to 'development' while testing!
-  // Google policy prohibits clicking or loading live production ads during development.
-  // Before building your final signed release AAB for Google Play:
-  // 1. Replace the placeholder IDs in `production` below with your real AdMob Ad Unit IDs.
+  // Environment is selected automatically by the Android build type via MainActivity.NativeBuildBridge:
+  // - Debug builds (FLAG_DEBUGGABLE) & local web previews -> 'development' (official Google test IDs)
+  // - Signed Release builds (!FLAG_DEBUGGABLE) -> 'production' (production Ad Unit IDs below)
+  // Before publishing to Google Play:
+  // 1. Replace the placeholder IDs in `productionIds` below with your real AdMob Ad Unit IDs.
   // 2. Replace the test App ID in `android/app/src/main/res/values/strings.xml` (`admob_app_id`).
-  // 3. Switch `environment` below from 'development' to 'production'.
   ADMOB: Object.freeze({
-    environment: 'development', // 'development' (official Google test IDs) | 'production'
+    environment: DETECTED_ADMOB_ENVIRONMENT,
     interstitialEveryMatches: 3, // Show at most 1 interstitial every N completed matches
     interstitialCooldownMs: 90000, // Minimum 90s cooldown between interstitials
     rewardedBonusCoins: 75,

@@ -1,18 +1,56 @@
 package com.muneeb.neonserpents;
 
+import android.content.pm.ApplicationInfo;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
 import androidx.activity.OnBackPressedCallback;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
 
+    public static final class NativeBuildBridge {
+        private final boolean debugBuild;
+
+        NativeBuildBridge(boolean debugBuild) {
+            this.debugBuild = debugBuild;
+        }
+
+        @JavascriptInterface
+        public String getBuildEnvironment() {
+            return debugBuild ? "development" : "production";
+        }
+
+        @JavascriptInterface
+        public boolean isDebugBuild() {
+            return debugBuild;
+        }
+    }
+
+    @Override
+    protected void load() {
+        final boolean isDebugBuild = (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+        WebView preWebView = findViewById(com.getcapacitor.android.R.id.webview);
+        if (preWebView != null) {
+            preWebView.addJavascriptInterface(new NativeBuildBridge(isDebugBuild), "SerpentBuildConfig");
+        }
+        super.load();
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        final boolean isDebugBuild = (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+        WebView.setWebContentsDebuggingEnabled(isDebugBuild);
+
         super.onCreate(savedInstanceState);
+
+        // Enforce WebView debugging state after Bridge initialization as well
+        WebView.setWebContentsDebuggingEnabled(isDebugBuild);
 
         Window window = getWindow();
         if (window != null) {
@@ -26,7 +64,17 @@ public class MainActivity extends BridgeActivity {
             }
         }
         if (getBridge() != null && getBridge().getWebView() != null) {
-            getBridge().getWebView().setBackgroundColor(Color.parseColor("#080D18"));
+            WebView webView = getBridge().getWebView();
+            webView.setBackgroundColor(Color.parseColor("#080D18"));
+            webView.addJavascriptInterface(new NativeBuildBridge(isDebugBuild), "SerpentBuildConfig");
+
+            WebSettings settings = webView.getSettings();
+            if (settings != null) {
+                settings.setAllowFileAccess(false);
+                settings.setAllowContentAccess(false);
+                settings.setGeolocationEnabled(false);
+                settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+            }
         }
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {

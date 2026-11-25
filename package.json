@@ -21,7 +21,7 @@
   "author": "Muneeb",
   "license": "MIT",
   "dependencies": {
-    "@capacitor-community/admob": "^8.4.2",
+    "@capacitor-community/admob": "8.4.2",
     "@capacitor/android": "8.5.3",
     "@capacitor/core": "8.5.3"
   },
@@ -29,6 +29,6 @@
     "@capacitor/cli": "8.5.3"
   },
   "overrides": {
-    "uuid": "^11.1.1"
+    "uuid": "11.1.1"
   }
 }
