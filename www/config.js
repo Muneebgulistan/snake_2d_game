@@ -37,6 +37,65 @@ window.GAME_CONFIG = Object.freeze({
   BOT_LOD_NEAR_DIST: 1200,
 
   // ============================================================
+  // NEON PIXEL FRUITS & LEVEL TARGET SCORE CONFIGURATION
+  // ============================================================
+  FRUITS: Object.freeze({
+    spawnIntervalMs: 2500,
+    minHeadClearCells: 3,
+    baseLifetimeMs: 9000,
+    minLifetimeMs: 5000,
+    lifetimeStepPerLevelMs: 450,
+    blinkWarningMs: 2000,
+    scaleInMs: 240,
+    spawnsPerMinute: 24,
+    avgGoldBonusPerMinute: 120,
+    targetRatioStart: 0.55,
+    targetRatioEnd: 0.85,
+    maxLevel: 10,
+    types: Object.freeze({
+      apple: Object.freeze({
+        id: 'apple',
+        name: 'Apple',
+        points: 20,
+        growth: 1,
+        baseOdds: 0.60,
+        oddsShiftPerLevel: -0.035,
+        color: '#ff3b5c',
+        outline: '#ff9ebb',
+        stem: '#4ade80',
+        highlight: '#ffe4e9',
+        glow: 'rgba(255, 59, 92, 0.78)'
+      }),
+      cherry: Object.freeze({
+        id: 'cherry',
+        name: 'Cherry',
+        points: 35,
+        growth: 1,
+        baseOdds: 0.30,
+        oddsShiftPerLevel: 0.015,
+        color: '#e11d48',
+        outline: '#fda4af',
+        stem: '#22c55e',
+        highlight: '#ffe4e6',
+        glow: 'rgba(225, 29, 72, 0.82)'
+      }),
+      grapes: Object.freeze({
+        id: 'grapes',
+        name: 'Grapes',
+        points: 50,
+        growth: 2,
+        baseOdds: 0.10,
+        oddsShiftPerLevel: 0.020,
+        color: '#a855f7',
+        outline: '#e9d5ff',
+        stem: '#4ade80',
+        highlight: '#f3e8ff',
+        glow: 'rgba(168, 85, 247, 0.86)'
+      })
+    })
+  }),
+
+  // ============================================================
   // GOOGLE ADMOB MONETIZATION CONFIGURATION
   // ============================================================
   // Environment is selected automatically by the Android build type via MainActivity.NativeBuildBridge:

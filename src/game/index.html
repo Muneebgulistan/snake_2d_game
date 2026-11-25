@@ -430,6 +430,37 @@
   }
 
   /* ---------- Menu Snake Preview Card ---------- */
+  .fruit-legend-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: rgba(8, 13, 24, 0.72);
+    border: 1px solid var(--line);
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text-dim);
+  }
+  .fruit-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(24, 36, 58, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    color: var(--text);
+  }
+  .fruit-pill.apple { border-color: rgba(255, 59, 92, 0.55); box-shadow: 0 0 8px rgba(255, 59, 92, 0.2); }
+  .fruit-pill.cherry { border-color: rgba(225, 29, 72, 0.55); box-shadow: 0 0 8px rgba(225, 29, 72, 0.2); }
+  .fruit-pill.grapes { border-color: rgba(168, 85, 247, 0.55); box-shadow: 0 0 8px rgba(168, 85, 247, 0.2); }
+  .fruit-pill b { font-weight: 900; }
+  .fruit-pill.apple b { color: #ff8fa3; }
+  .fruit-pill.cherry b { color: #fda4af; }
+  .fruit-pill.grapes b { color: #e9d5ff; }
   .hero-preview-card {
     width: 100%;
     display: flex;
@@ -1392,6 +1423,7 @@
     <div class="hud-stat" id="stat-length-wrap"><span>Length</span><span id="stat-length" class="hud-val">22</span></div>
     <div class="hud-stat" id="stat-rank-wrap"><span>Rank</span><span id="stat-rank" class="hud-val">#1</span></div>
     <div class="hud-stat" id="stat-kills-wrap"><span>Kills</span><span id="stat-kills" class="hud-val">0</span></div>
+    <div class="hud-stat" id="stat-target-wrap"><span>Target</span><span id="stat-target" class="hud-val">0 / 430</span></div>
     <div class="hud-stat" id="stat-level-wrap"><span>Lv</span><span id="stat-level" class="hud-val">1</span></div>
     <div class="hud-stat" id="stat-coins-wrap"><span>$</span><span id="stat-coins" class="hud-val">250</span></div>
   </div>
@@ -1484,6 +1516,12 @@
         <span>Time<b id="menu-best-time">00:00</b></span>
         <span>Length<b id="menu-best-len">22</b></span>
       </span>
+    </div>
+
+    <div class="fruit-legend-bar" aria-label="Fruit score values">
+      <span class="fruit-pill apple">🍎 Apple <b>+20</b> <small>(+1)</small></span>
+      <span class="fruit-pill cherry">🍒 Cherry <b>+35</b> <small>(+1)</small></span>
+      <span class="fruit-pill grapes">🍇 Grapes <b>+50</b> <small>(+2)</small></span>
     </div>
 
     <button class="play-btn" data-action="start-game">PLAY ARENA</button>

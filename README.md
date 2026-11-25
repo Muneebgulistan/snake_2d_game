@@ -25,13 +25,20 @@ A high-performance 2D arcade snake survival game built for **Android (Capacitor 
   - **Level-of-Detail (LOD) AI & 40 FPS Auto-Governor:** Nearby bots (`<= 1200 units`) run full multi-angle tactical probes every 2–3 frames, while distant bots use lightweight steering every 6–8 frames. If average FPS drops below 40 for 3 seconds, the engine automatically steps down graphics quality and trims the maximum bot cap in steps of 10 (down to a floor of 40).
 - **3 Active Tactical Abilities:**
   - **👻 Ghost (`1`):** Phase safely through rival snake bodies for `3.0s` (`14s` cooldown).
-  - **🧲 Resource Magnet (`2`):** Pull nearby food orbs toward your head for `5.0s` (`12s` cooldown).
+  - **🧲 Resource Magnet (`2`):** Pull nearby fruits and energy orbs toward your head for `5.0s` (`12s` cooldown).
   - **⚡ Dash (`3`):** Surge at `1.85×` speed for `1.0s` (`8s` cooldown) and emit a radial shockwave that pushes nearby rivals back.
-- **Arena Hotspots, Rare Orbs & Map Power-Ups:**
-  - **Central Danger Zone:** An `850 px`-radius high-gravity maelstrom at the center of the map (`(4000, 4000)`) that slows movement to `0.78×` but spawns a dense cluster of **53 high-value food orbs**.
-  - **Rare Glow Orbs:** Spawn every `40–60s` (lasting `25s`) with an on-screen edge direction pointer, granting **+3 length** and a **6-second cosmetic comet ribbon trail**.
-  - **Collectible Map Power-Ups:** Random **Magnet (`🧲`, 6s, 700px radius)** and **Speed Boost (`⚡`, 5s, 1.6× speed)** items spawn across the arena (up to 3 active simultaneously).
-  - **Big-Snake Food Shedding:** Snakes above length `40` periodically shed bonus food orbs behind their tails every `3s` (capped to prevent late-game lag).
+- **Neon Pixel Fruits, Gold Energy Orbs & Blue Plasma 2X Multipliers:**
+  - **Procedural Offscreen Pixel-Art Fruits (`FRUITS` in `src/game/config.js`):**
+    - **🍎 Apple:** `+20 points`, grows snake by `+1` (`60%` base spawn odds at Stage 1, apple-red neon outline & glow).
+    - **🍒 Cherry:** `+35 points`, grows snake by `+1` (`30%` base spawn odds at Stage 1, crimson with green stem).
+    - **🍇 Grapes:** `+50 points`, grows snake by `+2` (`10%` base spawn odds at Stage 1, purple grape cluster; treated as high-priority targets by aggressive bots).
+    - **Dynamic Spawn & Expiration Lifecycle:** Each stage shifts spawn odds slightly toward higher-value fruits. A new fruit spawns every `2.5s` on a random free grid cell (never on snakes, bots, other food, or within 3 cells of the player's head) with a quick scale-in animation and expanding glow ring. Fruits expire after a stage-scaled lifetime (`9s` at Stage 1 down to `5s` at higher stages), blinking and shrinking in the final `2s` before popping away with a particle puff.
+    - **CRT Neon Look & Feel:** Pre-rendered onto `48 × 48` offscreen canvases with zero image files, featuring gentle bobbing, occasional pixel sparkles, floating **boxed score popups** (`+20`, `+35`, `+50`), fruit-colored particle bursts, distinct Web Audio chimes for each fruit, and light mobile haptic feedback.
+    - **Dynamic Stage Target Scores:** Recomputed automatically from the fruit spawn schedule (`24 spawns/min × stage-weighted avg fruit value + avg gold orbs`), scaling from `55%` of realistic maximum at Stage 1 up to `85%` at Stage 10.
+  - **Central Danger Zone & Gold Energy Orbs:** An `850 px`-radius high-gravity maelstrom at the center of the map (`(4000, 4000)`) that slows movement to `0.78×` and houses **53 Gold Energy Orbs**.
+  - **Rare Gold Glow Orbs:** Spawn every `40–60s` (lasting `25s` with a live circular countdown ring and edge direction pointer), granting **+3 length** and a **6-second cosmetic comet ribbon trail**.
+  - **Collectible Map Power-Ups:** Random **Blue Plasma Orbs (`💠`, 8s, 2X Score Multiplier)**, **Magnet (`🧲`, 6s, 700px radius)**, and **Speed Boost (`⚡`, 5s, 1.6× speed)** items spawn across the arena (up to 3 active simultaneously). Fruit points stack with both the rapid-eat combo multiplier and the Blue Plasma `2X` multiplier.
+  - **Big-Snake Food Shedding:** Snakes above length `40` periodically shed bonus fruits behind their tails every `3s` (capped to prevent late-game lag).
   - **Crowned #1 King Snake (`👑`):** The longest active snake wears a glowing crown, is tracked on the minimap, and drops **2× double-value loot** when eliminated.
 
 ---

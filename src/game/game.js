@@ -25,7 +25,7 @@ const FOOD_DENSITY = GAME_CONFIG.FOOD_DENSITY ?? (0.3 * FOOD_DENSITY_SCALE);
 const FOOD_VALUE = GAME_CONFIG.FOOD_VALUE ?? 1;
 const FOOD_COUNT = Math.max(1, Math.round(42 * FOOD_DENSITY * (WORLD_WIDTH * WORLD_HEIGHT) / (REFERENCE_VIEW_WIDTH * REFERENCE_VIEW_HEIGHT)));
 const MAX_VISIBLE_FOOD = 19; // +25% from 15
-const FOOD_RESPAWN_DELAY_MS = 720; // 25% faster respawn throughput (900 / 1.25)
+const FOOD_RESPAWN_DELAY_MS = (GAME_CONFIG.FRUITS && GAME_CONFIG.FRUITS.spawnIntervalMs) || 2500;
 const DANGER_ZONE_FOOD_COUNT = 53; // +25% from 42
 const FOOD_PICKUP_RADIUS = HEAD_RADIUS + 13 * FOOD_SIZE_SCALE;
 const RARE_ORB_PICKUP_RADIUS = HEAD_RADIUS + 16 * FOOD_SIZE_SCALE;
@@ -35,6 +35,75 @@ const foodGridTaken = new Uint8Array(FOOD_COUNT);
 let foodGridCursor = 0;
 let nextFoodSpawnAt = 0;
 let normalFoodCount = 0;
+
+const FRUITS_CONFIG = GAME_CONFIG.FRUITS || {
+  spawnIntervalMs: 2500,
+  minHeadClearCells: 3,
+  baseLifetimeMs: 9000,
+  minLifetimeMs: 5000,
+  lifetimeStepPerLevelMs: 450,
+  blinkWarningMs: 2000,
+  scaleInMs: 240,
+  spawnsPerMinute: 24,
+  avgGoldBonusPerMinute: 120,
+  targetRatioStart: 0.55,
+  targetRatioEnd: 0.85,
+  maxLevel: 10,
+  types: {
+    apple: { id: 'apple', name: 'Apple', points: 20, growth: 1, baseOdds: 0.60, oddsShiftPerLevel: -0.035, color: '#ff3b5c', outline: '#ff9ebb', stem: '#4ade80', highlight: '#ffe4e9', glow: 'rgba(255, 59, 92, 0.78)' },
+    cherry: { id: 'cherry', name: 'Cherry', points: 35, growth: 1, baseOdds: 0.30, oddsShiftPerLevel: 0.015, color: '#e11d48', outline: '#fda4af', stem: '#22c55e', highlight: '#ffe4e6', glow: 'rgba(225, 29, 72, 0.82)' },
+    grapes: { id: 'grapes', name: 'Grapes', points: 50, growth: 2, baseOdds: 0.10, oddsShiftPerLevel: 0.020, color: '#a855f7', outline: '#e9d5ff', stem: '#4ade80', highlight: '#f3e8ff', glow: 'rgba(168, 85, 247, 0.86)' }
+  }
+};
+
+function getFruitOddsForLevel(level = 1) {
+  const lvlIdx = Math.max(0, Math.min((FRUITS_CONFIG.maxLevel || 10) - 1, Math.floor(level) - 1));
+  const t = FRUITS_CONFIG.types;
+  const rawApple = Math.max(0.22, (t.apple.baseOdds || 0.60) + (t.apple.oddsShiftPerLevel || -0.035) * lvlIdx);
+  const rawCherry = Math.max(0.15, (t.cherry.baseOdds || 0.30) + (t.cherry.oddsShiftPerLevel || 0.015) * lvlIdx);
+  const rawGrapes = Math.max(0.08, (t.grapes.baseOdds || 0.10) + (t.grapes.oddsShiftPerLevel || 0.020) * lvlIdx);
+  const sum = rawApple + rawCherry + rawGrapes;
+  return {
+    apple: rawApple / sum,
+    cherry: rawCherry / sum,
+    grapes: rawGrapes / sum
+  };
+}
+
+function pickFruitTypeForLevel(level = 1) {
+  const odds = getFruitOddsForLevel(level);
+  const r = Math.random();
+  if (r < odds.apple) return FRUITS_CONFIG.types.apple;
+  if (r < odds.apple + odds.cherry) return FRUITS_CONFIG.types.cherry;
+  return FRUITS_CONFIG.types.grapes;
+}
+
+function getFruitLifetimeMs(level = 1) {
+  const lvlIdx = Math.max(0, Math.min((FRUITS_CONFIG.maxLevel || 10) - 1, Math.floor(level) - 1));
+  return Math.max(
+    FRUITS_CONFIG.minLifetimeMs || 5000,
+    (FRUITS_CONFIG.baseLifetimeMs || 9000) - lvlIdx * (FRUITS_CONFIG.lifetimeStepPerLevelMs || 450)
+  );
+}
+
+function computeLevelTargetScore(level = 1) {
+  const maxLvl = FRUITS_CONFIG.maxLevel || 10;
+  const clampedLvl = Math.max(1, Math.min(maxLvl, Math.floor(level)));
+  const odds = getFruitOddsForLevel(clampedLvl);
+  const t = FRUITS_CONFIG.types;
+  const avgFruitVal = odds.apple * t.apple.points + odds.cherry * t.cherry.points + odds.grapes * t.grapes.points;
+  const spawnsPerMin = FRUITS_CONFIG.spawnsPerMinute || 24;
+  const avgGoldPerMin = FRUITS_CONFIG.avgGoldBonusPerMinute || 120;
+  const realisticMax = (spawnsPerMin * avgFruitVal + avgGoldPerMin) * clampedLvl;
+  const ratioStart = FRUITS_CONFIG.targetRatioStart || 0.55;
+  const ratioEnd = FRUITS_CONFIG.targetRatioEnd || 0.85;
+  const ratio = ratioStart + ((clampedLvl - 1) / Math.max(1, maxLvl - 1)) * (ratioEnd - ratioStart);
+  return Math.max(100, Math.round((realisticMax * ratio) / 10) * 10);
+}
+
+let currentArenaLevel = 1;
+let matchFruitScore = 0;
+const fruitSpriteCache = new Map();
 const BOT_START_COUNT = GAME_CONFIG.BOT_START_COUNT || 50;
 const BOT_WAVE_ADD = GAME_CONFIG.BOT_WAVE_ADD || 5;
 const BOT_WAVE_INTERVAL_MS = GAME_CONFIG.BOT_WAVE_INTERVAL_MS || 10000;
@@ -80,10 +149,11 @@ const TOUCH_DEAD_ZONE = 10;
 const TOUCH_MAX_TURN_RATE = 2.4;
 const BOT_SENSOR_ANGLES = [0, 0.45, -0.45, 0.9, -0.9, 1.4, -1.4];
 
-// Power-up system: collectible items that spawn randomly on the map
+// Power-up system: collectible items that spawn randomly on the map (including Blue Plasma 2X Score Multiplier Orb)
 const POWERUP_TYPES = [
   { id: 'magnet', icon: '🧲', label: 'Magnet!', color: '#f43f5e', glow: 'rgba(244,63,94,.7)', duration: 6000, radius: 700 },
-  { id: 'speed', icon: '⚡', label: 'Speed Boost!', color: '#fbbf24', glow: 'rgba(251,191,36,.7)', duration: 5000, multiplier: 1.6 }
+  { id: 'speed', icon: '⚡', label: 'Speed Boost!', color: '#fbbf24', glow: 'rgba(251,191,36,.7)', duration: 5000, multiplier: 1.6 },
+  { id: 'plasma', icon: '💠', label: 'Blue Plasma 2X Score!', color: '#00d9ff', glow: 'rgba(0,217,255,.85)', duration: 8000, multiplier: 2.0 }
 ];
 const POWERUP_SPAWN_MIN_MS = 15000;
 const POWERUP_SPAWN_MAX_MS = 30000;
@@ -98,14 +168,6 @@ let powerupIndicatorTimer = 0;
 const BIG_SNAKE_FOOD_THRESHOLD = 40; // length above which a snake starts producing food
 const BIG_SNAKE_FOOD_INTERVAL_MS = 3000; // how often big snakes produce food (ms)
 let lastBigSnakeFoodAt = 0;
-
-const FOOD_COLORS = [
-  { core: '#22d3ee', glow: 'rgba(34, 211, 238, 0.5)' },
-  { core: '#f43f5e', glow: 'rgba(244, 63, 94, 0.5)' },
-  { core: '#a855f7', glow: 'rgba(168, 85, 247, 0.5)' },
-  { core: '#10b981', glow: 'rgba(16, 185, 129, 0.5)' },
-  { core: '#fbbf24', glow: 'rgba(251, 191, 36, 0.5)' }
-];
 
 const PALETTE_PLAYER = {
   head: '#34d399',
@@ -202,6 +264,106 @@ function safeStorageSet(key, value) {
   try { localStorage.setItem(key, value); } catch (_) {}
 }
 
+const FRUIT_PIXEL_GRIDS = Object.freeze({
+  apple: [
+    '.......SS.......',
+    '......SSGG......',
+    '......S.GG......',
+    '...OOOO..OOOO...',
+    '..OBBBBOOOBBBO..',
+    '.OBHHBBBBBBBBBO.',
+    '.OBHBBBBBBBBBBBO',
+    '.OBBBBBBBBBBBBBO',
+    '.OBBBBBBBBBBBBBO',
+    '.OBBBBBBBBBBBBBO',
+    '..OBBBBBBBBBBBO.',
+    '..OBBBBBBBBBBBO.',
+    '...OBBBBBBBBBO..',
+    '....OOBBBBBOO...',
+    '.....OO.O.OO....',
+    '................'
+  ],
+  cherry: [
+    '.........SS.....',
+    '........SSGG....',
+    '.......SS..G....',
+    '......S..S......',
+    '.....S....S.....',
+    '....S......S....',
+    '..OOOO....OOOO..',
+    '.OBBBBO..OBBBBO.',
+    'OBHHBBBOOBHHBBBO',
+    'OBHBBBBBOBHBBBBO',
+    'OBBBBBBBOBBBBBBO',
+    '.OBBBBBO.OBBBBBO',
+    '..OOOOO...OOOOO.',
+    '................',
+    '................',
+    '................'
+  ],
+  grapes: [
+    '.......SS.......',
+    '.....SSSSSS.....',
+    '.......SS.......',
+    '..OOOO.OO.OOOO..',
+    '.OBHBBOOOOBHBBO.',
+    '.OBBBBOHBOBBBBO.',
+    '..OOOOOBBOOOOO..',
+    '...OOOBBBBOOO...',
+    '..OBHBBBBBBHBO..',
+    '..OBBBBBBBBBBO..',
+    '...OOOBBBBOOO...',
+    '....OBHBBOHBO...',
+    '....OBBBBBBBO...',
+    '.....OOOBBOO....',
+    '......OBBBO.....',
+    '.......OOO......'
+  ]
+});
+
+function initFruitSpriteCache() {
+  fruitSpriteCache.clear();
+  const types = FRUITS_CONFIG.types;
+  for (const key of Object.keys(types)) {
+    const def = types[key];
+    const grid = FRUIT_PIXEL_GRIDS[key] || FRUIT_PIXEL_GRIDS.apple;
+    const sprite = document.createElement('canvas');
+    sprite.width = 48;
+    sprite.height = 48;
+    const sCtx = sprite.getContext('2d');
+
+    // Soft radial neon under-glow baked into the offscreen sprite
+    const rad = sCtx.createRadialGradient(24, 25, 2, 24, 25, 22);
+    rad.addColorStop(0, def.glow);
+    rad.addColorStop(0.55, def.glow.replace(/[\d.]+\)$/, '0.28)'));
+    rad.addColorStop(1, 'rgba(0,0,0,0)');
+    sCtx.fillStyle = rad;
+    sCtx.fillRect(0, 0, 48, 48);
+
+    const pxSize = 2.25;
+    const offset = (48 - 16 * pxSize) / 2;
+    for (let r = 0; r < grid.length; r++) {
+      const rowStr = grid[r];
+      for (let c = 0; c < rowStr.length; c++) {
+        const ch = rowStr[c];
+        if (ch === '.') continue;
+        if (ch === 'O') sCtx.fillStyle = def.outline;
+        else if (ch === 'B') sCtx.fillStyle = def.color;
+        else if (ch === 'H') sCtx.fillStyle = def.highlight || '#ffffff';
+        else if (ch === 'S' || ch === 'G') sCtx.fillStyle = def.stem || '#4ade80';
+        else continue;
+        sCtx.fillRect(
+          Math.round(offset + c * pxSize),
+          Math.round(offset + r * pxSize),
+          Math.ceil(pxSize),
+          Math.ceil(pxSize)
+        );
+      }
+    }
+    fruitSpriteCache.set(key, sprite);
+  }
+}
+
 function initRenderCaches() {
   backgroundTileCanvas = document.createElement('canvas');
   backgroundTileCanvas.width = SPATIAL_CELL_SIZE;
@@ -216,6 +378,7 @@ function initRenderCaches() {
   backgroundLayerCanvas.height = 180;
   backgroundLayerContext = backgroundLayerCanvas.getContext('2d');
   backgroundCacheFrame = -1;
+  initFruitSpriteCache();
 }
 
 function getGlowSprite(color) {
@@ -813,6 +976,21 @@ function playTone(freqStart, freqEnd, duration, type = 'sine', volume = 0.1) {
 
 function sfxEat() {
   playTone(840, 1280, 0.08, 'sine', 0.09);
+}
+
+function sfxEatFruit(fruitType) {
+  if (fruitType === 'grapes') {
+    playTone(660, 990, 0.065, 'sine', 0.10);
+    setTimeout(() => playTone(990, 1320, 0.065, 'triangle', 0.085), 38);
+    setTimeout(() => playTone(1320, 1760, 0.085, 'sine', 0.08), 76);
+  } else if (fruitType === 'cherry') {
+    playTone(880, 1320, 0.06, 'triangle', 0.095);
+    setTimeout(() => playTone(1174.66, 1567.98, 0.075, 'sine', 0.085), 44);
+  } else {
+    // Apple: crisp chiptune pop
+    playTone(780, 1180, 0.07, 'sine', 0.09);
+    playTone(1180, 1440, 0.055, 'triangle', 0.05);
+  }
 }
 
 function sfxRareOrbSpawn() {
@@ -3547,30 +3725,58 @@ function isFarFromAllSnakes(x, y, minDist = 60) {
   return true;
 }
 
+function isFarFromOtherFood(x, y, minDist = 48) {
+  const minDistSq = minDist * minDist;
+  for (let i = 0; i < foodOrbs.length; i++) {
+    const o = foodOrbs[i];
+    if (!o || o.consumed) continue;
+    if (toroidDistSq(o.x, o.y, x, y) < minDistSq) return false;
+  }
+  for (let i = 0; i < powerups.length; i++) {
+    const pu = powerups[i];
+    if (toroidDistSq(pu.x, pu.y, x, y) < minDistSq) return false;
+  }
+  if (rareOrb && toroidDistSq(rareOrb.x, rareOrb.y, x, y) < minDistSq) return false;
+  return true;
+}
+
+function isOutsidePlayerHeadClearCells(x, y, col = -1, row = -1) {
+  if (!player || !player.alive) return true;
+  const minCells = FRUITS_CONFIG.minHeadClearCells || 3;
+  const cellWidth = WORLD_WIDTH / FOOD_GRID_COLUMNS;
+  const cellHeight = WORLD_HEIGHT / FOOD_GRID_ROWS;
+  const playerCol = Math.floor(wrap(player.x, WORLD_WIDTH) / cellWidth);
+  const playerRow = Math.floor(wrap(player.y, WORLD_HEIGHT) / cellHeight);
+  if (col >= 0 && row >= 0) {
+    let dCol = Math.abs(col - playerCol);
+    let dRow = Math.abs(row - playerRow);
+    if (dCol > FOOD_GRID_COLUMNS / 2) dCol = FOOD_GRID_COLUMNS - dCol;
+    if (dRow > FOOD_GRID_ROWS / 2) dRow = FOOD_GRID_ROWS - dRow;
+    if (dCol <= minCells && dRow <= minCells) return false;
+  }
+  const minClearPx = Math.max(180, minCells * Math.min(cellWidth, cellHeight) * 0.65);
+  return toroidDistSq(player.x, player.y, x, y) >= minClearPx * minClearPx;
+}
+
 function spawnFoodOrb(customX, customY, customColor) {
   let x = customX !== undefined ? customX : Math.random() * WORLD_WIDTH;
   let y = customY !== undefined ? customY : Math.random() * WORLD_HEIGHT;
 
   if (customX === undefined) {
     for (let attempt = 0; attempt < 25; attempt++) {
-      if (isFarFromAllSnakes(x, y, 45)) break;
+      if (isFarFromAllSnakes(x, y, 45) && isOutsidePlayerHeadClearCells(x, y)) break;
       x = Math.random() * WORLD_WIDTH;
       y = Math.random() * WORLD_HEIGHT;
     }
   }
 
-  const scheme = customColor || FOOD_COLORS[Math.floor(Math.random() * FOOD_COLORS.length)];
+  const now = performance.now();
+  const isSpecialDrop = Boolean(customColor && (customColor.isDeathDrop === true || customColor.isDangerFood === true || (customColor.value ?? 1) > 1));
   const orb = foodOrbPool.pop() || {};
   orb.x = x;
   orb.y = y;
-  orb.value = scheme.value ?? FOOD_VALUE;
-  orb.isDeathDrop = scheme.isDeathDrop === true || (scheme.value ?? 1) > 1;
-  orb.isDangerFood = scheme.isDangerFood === true;
   orb.gridCell = -1;
-  orb.baseRadius = (4.5 + Math.random() * 2) * 1.4 * FOOD_SIZE_SCALE;
-  orb.color = scheme.core;
-  orb.glow = scheme.glow;
-  orb.pulseSpeed = 0.04 + Math.random() * 0.04;
+  orb.pulseSpeed = 0.045 + Math.random() * 0.035;
   orb.pulsePhase = Math.random() * Math.PI * 2;
   orb.vx = 0;
   orb.vy = 0;
@@ -3578,6 +3784,42 @@ function spawnFoodOrb(customX, customY, customColor) {
   orb.burstDelay = 0;
   orb.updateOffset = Math.floor(Math.random() * 4);
   orb.consumed = false;
+
+  if (isSpecialDrop) {
+    orb.isFruit = false;
+    orb.fruitType = null;
+    orb.points = (customColor.value || 2) * 10;
+    orb.growth = customColor.value ?? 2;
+    orb.value = orb.growth;
+    orb.isDeathDrop = true;
+    orb.isDangerFood = customColor.isDangerFood === true;
+    orb.baseRadius = (4.5 + Math.random() * 2) * 1.4 * FOOD_SIZE_SCALE;
+    orb.color = customColor.core || '#facc15';
+    orb.outline = '#fef08a';
+    orb.glow = customColor.glow || 'rgba(250,204,21,.72)';
+    orb.spawnedAt = now;
+    orb.lifetimeMs = Infinity;
+    orb.expiresAt = Infinity;
+  } else {
+    const fruitDef = (customColor && customColor.fruitType && FRUITS_CONFIG.types[customColor.fruitType])
+      ? FRUITS_CONFIG.types[customColor.fruitType]
+      : pickFruitTypeForLevel(currentArenaLevel);
+    const lifetimeMs = getFruitLifetimeMs(currentArenaLevel);
+    orb.isFruit = true;
+    orb.fruitType = fruitDef.id;
+    orb.points = fruitDef.points;
+    orb.growth = fruitDef.growth;
+    orb.value = fruitDef.growth;
+    orb.isDeathDrop = Boolean(customColor && customColor.isDeathDrop);
+    orb.isDangerFood = false;
+    orb.baseRadius = (fruitDef.id === 'grapes' ? 11.5 : fruitDef.id === 'cherry' ? 10.8 : 10.2) * FOOD_SIZE_SCALE;
+    orb.color = fruitDef.color;
+    orb.outline = fruitDef.outline;
+    orb.glow = fruitDef.glow;
+    orb.spawnedAt = now;
+    orb.lifetimeMs = lifetimeMs;
+    orb.expiresAt = orb.isDeathDrop ? (now + lifetimeMs * 1.5) : (now + lifetimeMs);
+  }
   return orb;
 }
 
@@ -3593,12 +3835,17 @@ function initFood() {
   normalFoodCount = 0;
   foodGridTaken.fill(0);
   foodGridCursor = 0;
+  const now = performance.now();
+  const baseLife = getFruitLifetimeMs(currentArenaLevel);
   for (let i = 0; i < FOOD_COUNT; i++) {
-    const orb = spawnGridFoodOrb();
+    const orb = spawnGridFoodOrb(false);
     if (!orb) break;
+    // Stagger initial fruit expiration timestamps so the initial field cycles smoothly
+    const staggerMs = (i % 12) * Math.round(baseLife / 13);
+    orb.expiresAt = now + baseLife + staggerMs;
     foodOrbs.push(orb);
   }
-  // A persistent high-value cluster gives the center of the arena a clear risk/reward (+25% density).
+  // Persistent Gold Energy Orb cluster in the central Danger Zone
   for (let i = 0; i < DANGER_ZONE_FOOD_COUNT; i++) {
     const angle = (i / DANGER_ZONE_FOOD_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
     const distance = (0.18 + 0.82 * Math.sqrt((i + Math.random()) / DANGER_ZONE_FOOD_COUNT)) * DANGER_ZONE_RADIUS * 0.84;
@@ -3606,7 +3853,7 @@ function initFood() {
       { core: '#facc15', glow: 'rgba(250,204,21,.72)', value: 3, isDeathDrop: true, isDangerFood: true });
     foodOrbs.push(orb);
   }
-  nextFoodSpawnAt = performance.now() + FOOD_RESPAWN_DELAY_MS;
+  nextFoodSpawnAt = now + (FRUITS_CONFIG.spawnIntervalMs || 2500);
 }
 
 function countNormalFood() {
@@ -3625,19 +3872,36 @@ function countVisibleNormalFood() {
   return count;
 }
 
-function spawnGridFoodOrb() {
+function spawnGridFoodOrb(preferNearPlayer = false) {
+  const cellWidth = WORLD_WIDTH / FOOD_GRID_COLUMNS;
+  const cellHeight = WORLD_HEIGHT / FOOD_GRID_ROWS;
+  const playerCol = Math.floor(wrap(player.x, WORLD_WIDTH) / cellWidth);
+  const playerRow = Math.floor(wrap(player.y, WORLD_HEIGHT) / cellHeight);
+
   for (let attempt = 0; attempt < FOOD_COUNT; attempt++) {
-    const cell = (foodGridCursor + attempt) % FOOD_COUNT;
+    let cell;
+    if (preferNearPlayer && attempt < 36) {
+      // Sample a random grid cell near the active viewport but outside 3 cells of the player's head
+      const minC = (FRUITS_CONFIG.minHeadClearCells || 3) + 1;
+      const offsetCol = (Math.random() < 0.5 ? -1 : 1) * (minC + Math.floor(Math.random() * 5));
+      const offsetRow = (Math.random() < 0.5 ? -1 : 1) * (minC + Math.floor(Math.random() * 4));
+      const c = wrap(playerCol + offsetCol, FOOD_GRID_COLUMNS);
+      const r = wrap(playerRow + offsetRow, FOOD_GRID_ROWS);
+      cell = r * FOOD_GRID_COLUMNS + c;
+      if (cell >= FOOD_COUNT) cell = (foodGridCursor + attempt) % FOOD_COUNT;
+    } else {
+      cell = (foodGridCursor + attempt) % FOOD_COUNT;
+    }
     if (foodGridTaken[cell]) continue;
     const column = cell % FOOD_GRID_COLUMNS;
     const row = Math.floor(cell / FOOD_GRID_COLUMNS);
-    const cellWidth = WORLD_WIDTH / FOOD_GRID_COLUMNS;
-    const cellHeight = WORLD_HEIGHT / FOOD_GRID_ROWS;
     const jitterX = (Math.random() - 0.5) * cellWidth * 0.36;
     const jitterY = (Math.random() - 0.5) * cellHeight * 0.36;
     const x = wrap((column + 0.5) * cellWidth + jitterX, WORLD_WIDTH);
     const y = wrap((row + 0.5) * cellHeight + jitterY, WORLD_HEIGHT);
+    if (!isOutsidePlayerHeadClearCells(x, y, column, row)) continue;
     if (!isFarFromAllSnakes(x, y, 85)) continue;
+    if (!isFarFromOtherFood(x, y, 42)) continue;
     const orb = spawnFoodOrb(x, y);
     orb.gridCell = cell;
     foodGridTaken[cell] = 1;
@@ -3652,7 +3916,31 @@ function updateFood() {
   const now = performance.now();
   const halfWidth = width / (2 * cameraZoom) + 100;
   const halfHeight = height / (2 * cameraZoom) + 100;
-  for (const orb of foodOrbs) {
+
+  let write = 0;
+  for (let read = 0; read < foodOrbs.length; read++) {
+    const orb = foodOrbs[read];
+    if (orb.consumed) {
+      recycleFoodOrb(orb);
+      continue;
+    }
+    // Expire fruits after their level-scaled lifetime (9s at level 1 down to 5s at higher levels)
+    if (orb.isFruit && orb.expiresAt && now >= orb.expiresAt) {
+      const inView = Math.abs(toroidDelta(cameraX, orb.x, WORLD_WIDTH)) <= halfWidth &&
+                     Math.abs(toroidDelta(cameraY, orb.y, WORLD_HEIGHT)) <= halfHeight;
+      if (inView) {
+        spawnFoodBurst(orb.x, orb.y, orb.color, 5);
+      }
+      if (!orb.isDeathDrop) {
+        normalFoodCount = Math.max(0, normalFoodCount - 1);
+        if (orb.gridCell >= 0) foodGridTaken[orb.gridCell] = 0;
+      }
+      recycleFoodOrb(orb);
+      continue;
+    }
+
+    foodOrbs[write++] = orb;
+
     if (now < orb.burstAt + orb.burstDelay) continue;
     if (now < player.magnetUntil && player.alive && toroidDistSq(player.x, player.y, orb.x, orb.y) < 650 ** 2) {
       const dx = toroidDelta(orb.x, player.x, WORLD_WIDTH);
@@ -3671,14 +3959,22 @@ function updateFood() {
     orb.x = wrap(orb.x + orb.vx * updateStep, WORLD_WIDTH);
     orb.y = wrap(orb.y + orb.vy * updateStep, WORLD_HEIGHT);
   }
-  if (countNormalFood() < FOOD_COUNT && now >= nextFoodSpawnAt) {
-    if (countVisibleNormalFood() >= MAX_VISIBLE_FOOD) {
-      nextFoodSpawnAt = now + 400;
-      return;
-    }
-    const orb = spawnGridFoodOrb();
+  foodOrbs.length = write;
+
+  // A new fruit appears every 2.5 seconds on a random free grid cell, and background grid cells replenish smoothly
+  if (now >= nextFoodSpawnAt) {
+    const canSpawnVisible = countVisibleNormalFood() < MAX_VISIBLE_FOOD;
+    const orb = spawnGridFoodOrb(canSpawnVisible);
     if (orb) foodOrbs.push(orb);
-    nextFoodSpawnAt = now + (orb ? FOOD_RESPAWN_DELAY_MS : 1200);
+    // Keep background world fruit population healthy for distant bots
+    let bgReplenish = 0;
+    while (countNormalFood() < FOOD_COUNT * 0.85 && bgReplenish < 4) {
+      const bgOrb = spawnGridFoodOrb(false);
+      if (!bgOrb) break;
+      foodOrbs.push(bgOrb);
+      bgReplenish++;
+    }
+    nextFoodSpawnAt = now + (FRUITS_CONFIG.spawnIntervalMs || 2500);
   }
 }
 
@@ -3717,12 +4013,14 @@ function checkPowerupCollection(now = performance.now()) {
       const headR = HEAD_RADIUS * mobileHeadBase * getSnakeHeadGrowthScale(snake.length);
       const pickupDistSq = (headR + 14) ** 2;
       if (toroidDistSq(snake.x, snake.y, pu.x, pu.y) >= pickupDistSq) continue;
-      // Apply power-up
+      // Apply power-up (Magnet, Speed Boost, or Blue Plasma 2X Score Multiplier Orb)
       if (pu.id === 'magnet') {
         snake.magnetUntil = Math.max(snake.magnetUntil || 0, now + pu.duration);
       } else if (pu.id === 'speed') {
         snake.speedBoostUntil = now + pu.duration;
         snake.speedBoostMultiplier = pu.multiplier;
+      } else if (pu.id === 'plasma') {
+        snake.plasma2xUntil = Math.max(snake.plasma2xUntil || 0, now + pu.duration);
       }
       spawnFoodBurst(pu.x, pu.y, pu.color, 8);
       if (snake.isPlayer) {
@@ -4301,9 +4599,14 @@ function updateBotAI(bot) {
     let nearestDropDistSq = Infinity;
     for (const orb of foodOrbs) {
       const dSq = toroidDistSq(bot.x, bot.y, orb.x, orb.y);
-      const weightedDistSq = orb.value > 1 ? dSq / (orb.value * 1.55) : dSq;
+      // Aggressive bots treat Grapes (+50 pts, +2 growth) as high priority and race the player for them
+      const isGrapes = orb.fruitType === 'grapes';
+      const fruitWeight = isGrapes
+        ? (brain.aggressive ? 3.8 : 2.4)
+        : (orb.fruitType === 'cherry' ? 1.65 : (orb.value > 1 ? orb.value * 1.55 : 1));
+      const weightedDistSq = fruitWeight > 1 ? dSq / fruitWeight : dSq;
       if (weightedDistSq < nearestFoodDistSq) { nearestFoodDistSq = weightedDistSq; nearestFood = orb; }
-      if (orb.value > 1 && dSq < nearestDropDistSq) { nearestDropDistSq = dSq; nearestDrop = orb; }
+      if ((orb.value > 1 || isGrapes) && dSq < nearestDropDistSq) { nearestDropDistSq = dSq; nearestDrop = orb; }
     }
 
     let target = nearestDrop && nearestDropDistSq < 440 * 440 ? nearestDrop : nearestFood;
@@ -4796,6 +5099,8 @@ function shiftActiveTimersByPauseDuration(deltaMs) {
   player.magnetUntil = shiftIfPositive(player.magnetUntil);
   player.dashUntil = shiftIfPositive(player.dashUntil);
   player.speedBoostUntil = shiftIfPositive(player.speedBoostUntil);
+  player.plasma2xUntil = shiftIfPositive(player.plasma2xUntil);
+  player.comboExpiresAt = shiftIfPositive(player.comboExpiresAt);
   player.glowTrailUntil = shiftIfPositive(player.glowTrailUntil);
   player.lastTrailSampleAt = shiftIfPositive(player.lastTrailSampleAt);
   if (player.abilityReadyAt) {
@@ -4846,6 +5151,8 @@ function shiftActiveTimersByPauseDuration(deltaMs) {
   }
   for (let i = 0; i < foodOrbs.length; i++) {
     if (foodOrbs[i].burstAt > 0) foodOrbs[i].burstAt += deltaMs;
+    foodOrbs[i].spawnedAt = shiftIfPositive(foodOrbs[i].spawnedAt);
+    foodOrbs[i].expiresAt = shiftIfPositive(foodOrbs[i].expiresAt);
   }
 }
 
@@ -4945,7 +5252,7 @@ function finalizeGameOver() {
   const finalRank = Math.max(1, allSnakes.findIndex(s => s.isPlayer) + 1);
   const diffMul = 1.0;
 
-  matchScore = Math.round((player.length * 15 + survivalSeconds * 6 + playerKillCount * 120 + matchFoodEaten * 4) * diffMul);
+  matchScore = Math.round((matchFruitScore + player.length * 15 + survivalSeconds * 6 + playerKillCount * 120) * diffMul);
   matchCoinsEarned = Math.max(5, Math.round(8 + survivalSeconds * 0.35 + playerKillCount * 14 + Math.max(0, player.length - INITIAL_SEGMENTS) * 0.5));
   matchXpEarned = Math.max(12, Math.round(20 + survivalSeconds * 0.7 + playerKillCount * 25 + matchFoodEaten * 0.8));
   matchDoubleClaimed = false;
@@ -5125,16 +5432,44 @@ function checkFoodConsumptionAll() {
           const orb = spatialSegment[slot];
           if (orb.consumed || now < orb.burstAt + orb.burstDelay || toroidDistSq(snake.x, snake.y, orb.x, orb.y) >= eatDistSq) continue;
           orb.consumed = true;
-          spawnFoodBurst(orb.x, orb.y, orb.color, 2);
+          spawnFoodBurst(orb.x, orb.y, orb.color, orb.isFruit ? 7 : 3);
           if (!orb.isDeathDrop) {
             normalFoodCount = Math.max(0, normalFoodCount - 1);
             if (orb.gridCell >= 0) foodGridTaken[orb.gridCell] = 0;
           }
-          const growth = orb.isDeathDrop ? orb.value : Math.max(1, Math.round(FOOD_VALUE));
+          const growth = orb.isFruit ? (orb.growth || 1) : (orb.isDeathDrop ? orb.value : Math.max(1, Math.round(FOOD_VALUE)));
           snake.growQueue += growth;
           snake.length += growth;
           if (snake.isPlayer) {
-            sfxEat();
+            if (orb.isFruit) {
+              sfxEatFruit(orb.fruitType);
+              triggerHaptic(14);
+              if (player.comboExpiresAt && now < player.comboExpiresAt) {
+                player.comboCount = Math.min(5, (player.comboCount || 1) + 1);
+              } else {
+                player.comboCount = 1;
+              }
+              player.comboExpiresAt = now + 3200;
+              const comboMul = 1 + Math.max(0, (player.comboCount - 1)) * 0.25;
+              const plasmaMul = (player.plasma2xUntil && now < player.plasma2xUntil) ? 2 : 1;
+              const pts = Math.round((orb.points || 20) * comboMul * plasmaMul);
+              matchFruitScore += pts;
+              const maxLvl = FRUITS_CONFIG.maxLevel || 10;
+              while (currentArenaLevel < maxLvl && matchFruitScore >= computeLevelTargetScore(currentArenaLevel)) {
+                currentArenaLevel++;
+                showPowerupIndicator(`🎯 STAGE ${currentArenaLevel} REACHED!`);
+              }
+              pushFloatingText(orb.x, orb.y, `+${pts}`, now, {
+                boxed: true,
+                color: orb.color,
+                outline: orb.outline || '#00F5A0'
+              });
+            } else {
+              sfxEat();
+              const goldPts = (orb.points || (growth * 15)) * ((player.plasma2xUntil && now < player.plasma2xUntil) ? 2 : 1);
+              matchFruitScore += goldPts;
+              if (orb.isDeathDrop) pushFloatingText(snake.x, snake.y, `+${growth}`);
+            }
             matchFoodEaten += growth;
             if (profileData) {
               profileData.stats.totalFoodEaten = (profileData.stats.totalFoodEaten || 0) + growth;
@@ -5146,7 +5481,6 @@ function checkFoodConsumptionAll() {
                 recordMissionProgress('matches_len150', 1, false);
               }
             }
-            if (orb.isDeathDrop) pushFloatingText(snake.x, snake.y, `+${growth}`);
             if (statLengthEl) statLengthEl.textContent = snake.length;
           }
         }
@@ -5247,8 +5581,13 @@ function updateHUDAndLeaderboard() {
   if (statRankEl) statRankEl.textContent = `#${playerRank}`;
   const statLvlEl = document.getElementById('stat-level');
   const statCoinsEl = document.getElementById('stat-coins');
+  const statTargetEl = document.getElementById('stat-target');
   if (statLvlEl && profileData) statLvlEl.textContent = profileData.level;
   if (statCoinsEl && profileData) statCoinsEl.textContent = profileData.coins.toLocaleString();
+  if (statTargetEl) {
+    const targetScore = computeLevelTargetScore(currentArenaLevel);
+    statTargetEl.textContent = `${matchFruitScore.toLocaleString()} / ${targetScore.toLocaleString()}`;
+  }
 
   if (lbListEl) {
     const LB_SHOWN = 10;
@@ -5882,9 +6221,14 @@ function initSnake() {
   player.magnetUntil = 0;
   player.dashUntil = 0;
   player.speedBoostUntil = 0;
+  player.plasma2xUntil = 0;
+  player.comboCount = 0;
+  player.comboExpiresAt = 0;
   player.abilityReadyAt = { ghost: 0, magnet: 0, dash: 0 };
   playerKillCount = 0;
   matchFoodEaten = 0;
+  matchFruitScore = 0;
+  currentArenaLevel = 1;
   matchPowerupsCollected = 0;
   matchDashesUsed = 0;
   matchAbilitiesUsed = 0;
@@ -6043,35 +6387,90 @@ function renderDangerZone() {
 
 function renderFood() {
   const now = performance.now();
-  const bounds = cameraViewBounds(34);
+  const bounds = cameraViewBounds(42);
   const isMobViewport = width <= 768 || isMobileDevice;
-  const mobileFoodScale = isMobViewport ? 1.48 : 1.05;
+  const mobileFoodScale = isMobViewport ? 1.42 : 1.08;
   const zoomComp = isMobViewport && cameraZoom < 0.72 ? Math.min(1.22, 0.74 / Math.max(0.45, cameraZoom)) : 1.0;
-  const visualScale = 0.78 * mobileFoodScale * zoomComp;
+  const visualScale = 0.82 * mobileFoodScale * zoomComp;
   const showAllFoodGlow = graphicsQuality !== 'low';
-  const glowAlpha = graphicsQuality === 'low' ? 0.55 : (graphicsQuality === 'medium' ? 0.72 : 0.94);
-  const glowScale = (isMobViewport ? 1.18 : 1.05) + currentCycle.nightFactor * 0.65;
+  const glowAlpha = graphicsQuality === 'low' ? 0.55 : (graphicsQuality === 'medium' ? 0.75 : 0.96);
+  const glowScale = (isMobViewport ? 1.22 : 1.10) + currentCycle.nightFactor * 0.65;
+  const scaleInDuration = FRUITS_CONFIG.scaleInMs || 240;
+  const blinkWarningMs = FRUITS_CONFIG.blinkWarningMs || 2000;
+
   for (const orb of foodOrbs) {
-    const birthProgress = orb.burstAt ? Math.min(1, Math.max(0, (now - orb.burstAt - orb.burstDelay) / 220)) : 1;
+    const birthProgress = orb.burstAt
+      ? Math.min(1, Math.max(0, (now - orb.burstAt - orb.burstDelay) / 220))
+      : Math.min(1, Math.max(0.08, (now - (orb.spawnedAt || 0)) / scaleInDuration));
     if (birthProgress <= 0) continue;
-    const bonusScale = orb.isDangerFood ? 1.24 : (orb.value > 1 ? 1.16 : 1.0);
-    const pulse = graphicsQuality === 'low' ? 1.0 : (1 + Math.sin(animFrame * (orb.pulseSpeed || 0.05) + (orb.pulsePhase || 0)) * 0.07);
-    const radius = Math.max(2.2, orb.baseRadius * visualScale * bonusScale * pulse * (orb.burstAt ? birthProgress : 1));
-    const x = cameraX + toroidDelta(cameraX, orb.x, WORLD_WIDTH);
-    if (x + radius < bounds.left || x - radius > bounds.right) continue;
-    const y = cameraY + toroidDelta(cameraY, orb.y, WORLD_HEIGHT);
-    if (y + radius < bounds.top || y - radius > bounds.bottom) continue;
-    ctx.globalAlpha = orb.burstAt ? birthProgress : 1;
-    if (showAllFoodGlow || orb.value > 1) drawCachedGlow(orb.glow, x, y, radius * glowScale, glowAlpha);
-    ctx.fillStyle = orb.color;
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fill();
-    if (radius >= 4.0) {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.48)';
+
+    // Special pickups (Gold Danger Zone Energy Orbs & Snake Death Drops) keep their glowing energy orb look
+    if (!orb.isFruit) {
+      const bonusScale = orb.isDangerFood ? 1.24 : (orb.value > 1 ? 1.16 : 1.0);
+      const pulse = graphicsQuality === 'low' ? 1.0 : (1 + Math.sin(animFrame * (orb.pulseSpeed || 0.05) + (orb.pulsePhase || 0)) * 0.07);
+      const radius = Math.max(2.2, orb.baseRadius * visualScale * bonusScale * pulse * birthProgress);
+      const x = cameraX + toroidDelta(cameraX, orb.x, WORLD_WIDTH);
+      if (x + radius < bounds.left || x - radius > bounds.right) continue;
+      const y = cameraY + toroidDelta(cameraY, orb.y, WORLD_HEIGHT);
+      if (y + radius < bounds.top || y - radius > bounds.bottom) continue;
+      ctx.globalAlpha = birthProgress;
+      if (showAllFoodGlow || orb.value > 1) drawCachedGlow(orb.glow, x, y, radius * glowScale, glowAlpha);
+      ctx.fillStyle = orb.color;
       ctx.beginPath();
-      ctx.arc(x - radius * 0.25, y - radius * 0.25, radius * 0.34, 0, Math.PI * 2);
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
       ctx.fill();
+      if (radius >= 4.0) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.48)';
+        ctx.beginPath();
+        ctx.arc(x - radius * 0.25, y - radius * 0.25, radius * 0.34, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      continue;
+    }
+
+    // Procedural cached pixel-art neon fruit rendering (Apple, Cherry, Grapes)
+    const remainingMs = (orb.expiresAt || Infinity) - now;
+    const isExpiring = remainingMs < blinkWarningMs;
+    const shrinkFactor = isExpiring ? Math.max(0.45, 0.45 + 0.55 * (remainingMs / blinkWarningMs)) : 1.0;
+    const blinkAlpha = isExpiring ? (Math.sin(now * 0.032) > -0.15 ? 1.0 : 0.24) : 1.0;
+    const bobOffset = graphicsQuality === 'low' ? 0 : Math.sin(now * 0.0055 + (orb.pulsePhase || 0)) * 2.4;
+    const drawRadius = Math.max(8, orb.baseRadius * visualScale * birthProgress * shrinkFactor);
+
+    const x = cameraX + toroidDelta(cameraX, orb.x, WORLD_WIDTH);
+    if (x + drawRadius + 8 < bounds.left || x - drawRadius - 8 > bounds.right) continue;
+    const y = cameraY + toroidDelta(cameraY, orb.y, WORLD_HEIGHT) + bobOffset;
+    if (y + drawRadius + 8 < bounds.top || y - drawRadius - 8 > bounds.bottom) continue;
+
+    ctx.globalAlpha = birthProgress * blinkAlpha;
+    if (showAllFoodGlow || orb.fruitType === 'grapes') {
+      drawCachedGlow(orb.glow, x, y, drawRadius * 0.92 * glowScale, glowAlpha * 0.85);
+    }
+
+    // Faint glow ring during scale-in animation
+    if (birthProgress < 0.99) {
+      ctx.save();
+      ctx.globalAlpha = (1 - birthProgress * 0.7) * 0.65;
+      ctx.strokeStyle = orb.outline || orb.color;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(x, y, drawRadius * (0.95 + birthProgress * 0.55), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    const sprite = fruitSpriteCache.get(orb.fruitType) || fruitSpriteCache.get('apple');
+    if (sprite) {
+      const spriteSize = drawRadius * 2.55;
+      ctx.drawImage(sprite, x - spriteSize / 2, y - spriteSize / 2, spriteSize, spriteSize);
+    }
+
+    // Occasional CRT neon pixel sparkle
+    if (graphicsQuality !== 'low' && Math.sin(now * 0.011 + (orb.pulsePhase || 0) * 3.7) > 0.91) {
+      const spX = x + Math.cos(orb.pulsePhase || 0) * drawRadius * 0.52;
+      const spY = y - drawRadius * 0.48;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(spX - 1.5, spY - 4.5, 3, 9);
+      ctx.fillRect(spX - 4.5, spY - 1.5, 9, 3);
     }
   }
   ctx.globalAlpha = 1;
@@ -6079,11 +6478,11 @@ function renderFood() {
 
 function renderFloatingTexts() {
   const now = performance.now();
-  const bounds = cameraViewBounds(24);
+  const bounds = cameraViewBounds(36);
   for (let i = floatingTexts.length - 1; i >= 0; i--) {
     const item = floatingTexts[i];
     const age = now - item.time;
-    if (age > 900) {
+    if (age > 950) {
       const last = floatingTexts.length - 1;
       floatingTexts[i] = floatingTexts[last];
       floatingTexts.pop();
@@ -6091,29 +6490,45 @@ function renderFloatingTexts() {
       continue;
     }
     const x = cameraX + toroidDelta(cameraX, item.x, WORLD_WIDTH);
-    if (x + 24 < bounds.left || x - 24 > bounds.right) continue;
-    const y = cameraY + toroidDelta(cameraY, item.y - age * 0.035, WORLD_HEIGHT);
-    if (y + 24 < bounds.top || y - 24 > bounds.bottom) continue;
-    const fade = 1 - age / 900;
+    if (x + 36 < bounds.left || x - 36 > bounds.right) continue;
+    const y = cameraY + toroidDelta(cameraY, item.y - age * 0.038, WORLD_HEIGHT);
+    if (y + 36 < bounds.top || y - 36 > bounds.bottom) continue;
+    const fade = 1 - age / 950;
     ctx.save();
     ctx.globalAlpha = fade;
-    ctx.fillStyle = '#fff1b8';
-    ctx.font = 'bold 15px system-ui, sans-serif';
+    ctx.font = 'bold 14px system-ui, sans-serif';
     ctx.textAlign = 'center';
-    ctx.lineWidth = 2.5;
-    ctx.strokeStyle = 'rgba(15,23,42,.86)';
-    ctx.strokeText(item.text, x, y);
-    ctx.fillText(item.text, x, y);
+    ctx.textBaseline = 'middle';
+    if (item.boxed) {
+      const boxW = Math.max(38, item.text.length * 9 + 14);
+      const boxH = 22;
+      ctx.fillStyle = 'rgba(8, 13, 24, 0.90)';
+      ctx.strokeStyle = item.outline || item.color || '#00F5A0';
+      ctx.lineWidth = 1.8;
+      ctx.fillRect(x - boxW / 2, y - boxH / 2, boxW, boxH);
+      ctx.strokeRect(x - boxW / 2, y - boxH / 2, boxW, boxH);
+      ctx.fillStyle = item.outline || '#ffffff';
+      ctx.fillText(item.text, x, y + 0.5);
+    } else {
+      ctx.fillStyle = '#fff1b8';
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = 'rgba(15,23,42,.86)';
+      ctx.strokeText(item.text, x, y);
+      ctx.fillText(item.text, x, y);
+    }
     ctx.restore();
   }
 }
 
-function pushFloatingText(x, y, text, time = performance.now()) {
+function pushFloatingText(x, y, text, time = performance.now(), opts = null) {
   const item = floatingTextPool.pop() || {};
   item.x = x;
   item.y = y;
   item.text = text;
   item.time = time;
+  item.boxed = Boolean(opts && opts.boxed);
+  item.color = (opts && opts.color) || '#fff1b8';
+  item.outline = (opts && opts.outline) || '#00F5A0';
   floatingTexts.push(item);
 }
 
@@ -6131,6 +6546,8 @@ function renderRareOrb() {
   const bounds = cameraViewBounds(38);
   const x = cameraX + toroidDelta(cameraX, rareOrb.x, WORLD_WIDTH);
   const y = cameraY + toroidDelta(cameraY, rareOrb.y, WORLD_HEIGHT);
+  const remainingSec = Math.max(0, Math.ceil((rareOrb.expiresAt - now) / 1000));
+  const lifeFraction = Math.max(0, Math.min(1, (rareOrb.expiresAt - now) / RARE_ORB_LIFETIME_MS));
   if (x + 38 >= bounds.left && x - 38 <= bounds.right && y + 38 >= bounds.top && y - 38 <= bounds.bottom) {
     ctx.save();
     ctx.translate(x, y);
@@ -6140,6 +6557,13 @@ function renderRareOrb() {
     ctx.beginPath();
     ctx.arc(0, 0, 7.2 * rareScale, 0, Math.PI * 2);
     ctx.fill();
+    // Gold Orb countdown ring
+    ctx.strokeStyle = 'rgba(250, 204, 21, 0.88)';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 18.5 * rareScale, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * lifeFraction);
+    ctx.stroke();
+    ctx.save();
     ctx.rotate(rotation);
     ctx.strokeStyle = '#ffe5a4';
     ctx.lineWidth = 2.4;
@@ -6155,6 +6579,12 @@ function renderRareOrb() {
       ctx.arc(Math.cos(a) * 17 * rareScale, Math.sin(a) * 12 * rareScale, 1.6 * rareScale, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.restore();
+    // Gold Orb countdown timer label
+    ctx.fillStyle = '#fef08a';
+    ctx.font = 'bold 11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${remainingSec}s`, 0, -22 * rareScale);
     ctx.restore();
   }
 
