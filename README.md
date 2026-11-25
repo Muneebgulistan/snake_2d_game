@@ -1,39 +1,99 @@
-# Serpent Run
+# Serpent Run: Neon Abyss Edition (v3.0.0)
 
-A lightweight snake survival game for Android and the browser. Steer through a wraparound arena, collect food, grow, and avoid the other snakes. Best runs, skin unlocks and selection, and sound preferences are saved on the device.
+A high-performance 2D arcade snake survival game built for **Android (Capacitor 8)**, **Web Browsers**, and **Expo Go** using vanilla HTML5 Canvas, procedural Web Audio synthesis, and an $O(1)$ spatial hash engine—with zero external runtime libraries.
 
-## Game features
+![Version](https://img.shields.io/badge/Version-3.0.0-00F5A0)
+![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Web%20%7C%20Expo-00D9FF)
+![HTML5](https://img.shields.io/badge/HTML5-Canvas%202D-E34F26?logo=html5&logoColor=white)
+![JavaScript](https://img.shields.io/badge/Vanilla-JavaScript-F7DF1E?logo=javascript&logoColor=black)
+![Capacitor](https://img.shields.io/badge/Capacitor-8.5.3-119EFF?logo=capacitor&logoColor=white)
 
-- A smoothly changing three-minute underwater day and night cycle. It changes the scenery only, so game rules stay consistent.
-- An 8000 × 8000 wraparound world with a smooth following camera, a view scaled by screen area, and a circular minimap.
-- Sparse, evenly spaced, stationary normal food with a slow respawn rate; food density and growth value are adjustable in `src/game/config.js`.
-- **Dynamic Food Production by Big Snakes:** Snakes over length 40 periodically shed extra food orbs behind their tails—the longer the snake, the more food it produces.
-- **Random Map Power-Ups:** Collectible Magnet (`🧲`) and Speed Boost (`⚡`) power-ups spawn randomly across the map with glowing animations and HUD alerts.
-- 30, 40, or 50 rival snakes in Easy, Normal, or Hard, with Hunter, Encircler, Opportunist, and Scavenger behaviors. Difficulty also changes movement speed.
-- Rare glow orbs that grant a short cosmetic trail and three extra segments, plus scattered food rewards when a snake is defeated.
-- **Commercial Mobile Hub & Progression System:**
-  - **Player XP, Levels & Coin Economy:** Earn XP and Coins from matches, food, kills, missions, achievements, and daily login rewards. Level up through 12 rank titles with milestone skin unlocks (Levels 5, 10, 15, 20) and coin bonuses.
-  - **Skin Collection Shop:** Filter all 16 custom-anatomy skins by rarity (*Common*, *Rare*, *Epic*, *Legendary*) or ownership, purchase locked skins with earned Coins, or preview any skin for 1 match via an optional rewarded ad trial.
-  - **Rotating Daily Missions:** 4 daily missions that automatically track in-game progress and reset cleanly at local midnight.
-  - **7-Day Daily Login Rewards:** Persistent 7-day reward calendar awarding Coins, XP boosts, and rare/epic skins.
-  - **12 Career Achievements & Lifetime Stats:** Track and claim rewards for First Dive, First Blood, Arena Survivor, Food Collector, Giant Serpent, King Slayer, Speed Demon, Master Survivor, Centurion, and more.
-  - **Modular Google AdMob & Remove Ads Architecture:** Non-intrusive `AdManager` using official Google test Ad Unit IDs in development (`src/game/config.js`), supporting optional Rewarded Ads (1x Safe Revive, 2x Match Coins, Bonus Chest, 1-Match Skin Trial), frequency-capped Interstitials between matches, non-gameplay menu Banners, and a Google Play Billing–ready *Remove Forced Ads* screen.
-- **Customizable Mobile Controls & Settings:** Virtual Joystick or Direct Drag/Swipe steering, adjustable joystick sensitivity (50%–160%) and size (Small/Medium/Large), Left-Handed ability dock layout, haptic vibration toggle, separate SFX and ambient music controls with master volume slider, and safe Reset Progress confirmation.
-- **Crowned King Snake & Layout:** The #1 longest snake wears a large, screen-responsive glowing crown (`👑`) above its head and appears highlighted on the bottom-right minimap, while a compact live scorecard sits cleanly in the top-right corner; defeating the leader drops double loot. The center danger zone slows snakes and holds a cluster of high-value food.
-- **16 Collectible Player Skins with Custom Anatomy:** Species-inspired and fantasy skins featuring unique head shapes (`cobra` flared hood with spectacle mark, `python` muscular jaw with labial heat pits, `viper` triangular head, `coffin` Black Mamba head, `paddle` sea krait head, `dragon` horned head, and `round`) and scale patterns (`chevron`, `reticulated`, `lightning`, `coral_tricolor`, `diamonds`, `ocelli`, `krait_rings`, `clouded`, `neon_grid`, etc.). Skin progress and selection are saved locally; bot colors stay independent.
-- Wrapped arena movement, touch drag steering, keyboard and mouse controls, pause, and a home button.
-- Adjustable Auto, High, Medium, and Low graphics settings with an optional FPS counter. Auto lowers detail when frame timing stays slow.
-- Mobile-focused rendering with a fixed 60 Hz update step, cached glow/background layers, visible-area culling, and a spatial index for nearby collisions, food, and bot sensors.
+---
 
-## Run in a browser
+## 🎮 Core Gameplay & Arena Mechanics
 
-Open `src/game/index.html` in a modern browser for a quick local play. The same page is copied into `www/` for Android packaging.
+- **8000 × 8000 Toroidal Wraparound World:** Seamless borderless arena where crossing any boundary wraps smoothly to the opposite edge with full camera lerp, dynamic zoom-out as your snake grows, and a live bottom-right circular radar minimap.
+- **Dynamic Snake Thickness & Continuous Tail Rendering:** Serpents dynamically thicken in body and head radius as their length grows (`getSnakeBodyGrowthScale`, `getSnakeHeadGrowthScale`) with subtle agility scaling and continuous tapered tail rendering.
+- **3-Minute Underwater Day & Night Cycle:** Smoothly interpolates across **Dawn (`☼`)**, **Midday (`☀`)**, **Dusk (`◒`)**, and **Night (`☾`)** using smoothstep blending. Purely visual—intensifies neon bioluminescence and plankton glow at night without altering physics or hitboxes.
+- **30 / 40 / 50 Tactical AI Rivals:**
+  - **Easy:** 30 bots (`2.8 px/frame`)
+  - **Normal:** 40 bots (`3.6 px/frame`)
+  - **Hard:** 50 bots (`4.4 px/frame`)
+  - **4 Distinct AI Personalities:** **Hunter (`⚔`)** (predictive route-cutting & tactical Dash interception), **Encircler (`◉`)** (shrinking orbital coil traps), **Opportunist (`✦`)** (close-range cutoffs), and **Scavenger (`◈`)** (high-value death-drop and third-party battle harvesting).
+  - **Progressive AI Scaling & Anti-Spin Watchdog:** Respawning bots scale in starting length as the match progresses, evade larger predators when small, and include an 85-frame anti-spin unstick watchdog.
+- **3 Active Tactical Abilities:**
+  - **👻 Ghost (`1`):** Phase safely through rival snake bodies for `3.0s` (`14s` cooldown).
+  - **🧲 Resource Magnet (`2`):** Pull nearby food orbs toward your head for `5.0s` (`12s` cooldown).
+  - **⚡ Dash (`3`):** Surge at `1.85×` speed for `1.0s` (`8s` cooldown) and emit a radial shockwave that pushes nearby rivals back.
+- **Arena Hotspots, Rare Orbs & Map Power-Ups:**
+  - **Central Danger Zone:** An `850 px`-radius high-gravity maelstrom at the center of the map (`(4000, 4000)`) that slows movement to `0.78×` but spawns a dense cluster of **53 high-value food orbs**.
+  - **Rare Glow Orbs:** Spawn every `40–60s` (lasting `25s`) with an on-screen edge direction pointer, granting **+3 length** and a **6-second cosmetic comet ribbon trail**.
+  - **Collectible Map Power-Ups:** Random **Magnet (`🧲`, 6s, 700px radius)** and **Speed Boost (`⚡`, 5s, 1.6× speed)** items spawn across the arena (up to 3 active simultaneously).
+  - **Big-Snake Food Shedding:** Snakes above length `40` periodically shed bonus food orbs behind their tails every `3s` (capped to prevent late-game lag).
+  - **Crowned #1 King Snake (`👑`):** The longest active snake wears a glowing crown, is tracked on the minimap, and drops **2× double-value loot** when eliminated.
 
-## Play on Android
+---
 
-### Preview with Expo Go
+## 🏆 Commercial Mobile Hub & Progression System (Save Schema v3)
 
-The Expo project is in `expo-preview/`. Install its dependencies, then start the LAN preview:
+- **Player XP, Levels & 14 Rank Titles:** Earn XP and Coins from survival time, food, kills, missions, achievements, and daily rewards. Progress through 14 titles from *Starter Serpent* to *Quantum Immortal*, with automatic milestone skin & coin unlocks at **Levels 5, 10, 12, 15, and 20**.
+- **62 Procedural Custom-Anatomy Skins across 4 Categories & 5 Rarities:**
+  - **Categories:** *Creature (19)*, *Funny & Meme (16)*, *Fantasy (16)*, and *Cyber & Neon (11)*.
+  - **Rarities:** *Common*, *Uncommon*, *Rare*, *Epic*, *Legendary*, and *Mythic*.
+  - **14 Procedural Head Shapes:** `round`, `cobra` (flared hood), `python` (heat pits), `viper`, `coffin`, `paddle`, `dragon` (horns), `arrow`, `pixel`, `duck`, `frog`, `bee` (translucent wings), `chicken` (rooster comb & beak), `crystal`, `samurai`, `phoenix`, `leviathan`.
+  - **8 Eye Styles & 35+ Procedural Patterns/Trails:** `slit`, `googly`, `cute`, `derp`, `sunglasses`, `visor`, `angry`, `glowing` eyes; animated live canvas previews; unlockable via gameplay milestones, Coins, or a **1-Match Free Rewarded Ad Trial**. All skins remain 100% cosmetic with identical hitboxes.
+- **3-Tier Mission System:**
+  - **Daily Missions:** 4 missions drawn from a 10-mission pool, resetting automatically at local midnight.
+  - **Weekly Missions:** 5 high-reward missions drawn from a 7-mission pool, resetting every ISO week.
+  - **Elite Challenges:** 8 permanent high-skill mastery challenges awarding Mythic/Legendary skins (*Phoenix Serpent*, *Cyber Samurai*, *Quantum Serpent*, *Celestial Dragon*, *Ancient Guardian*, *Cosmic Serpent*, *Void Snake*) and exclusive player titles.
+- **42 Career Achievements across 8 Categories:**
+  - *Survival (6)*, *Combat (6)*, *Growth (6)*, *Abilities (5)*, *Collection (5)*, *King Slayer (4)*, *Hard Mode (4)*, and *Secret Achievements (6 hidden challenges)*.
+  - Ranked across *Bronze*, *Silver*, *Gold*, *Diamond*, and *Mythic* tiers with an animated particle-burst **Reward Reveal Modal** and non-intrusive in-match quest completion toasts.
+- **7-Day Daily Login Reward Calendar:** Persistent streak calendar awarding escalating Coin pouches, +350 XP boosts, and guaranteed *Green Anaconda* (Day 6) and *Cyber Neon* (Day 7) skins (or coin fallbacks).
+- **Modular Google AdMob & Privacy-First Consent (`@capacitor-community/admob`):**
+  - Integrated with Google **User Messaging Platform (UMP)** GDPR/privacy consent and Android lifecycle audio suspension.
+  - **Non-Intrusive Placements:** Optional Rewarded Videos (*1× Safe Revive with 3.2s Spawn Shield*, *2× Match Coins*, *+75 Coin Bonus Chest*, *1-Match Skin Trial*), frequency-capped Interstitials between matches (every 3 matches with a 90s cooldown), and adaptive bottom banners on select menu subscreens only—never during active gameplay.
+  - Configurable via `src/game/config.js` (`development` test IDs vs. `production` unit IDs) with a *Remove Forced Ads* option.
+
+---
+
+## ⚡ Engine & Mobile Performance Architecture
+
+- **Fixed 60 Hz Physics Timestep:** Decouples simulation physics (`FIXED_STEP_MS = 16.67ms`) from variable display refresh rates.
+- **$O(1)$ TypedArray Spatial Hash Grid:** Divides the `8000 × 8000` arena into `40 × 40` cells (`200 × 200 px` each) using pre-allocated `Int32Array` and `Float32Array` buffers (`spatialHeads`, `spatialNext`, `spatialX`, `spatialY`, `spatialRadius`) for zero-allocation neighbor lookups across collisions, food pickup, and AI whisker probes.
+- **Zero-GC Object Pooling & Sprite Caching:** Recycles food orbs, burst particles, and floating combat text through pre-warmed pools; pre-renders radial neon glows (`64 × 64` offscreen canvas cache) and low-resolution background sky layers (`320 × 180`).
+- **Auto-Adaptive Graphics Quality:** Monitors rolling frame time (`averageFrameMs`) and automatically steps down from `High` → `Medium` → `Low` if frame time exceeds `25ms`, capping particle budgets (`400` / `260` / `150`) and off-screen simulation rates.
+- **Deferred Save Batching:** Throttles `localStorage` profile serialization during active matches (`flushDeferredProfileSave` every `3000ms` or on pause/game-over) to prevent JSON serialization frame spikes.
+
+---
+
+## 🕹️ Controls & Mobile Ergonomics
+
+| Action | Desktop (Keyboard / Mouse) | Mobile / Touch (Portrait & Landscape) |
+|---|---|---|
+| **Steer** | Mouse Cursor or **A / D** / **ArrowLeft / ArrowRight** | **Virtual Joystick** or **Direct Drag / Swipe** |
+| **Ghost Ability** | Key **1** or click HUD button | Tap **👻 Ghost** multi-touch ability button |
+| **Magnet Ability** | Key **2** or click HUD button | Tap **🧲 Magnet** multi-touch ability button |
+| **Dash Ability** | Key **3** or click HUD button | Tap **⚡ Dash** multi-touch ability button |
+| **Leaderboard** | Top-right live scorecard | Collapsible top-right pill (`👑 Top`) |
+| **Pause / Resume** | **P** or **Spacebar** | Tap **II** pause button or Android **Back** |
+| **Restart Match** | **Enter** on Game Over screen | Tap **Play Again** |
+
+**Mobile Customization (Settings Screen):**
+- Switch between **Virtual Joystick** and **Direct Drag / Swipe** steering.
+- Adjust **Joystick Sensitivity** (`50%–160%`) and **Joystick Size** (*Small*, *Medium*, *Large*).
+- Toggle **Left-Handed Mode** (mirrors the ability dock and joystick ergonomics).
+- Independent **SFX**, **Ambient Music**, **Master Volume (`0%–100%`)**, and **Haptic Vibration** controls.
+
+---
+
+## 🚀 Getting Started
+
+### 1. Run Directly in a Browser
+Open [`src/game/index.html`](src/game/index.html) (or [`www/index.html`](www/index.html)) in any modern desktop or mobile browser. No local server or build step is required for browser play.
+
+### 2. Preview on Mobile with Expo Go
+An Expo Go wrapper is provided in [`expo-preview/`](expo-preview/) for instant LAN testing on physical devices:
 
 ```sh
 cd expo-preview
@@ -41,51 +101,63 @@ npm install
 npm run preview
 ```
 
-Scan the QR code with Expo Go while your phone and computer are on the same Wi-Fi. Keep the development server open while playing. Expo Go is for previews; use the Android app project below for a store release.
+Scan the terminal QR code with **Expo Go** on the same Wi-Fi network.
 
-### Run or build the Android app
-
-Install Node.js 22 or newer, Android Studio, Android SDK Platform 36, and the matching build tools. Then:
+### 3. Build & Run the Native Android App (Capacitor)
+Requires **Node.js 22+**, **JDK 21**, **Android Studio**, and **Android SDK Platform 36**:
 
 ```sh
+# Install dependencies
 npm install
+
+# Sync src/game/ to www/ and generate Android launcher/splash assets
 npm run cap:sync
+
+# Open the Android project in Android Studio
 npm run android:open
+
+# Build a debug APK from the command line
+npm run android:debug
+
+# Build a release Android App Bundle (.aab) for Google Play
+npm run android:bundle
 ```
 
-Run on a connected device from Android Studio. `npm run android:debug` creates a local debug build. For Google Play, generate a signed Android App Bundle (`.aab`) in Android Studio and protect the upload key and passwords. The application ID is `com.muneeb.neonserpents`; keep it unchanged after creating the Play Console app.
+- **Debug APK Output:** `android/app/build/outputs/apk/debug/app-debug.apk`
+- **Release AAB Output:** `android/app/build/outputs/bundle/release/app-release.aab`
+- **Release Signing:** Copy `android/keystore.properties.example` to `android/keystore.properties` (git-ignored) or set `SERPENT_KEYSTORE_FILE`, `SERPENT_KEYSTORE_PASSWORD`, `SERPENT_KEY_ALIAS`, and `SERPENT_KEY_PASSWORD` environment variables.
 
-## Controls
+---
 
-- **Touch:** drag in the direction you want the snake to turn.
-- **Pause:** tap the pause control.
-- **Home:** tap the home icon or use Android Back during a game.
-- **Keyboard:** mouse, A/D or arrow keys to steer; P or Space to pause; Enter to restart after a game ends.
-- **Abilities:** press 1 for Ghost, 2 for Resource Magnet, and 3 for Dash, or tap the HUD buttons.
-
-Choose Easy, Normal, or Hard from the home screen. The game works offline after installation.
-
-Open **Settings** from the home screen to select graphics quality or enable the FPS counter. Auto quality starts Android at Low for smoother gameplay, starts desktop at High, and reduces detail when performance stays below its target.
-
-## Project layout
+## 📂 Project Structure
 
 ```text
-src/game/       Canonical game page, world configuration, privacy policy, and game icon
-assets/         Store artwork and Android launcher icon sources
-scripts/        Web sync and Android icon helpers
-www/            Generated web files consumed by Capacitor
-android/        Capacitor Android Studio project
-expo-preview/   Expo Go wrapper for device previews
+├── src/game/
+│   ├── index.html            # Canonical single-file game engine, UI hub, audio & renderer (~8,000 lines)
+│   ├── config.js             # Shared world, camera, food density & AdMob configuration
+│   ├── privacy-policy.html   # Hosted GDPR/UMP & Google Play Data Safety privacy policy
+│   └── icon.svg              # Vector source icon
+├── www/                      # Generated web bundle consumed by Capacitor (synced via npm run web:sync)
+├── android/                  # Native Capacitor Android Studio project (com.muneeb.neonserpents v3.0.0)
+├── expo-preview/             # Expo Go React Native WebView wrapper for instant mobile LAN testing
+├── scripts/
+│   ├── sync-web-assets.mjs     # Copies src/game/* into www/
+│   └── sync-android-assets.mjs # Generates Android adaptive icons, splash screens & Play Store artwork
+├── assets/                   # Generated 512×512 & 1024×1024 Play Store icons
+├── play-store-listing.md     # Google Play Console store copy, Data Safety & release checklist
+└── package.json              # Build scripts and Capacitor / AdMob dependencies
 ```
 
-Edit the game in `src/game/`. Regenerate the Capacitor web bundle with `npm run web:sync`; update the Android project's assets with `npm run cap:sync`. The Expo preview copies the same source when `npm run preview` starts.
+---
 
-## Privacy and Play Store preparation
+## 🔒 Privacy & Google Play Release Readiness
 
-The game has no accounts, ads, analytics, or external game service. Best times, lengths, and sound preference are stored locally on the device. Review `src/game/privacy-policy.html` and publish it at a stable HTTPS address before submitting it to Google Play. A store copy draft and release checklist are in `play-store-listing.md`.
+- All player progression, skins, mission counters, achievements, and settings are stored locally on the device via `localStorage` (`serpentRun_save_v2`, Schema v3).
+- Review [`src/game/privacy-policy.html`](src/game/privacy-policy.html) and [`play-store-listing.md`](play-store-listing.md) before publishing to Google Play.
+- Before building a production release `.aab`, replace the placeholder AdMob production IDs in [`src/game/config.js`](src/game/config.js) and [`android/app/src/main/res/values/strings.xml`](android/app/src/main/res/values/strings.xml), then switch `ADMOB.environment` to `'production'`.
 
-Before release, build and test a signed `.aab` on real Android devices, create store screenshots and a feature graphic, enter the hosted privacy policy URL, complete Play Console declarations, and use Play App Signing. Store artwork is in `assets/`.
+---
 
-## License
+## 📄 License
 
-MIT. See [LICENSE](LICENSE).
+MIT License — see [LICENSE](LICENSE).
