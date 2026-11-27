@@ -128,10 +128,10 @@ window.GAME_CONFIG = Object.freeze({
       appOpen: 'ca-app-pub-3940256099942544/9257395921'
     }),
     productionIds: Object.freeze({
-      appId: 'ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY',
-      banner: 'ca-app-pub-XXXXXXXXXXXXXXXX/BBBBBBBBBB',
+      appId: 'ca-app-pub-2429367755608627~9936865964',
+      banner: 'ca-app-pub-2429367755608627/5343014834',
       interstitial: 'ca-app-pub-XXXXXXXXXXXXXXXX/IIIIIIIIII',
-      rewarded: 'ca-app-pub-XXXXXXXXXXXXXXXX/RRRRRRRRRR',
+      rewarded: 'ca-app-pub-2429367755608627/1640281386',
       appOpen: 'ca-app-pub-XXXXXXXXXXXXXXXX/OOOOOOOOOO'
     })
   })

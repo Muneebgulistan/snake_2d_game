@@ -1,4 +1,4 @@
-# Google Play Store Compliance & Release Checklist — Serpent Run (`com.muneeb.neonserpents`)
+# Google Play Store Compliance & Release Checklist — Slythox (`com.muneeb.neonserpents`)
 
 Use this checklist when completing your **App Content** declarations in Google Play Console before submitting your production Android App Bundle (`.aab`).
 
@@ -6,7 +6,7 @@ Use this checklist when completing your **App Content** declarations in Google P
 
 ## ⚠️ CRITICAL QUESTION BEFORE YOU SUBMIT: Does the Game Target Children?
 
-> **Action Required — Please confirm whether Serpent Run targets children (under age 13 / Families program) or only General / 13+ audiences:**
+> **Action Required — Please confirm whether Slythox targets children (under age 13 / Families program) or only General / 13+ audiences:**
 >
 > - **Option A: General Audience / 13+ Only (Recommended for standard AdMob monetization)**
 >   - In **Google Play Console → App content → Target audience and content**, select age groups **13–15, 16–17, and 18 and over** only. Do **NOT** select under-13 age groups, and ensure your store listing does not use "designed for kids" claims.
@@ -90,22 +90,25 @@ When filling out the **Content Rating (IARC)** questionnaire in Google Play Cons
 
 ## 5. Manual Pre-Release Steps You Must Complete Before Uploading to Google Play
 
-1. **Set Your Contact Email in the Privacy Policy:**
-   - Open `src/game/privacy-policy.html` (Section 7) and replace `TODO: Replace with your support email before publishing (e.g., support@yourdomain.com)` with your real developer contact email, then run `npm run cap:sync`.
+1. **Set Your Contact Email in the Privacy Policy (Done — `muneebgulistan@gmail.com`):**
+   - `src/game/privacy-policy.html` (Section 7) is configured with `muneebgulistan@gmail.com` and synced to `www/privacy-policy.html`.
    - Host `www/privacy-policy.html` at a public HTTPS URL (e.g., GitHub Pages) and paste that URL into **Google Play Console → App content → Privacy policy**.
-2. **Replace Placeholder Production AdMob IDs:**
-   - In `src/game/config.js`, replace `ADMOB.productionIds` (`banner`, `interstitial`, `rewarded`, `appOpen`) with your real AdMob Ad Unit IDs from the AdMob Console.
-   - In `android/app/src/main/res/values/strings.xml`, replace `admob_app_id` (`ca-app-pub-3940256099942544~3347511713`) with your real AdMob App ID (`ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY`).
-   - Run `npm run cap:sync`.
+2. **AdMob Production Ad Unit IDs (`src/game/config.js` & `strings.xml`):**
+   - **Already Configured:**
+     - App ID (`strings.xml` & `config.js`): `ca-app-pub-2429367755608627~9936865964`
+     - Banner Ad Unit ID: `ca-app-pub-2429367755608627/5343014834`
+     - Rewarded Ad Unit ID: `ca-app-pub-2429367755608627/1640281386`
+   - **Optional:** If you also want Interstitial ads between matches in production, replace `ADMOB.productionIds.interstitial` (`ca-app-pub-XXXXXXXXXXXXXXXX/IIIIIIIIII`) in `src/game/config.js` with your real Interstitial Ad Unit ID and run `npm run cap:sync`. (If left as a placeholder, `AdManager` safely skips interstitial requests in production without crashing or showing test ads).
    - *(Note: `ADMOB.environment` switches automatically between `'development'` in debug builds and `'production'` in release builds via `MainActivity.NativeBuildBridge`—no manual environment toggle is needed).*
-3. **Configure Your Release Signing Keystore (Not Committed to Git):**
-   - Generate a release keystore outside the repo or in `android/` (ignored by `.gitignore`):
-     ```bash
-     keytool -genkeypair -v -storetype PKCS12 -keystore android/serpent-run-release.jks -alias serpent-run -keyalg RSA -keysize 2048 -validity 10000
-     ```
-   - Copy `android/keystore.properties.example` to `android/keystore.properties` and fill in your `storeFile`, `storePassword`, `keyAlias`, and `keyPassword`.
+3. **Release Signing Keystore (`android/serpent-run-release.jks` & `android/keystore.properties` — Ready):**
+   - Pre-generated and configured in `android/serpent-run-release.jks` and `android/keystore.properties` (both git-ignored so credentials are never committed):
+     - **Keystore File:** `android/serpent-run-release.jks` (PKCS#12, 2048-bit RSA, 10,000-day validity)
+     - **Key Alias:** `serpent-run`
+     - **Store / Key Password:** See `android/keystore.properties` (Back up `android/serpent-run-release.jks` and `android/keystore.properties` in a safe place!)
 4. **Configure UMP GDPR Consent Message in AdMob Console:**
    - In your Google AdMob Console, open **Privacy & messaging → European regulations (GDPR)** and publish a consent message for `com.muneeb.neonserpents` so the native UMP SDK presents your consent form automatically to EEA/UK users.
-5. **Build the Signed Release Bundle:**
-   - Run `npm run cap:sync` followed by `npm run android:bundle`.
+5. **Build the Signed Release Bundle (`.aab`):**
+   - Ensure Android Studio (or JDK 17/21 + Android SDK) is installed, then either:
+     - Open the `android/` folder in **Android Studio → Build → Generate Signed App Bundle / APK** (or run Gradle task `bundleRelease`), OR
+     - From terminal with `JAVA_HOME` and `ANDROID_HOME` set, run `npm run cap:sync && npm run android:bundle`.
    - Upload `android/app/build/outputs/bundle/release/app-release.aab` to Google Play Console.

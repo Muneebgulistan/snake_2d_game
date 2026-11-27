@@ -26,7 +26,7 @@ android {
         release {
             def ksFile = keystoreProperties['storeFile'] ?: System.getenv('SERPENT_KEYSTORE_FILE')
             if (ksFile) {
-                storeFile file(ksFile)
+                storeFile rootProject.file(ksFile).exists() ? rootProject.file(ksFile) : file(ksFile)
                 storePassword keystoreProperties['storePassword'] ?: System.getenv('SERPENT_KEYSTORE_PASSWORD')
                 keyAlias keystoreProperties['keyAlias'] ?: System.getenv('SERPENT_KEY_ALIAS')
                 keyPassword keystoreProperties['keyPassword'] ?: System.getenv('SERPENT_KEY_PASSWORD')

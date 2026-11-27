@@ -11,8 +11,10 @@ const config = await readFile(resolve(projectRoot, 'src/game/config.js'), 'utf8'
 const gameJs = await readFile(resolve(projectRoot, 'src/game/game.js'), 'utf8');
 const game = (await readFile(resolve(projectRoot, 'src/game/index.html'), 'utf8'))
   .replace(/<link rel="icon"[^>]*>/, '')
-  .replace('<script src="config.js"></script>', `<script>${config}</script>`)
-  .replace('<script src="game.js"></script>', `<script>${gameJs}</script>`);
+  .replace(/\s*<script src="https:\/\/sdk\.crazygames\.com\/crazygames-sdk-v3\.js"[^>]*><\/script>/gi, '')
+  .replace("script-src 'self'", "script-src 'self' 'unsafe-inline'")
+  .replace('<script src="config.js"></script>', () => `<script>${config}</script>`)
+  .replace('<script src="game.js"></script>', () => `<script>${gameJs}</script>`);
 const privacy = await readFile(resolve(projectRoot, 'src/game/privacy-policy.html'), 'utf8');
 const source = `// Generated from the project-root HTML files by npm run sync:game.\n` +
   `export const GAME_HTML = ${JSON.stringify(game)};\n` +

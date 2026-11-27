@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Serpent Run</string>
-    <string name="title_activity_main">Serpent Run</string>
+    <string name="app_name">Slythox</string>
+    <string name="title_activity_main">Slythox</string>
     <string name="package_name">com.muneeb.neonserpents</string>
     <string name="custom_url_scheme">com.muneeb.neonserpents</string>
-    <!-- Official Google AdMob Test App ID (Replace with your production AdMob App ID before Play Store release) -->
-    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>
+    <!-- Production Google AdMob App ID -->
+    <string name="admob_app_id">ca-app-pub-2429367755608627~9936865964</string>
 </resources>

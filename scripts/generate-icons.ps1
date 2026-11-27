@@ -1,4 +1,4 @@
-Add-Type -AssemblyName System.Drawing
+﻿Add-Type -AssemblyName System.Drawing
 
 $assetDir = Join-Path $PSScriptRoot '..\assets'
 $resDir = Join-Path $PSScriptRoot '..\android\app\src\main\res'
@@ -157,7 +157,7 @@ if (Test-Path $resDir) {
         $format = [System.Drawing.StringFormat]::new()
         $format.Alignment = [System.Drawing.StringAlignment]::Center
         $textRect = [System.Drawing.RectangleF]::new(0, $splashHeight * 0.71, $splashWidth, $fontSize * 1.6)
-        $g.DrawString('NEON SERPENTS', $font, $textBrush, $textRect, $format)
+        $g.DrawString('SLYTHOX', $font, $textBrush, $textRect, $format)
         $format.Dispose(); $textBrush.Dispose(); $font.Dispose(); $g.Dispose()
         $splash.Save($splashPath, [System.Drawing.Imaging.ImageFormat]::Png)
         $splash.Dispose()
@@ -172,5 +172,51 @@ if (Test-Path $resDir) {
     }
 }
 
+# Generate 1024x500 Google Play Feature Graphic
+$featureBmp = [System.Drawing.Bitmap]::new(1024, 500, [System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
+$fg = [System.Drawing.Graphics]::FromImage($featureBmp)
+$fg.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+$fg.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+$fg.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
+
+$fgBg = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
+    [System.Drawing.Rectangle]::new(0, 0, 1024, 500),
+    [System.Drawing.Color]::FromArgb(255, 8, 18, 38),
+    [System.Drawing.Color]::FromArgb(255, 2, 6, 20),
+    30.0
+)
+$fg.FillRectangle($fgBg, 0, 0, 1024, 500)
+$fgBg.Dispose()
+
+$fgAura = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(30, 0, 245, 160))
+$fg.FillEllipse($fgAura, 40, 20, 460, 460)
+$fgAura.Dispose()
+
+$fgAura2 = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(26, 0, 217, 255))
+$fg.FillEllipse($fgAura2, 540, 60, 420, 380)
+$fgAura2.Dispose()
+
+$fg.DrawImage($splashLogo, [System.Drawing.RectangleF]::new(45, 30, 440, 440))
+
+$titleFont = [System.Drawing.Font]::new('Segoe UI', 86, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
+$subFont = [System.Drawing.Font]::new('Segoe UI', 24, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
+$pillFont = [System.Drawing.Font]::new('Segoe UI', 18, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
+
+$titleGlowBrush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(70, 0, 217, 255))
+$titleBrush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 245, 247, 255))
+$accentBrush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 0, 245, 160))
+$subBrush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 165, 243, 252))
+
+$fg.DrawString('SLYTHOX', $titleFont, $titleGlowBrush, 494, 134)
+$fg.DrawString('SLYTHOX', $titleFont, $titleBrush, 490, 130)
+$fg.DrawString('NEON SERPENT ARENA', $subFont, $accentBrush, 496, 242)
+$fg.DrawString('62 Custom Skins  •  50 Levels  •  80+ AI Bots', $pillFont, $subBrush, 496, 292)
+
+$titleFont.Dispose(); $subFont.Dispose(); $pillFont.Dispose()
+$titleGlowBrush.Dispose(); $titleBrush.Dispose(); $accentBrush.Dispose(); $subBrush.Dispose()
+$fg.Dispose()
+$featureBmp.Save((Join-Path $assetDir 'play-store-feature-graphic.png'), [System.Drawing.Imaging.ImageFormat]::Png)
+$featureBmp.Dispose()
+
 $storeIcon.Dispose(); $smallStoreIcon.Dispose(); $splashLogo.Dispose()
-Write-Output 'Created the 512px Play listing icon and Android launcher icons.'
+Write-Output 'Created the 512px Play listing icon, 1024x500 Feature Graphic, and Android launcher/splash icons.'

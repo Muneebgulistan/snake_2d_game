@@ -1,8 +1,8 @@
-# Google Play listing & release checklist — Serpent Run
+# Google Play listing & release checklist — Slythox
 
 ## App name
 
-Serpent Run
+Slythox
 
 ## Short description
 
@@ -10,15 +10,17 @@ Steer, grow, unlock 62 custom snake skins, and outsmart waves of AI serpents!
 
 ## Full description
 
-Dive into **Serpent Run**, a fast-paced 2D arcade snake survival game built for smooth mobile play. Steer through a massive wraparound underwater arena, collect neon fruits and power-ups, trigger tactical abilities, and trap rival AI serpents to claim the crown!
+Dive into **Slythox**, a fast-paced 2D arcade snake survival game built for smooth mobile play. Steer through a massive wraparound underwater arena, collect neon fruits and power-ups, trigger tactical abilities, and trap rival AI serpents to claim the crown!
 
 **Key Features**
 
-- **Speed-Only Difficulty & Scaling AI Waves:** Outmaneuver Hunter, Encircler, Opportunist, and Scavenger snakes across Easy (*Calm currents*), Medium (*Open water*), and Hard (*Deep abyss*) pace modes.
-- **3 Active Abilities & Map Power-Ups:** Phase through danger with **Ghost**, pull in nearby orbs with **Magnet**, or blast rivals back with **Dash**, plus collect random Speed & Magnet map drops.
-- **16 Custom-Anatomy Snake Skins:** Collect Common, Rare, Epic, and Legendary skins—including King Cobra (flared hood), Reticulated Python (labial heat pits), Emerald Tree Boa, Coral Snake, Diamondback, Black Mamba, Sea Krait, Cyber Neon, and Golden Dragon. All skins are 100% cosmetic with identical hitboxes.
-- **Full Progression & Coin Economy:** Earn XP, level up, complete rotating Daily Missions, claim 7-Day Login Rewards, and unlock 12 Career Achievements.
-- **Dynamic Arena Events:** Battle for the high-reward center Danger Zone, hunt Rare Glow Orbs, and dethrone the crowned #1 King Snake for double loot.
+- **2 Complete Game Modes — Endless Arena & 50-Level Campaign:**
+  - **Arena Survival:** Battle up to 80+ scaling AI serpents across an 8000×8000 wraparound neon ocean with dynamic Danger Zones, Rare Glow Orbs, and the #1 King Crown.
+  - **50-Level Walled Campaign:** Conquer 50 handcrafted 60-second stages across 5 themed worlds (*Neon Maze*, *Coral Reef*, *Kelp Forest*, *Volcano Vents*, and *Abyss*) featuring pulsing jellyfish, directional currents, thermal plasma mines, and 3-star mastery rewards.
+- **Speed-Only Difficulty & Smart AI Archetypes:** Outmaneuver Hunter, Encircler, Opportunist, and Scavenger snakes across Easy (*Calm currents*), Medium (*Open water*), and Hard (*Deep abyss*) pace modes.
+- **3 Active Abilities & Map Power-Ups:** Phase through danger with **Ghost**, pull in nearby orbs and fruits with **Magnet**, or surge ahead with **Dash**, plus collect random Speed & Magnet map drops.
+- **62 Custom-Anatomy Snake Skins:** Collect Common, Rare, Epic, and Legendary skins—including King Cobra (flared hood), Reticulated Python, Emerald Tree Boa, Coral Snake, Diamondback, Black Mamba, Sea Krait, Cyber Neon, and Golden Dragon. All skins are 100% cosmetic with identical hitboxes.
+- **Full Progression & Coin Economy:** Earn XP, level up across 100 ranks, complete rotating Daily/Weekly/Elite Missions, claim 7-Day Login Rewards, and unlock 42 Career Achievements across 8 categories.
 - **Customizable Mobile Controls:** Choose between Virtual Joystick or Direct Drag/Swipe steering, adjust sensitivity and joystick size, enable Left-Handed mode, and toggle haptic vibration.
 - **Play Offline Anytime:** Core gameplay and local save progression work completely offline with no account required.
 
@@ -34,6 +36,6 @@ Dive into **Serpent Run**, a fast-paced 2D arcade snake survival game built for 
 
 ## Store artwork checklist
 
-- 512 × 512 high-res icon: `assets/play-store-icon.png` (and 1024 × 1024 source in `assets/play-store-icon-1024.png`).
-- Capture 4–8 genuine 16:9 or 9:16 screenshots showing the Main Menu, Skin Collection, Active Arena Gameplay (King Crown + Abilities), and Game Over summary.
-- Upload a 1024 × 500 Feature Graphic in Play Console.
+- **512 × 512 high-res icon:** `assets/play-store-icon.png` (and 1024 × 1024 source in `assets/play-store-icon-1024.png`).
+- **1024 × 500 Feature Graphic:** `assets/play-store-feature-graphic.png` (ready to upload).
+- **Screenshots:** Capture 4–8 genuine 16:9 or 9:16 screenshots showing the Main Menu, 50-Level Campaign Map, 62-Skin Vault, Active Arena Gameplay (King Crown + Abilities), and Game Over summary.

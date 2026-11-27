@@ -18,6 +18,16 @@ async function copyTree(sourceDir, targetDir) {
 }
 
 await copyTree(webDir, publicDir);
+
+// Strip web-only CrazyGames SDK script tag and CSP origins from the packaged Android WebView HTML
+const androidIndexHtmlPath = join(publicDir, 'index.html');
+let androidIndexHtml = await (await import('node:fs/promises')).readFile(androidIndexHtmlPath, 'utf8');
+androidIndexHtml = androidIndexHtml
+  .replace(/\s*<script src="https:\/\/sdk\.crazygames\.com\/crazygames-sdk-v3\.js"[^>]*><\/script>/gi, '')
+  .replace(/https:\/\/sdk\.crazygames\.com\s*/g, '')
+  .replace(/https:\/\/\*\.crazygames\.com\s*/g, '');
+await writeFile(androidIndexHtmlPath, androidIndexHtml, 'utf8');
+
 await copyFile(join(projectDir, 'capacitor.config.json'), join(androidAssets, 'capacitor.config.json'));
 
 // Ensure Capacitor native plugins registry is always up to date for Android WebView bridge
